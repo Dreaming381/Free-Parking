@@ -13,13 +13,15 @@ using UnityEngine.TextCore.Text;
 
 namespace Latios.Calligraphics.Authoring
 {
+    [DisallowMultipleComponent]
+    [AddComponentMenu("Latios/Calligraphics/Text Renderer")]
     public class TextRendererAuthoring : MonoBehaviour
     {
         [Multiline]
         public string text;
 
-        public float fontSize = 12f;
-        public Color32 Color = UnityEngine.Color.white;
+        public float   fontSize = 12f;
+        public Color32 Color    = UnityEngine.Color.white;
 
         public List<FontMaterialPair> fontsAndMaterials;
     }
