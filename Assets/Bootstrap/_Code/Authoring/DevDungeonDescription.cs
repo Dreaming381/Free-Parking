@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace FreeParking
+namespace FreeParking.Authoring
 {
     public class DevDungeonDescription : ScriptableObject
     {
