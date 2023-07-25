@@ -5,15 +5,24 @@ using Unity.Mathematics;
 
 namespace FreeParking
 {
+    /// <summary>
+    /// Lives on the SceneBlackboardEntity. If present, the game is paused.
+    /// </summary>
     public struct PausedTag : IComponentData { }
 
+    /// <summary>
+    /// Lives on the SceneBlackboardEntity.
+    /// </summary>
     public struct CurrentDevDungeonDescription : IComponentData
     {
         public BlobAssetReference<DevDungeonDescriptionBlob> currentDevDungeonDescriptionBlob;
-        public bool                                          isFirstFrame;
-        public bool                                          isLastFrame;
 
-        public unsafe bool currentDevDungeonPathStartsWith(ref FixedString128Bytes testString)
+        /// <summary>
+        /// Call this in OnNewScene and cache the result. Use the result in OnShouldUpdate()
+        /// </summary>
+        /// <param name="testString"></param>
+        /// <returns></returns>
+        public unsafe bool CurrentDevDungeonPathStartsWith(ref FixedString128Bytes testString)
         {
             if (currentDevDungeonDescriptionBlob == BlobAssetReference<DevDungeonDescriptionBlob>.Null)
                 return false;
@@ -23,21 +32,6 @@ namespace FreeParking
 
             return UnsafeUtility.MemCmp(testString.GetUnsafePtr(), currentDevDungeonDescriptionBlob.Value.nameWithPath.GetUnsafePtr(), testString.Length) == 0;
         }
-
-        public bool TestShouldUpdateSystem(ref bool cachedBoolFieldDefaultFalse, ref FixedString128Bytes testString)
-        {
-            if (!isFirstFrame && !isLastFrame)
-                return cachedBoolFieldDefaultFalse;
-
-            if (isFirstFrame)
-            {
-                cachedBoolFieldDefaultFalse = currentDevDungeonPathStartsWith(ref testString);
-                return cachedBoolFieldDefaultFalse;
-            }
-
-            cachedBoolFieldDefaultFalse = false;
-            return false;
-        }
     }
 
     public struct DevDungeonDescriptionBlob
@@ -46,6 +40,7 @@ namespace FreeParking
         public BlobArray<byte>             displayName;
         public BlobArray<BlobArray<byte> > creators;
         public BlobArray<byte>             description;
+        public FixedString128Bytes         entrySceneName;
     }
 }
 

@@ -14,6 +14,9 @@ namespace FreeParking.Authoring
         [Tooltip("The display name of the dev dungeon that the player sees.")]
         public string devDungeonDisplayName;
 
+        [Tooltip("The name of the initial scene the Dev Dungeon should load into")]
+        public string devDungeonInitialScene;
+
         [Tooltip("The creator(s) of the dev dungeon.")]
         public List<string> creators;
 

@@ -4,66 +4,69 @@ using Latios;
 using Latios.Authoring;
 using Unity.Entities;
 
-[UnityEngine.Scripting.Preserve]
-public class LatiosBakingBootstrap : ICustomBakingBootstrap
+namespace FreeParking.Bootstrap
 {
-    public void InitializeBakingForAllWorlds(ref CustomBakingBootstrapContext context)
+    [UnityEngine.Scripting.Preserve]
+    public class LatiosBakingBootstrap : ICustomBakingBootstrap
     {
-        Latios.Transforms.Authoring.TransformsBakingBootstrap.InstallLatiosTransformsBakers(ref context);
-        Latios.Psyshock.Authoring.PsyshockBakingBootstrap.InstallUnityColliderBakers(ref context);
-        Latios.Kinemation.Authoring.KinemationBakingBootstrap.InstallKinemationBakersAndSystems(ref context);
-        Latios.Kinemation.Authoring.KinemationBakingBootstrap.InstallMecanimBakersAndSystems(ref context);
+        public void InitializeBakingForAllWorlds(ref CustomBakingBootstrapContext context)
+        {
+            Latios.Transforms.Authoring.TransformsBakingBootstrap.InstallLatiosTransformsBakers(ref context);
+            Latios.Psyshock.Authoring.PsyshockBakingBootstrap.InstallUnityColliderBakers(ref context);
+            Latios.Kinemation.Authoring.KinemationBakingBootstrap.InstallKinemationBakersAndSystems(ref context);
+            Latios.Kinemation.Authoring.KinemationBakingBootstrap.InstallMecanimBakersAndSystems(ref context);
+        }
     }
-}
 
-[UnityEngine.Scripting.Preserve]
-public class LatiosEditorBootstrap : ICustomEditorBootstrap
-{
-    public World InitializeOrModify(World defaultEditorWorld)
+    [UnityEngine.Scripting.Preserve]
+    public class LatiosEditorBootstrap : ICustomEditorBootstrap
     {
-        var world                        = new LatiosWorld(defaultEditorWorld.Name);
-        world.zeroToleranceForExceptions = true;
+        public World InitializeOrModify(World defaultEditorWorld)
+        {
+            var world                        = new LatiosWorld(defaultEditorWorld.Name);
+            world.zeroToleranceForExceptions = true;
 
-        var systems = DefaultWorldInitialization.GetAllSystemTypeIndices(WorldSystemFilterFlags.Default, true);
-        BootstrapTools.InjectSystems(systems, world, world.simulationSystemGroup);
+            var systems = DefaultWorldInitialization.GetAllSystemTypeIndices(WorldSystemFilterFlags.Default, true);
+            BootstrapTools.InjectSystems(systems, world, world.simulationSystemGroup);
 
-        Latios.Transforms.TransformsBootstrap.InstallTransforms(world, world.simulationSystemGroup);
-        Latios.Kinemation.KinemationBootstrap.InstallKinemation(world);
-        Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphics(world);
+            Latios.Transforms.TransformsBootstrap.InstallTransforms(world, world.simulationSystemGroup);
+            Latios.Kinemation.KinemationBootstrap.InstallKinemation(world);
+            Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphics(world);
 
-        return world;
+            return world;
+        }
     }
-}
 
-[UnityEngine.Scripting.Preserve]
-public class LatiosBootstrap : ICustomBootstrap
-{
-    public bool Initialize(string defaultWorldName)
+    [UnityEngine.Scripting.Preserve]
+    public class LatiosBootstrap : ICustomBootstrap
     {
-        var world                             = new LatiosWorld(defaultWorldName);
-        World.DefaultGameObjectInjectionWorld = world;
-        world.useExplicitSystemOrdering       = true;
-        world.zeroToleranceForExceptions      = true;
+        public bool Initialize(string defaultWorldName)
+        {
+            var world                             = new LatiosWorld(defaultWorldName);
+            World.DefaultGameObjectInjectionWorld = world;
+            world.useExplicitSystemOrdering       = true;
+            world.zeroToleranceForExceptions      = true;
 
-        var systems = DefaultWorldInitialization.GetAllSystemTypeIndices(WorldSystemFilterFlags.Default);
+            var systems = DefaultWorldInitialization.GetAllSystemTypeIndices(WorldSystemFilterFlags.Default);
 
-        BootstrapTools.InjectUnitySystems(systems, world, world.simulationSystemGroup);
+            BootstrapTools.InjectUnitySystems(systems, world, world.simulationSystemGroup);
 
-        CoreBootstrap.InstallSceneManager(world);
-        Latios.Transforms.TransformsBootstrap.InstallTransforms(world, world.simulationSystemGroup);
-        Latios.Myri.MyriBootstrap.InstallMyri(world);
-        Latios.Kinemation.KinemationBootstrap.InstallKinemation(world);
-        Latios.Kinemation.KinemationBootstrap.InstallMecanimFeatures(world);
-        Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphics(world);
+            CoreBootstrap.InstallSceneManager(world);
+            Latios.Transforms.TransformsBootstrap.InstallTransforms(world, world.simulationSystemGroup);
+            Latios.Myri.MyriBootstrap.InstallMyri(world);
+            Latios.Kinemation.KinemationBootstrap.InstallKinemation(world);
+            Latios.Kinemation.KinemationBootstrap.InstallMecanimFeatures(world);
+            Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphics(world);
 
-        BootstrapTools.InjectRootSuperSystems(systems, world, world.simulationSystemGroup);
+            BootstrapTools.InjectRootSuperSystems(systems, world, world.simulationSystemGroup);
 
-        world.initializationSystemGroup.SortSystems();
-        world.simulationSystemGroup.SortSystems();
-        world.presentationSystemGroup.SortSystems();
+            world.initializationSystemGroup.SortSystems();
+            world.simulationSystemGroup.SortSystems();
+            world.presentationSystemGroup.SortSystems();
 
-        ScriptBehaviourUpdateOrder.AppendWorldToCurrentPlayerLoop(world);
-        return true;
+            ScriptBehaviourUpdateOrder.AppendWorldToCurrentPlayerLoop(world);
+            return true;
+        }
     }
 }
 
