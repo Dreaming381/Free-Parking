@@ -1,3 +1,5 @@
+using System;
+using Latios;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
@@ -5,11 +7,6 @@ using Unity.Mathematics;
 
 namespace FreeParking
 {
-    /// <summary>
-    /// Lives on the SceneBlackboardEntity. If present, the game is paused.
-    /// </summary>
-    public struct PausedTag : IComponentData { }
-
     /// <summary>
     /// Lives on the SceneBlackboardEntity.
     /// </summary>
@@ -22,7 +19,7 @@ namespace FreeParking
         /// </summary>
         /// <param name="testString"></param>
         /// <returns></returns>
-        public unsafe bool CurrentDevDungeonPathStartsWith(ref FixedString128Bytes testString)
+        public unsafe bool CurrentDevDungeonPathStartsWith(ref FixedString512Bytes testString)
         {
             if (currentDevDungeonDescriptionBlob == BlobAssetReference<DevDungeonDescriptionBlob>.Null)
                 return false;
@@ -36,11 +33,56 @@ namespace FreeParking
 
     public struct DevDungeonDescriptionBlob
     {
-        public BlobArray<byte>             nameWithPath;
-        public BlobArray<byte>             displayName;
-        public BlobArray<BlobArray<byte> > creators;
-        public BlobArray<byte>             description;
-        public FixedString128Bytes         entrySceneName;
+        public BlobArray<byte>                nameWithPath;
+        public BlobArray<byte>                displayName;
+        public BlobArray<BlobArray<byte> >    creators;
+        public BlobArray<byte>                description;
+        public BlobArray<UnityEngine.Color32> thumbnail;
+        public int2                           thumbnailDimensions;
+        public FixedString128Bytes            entrySceneName;
+    }
+
+    public interface IPauseMenuDevDungeon
+    {
+        void Init(EntityManager entityManager, LatiosWorldUnmanaged latiosWorld, BlobAssetReference<DevDungeonDescriptionBlob> description);
+        void SetEnabled(bool enabled);
+    }
+
+    /// <summary>
+    /// Lives on the SceneBlackboardEntity.
+    /// </summary>
+    public struct DevDungeonPauseMenuPrefab : ISharedComponentData, IEquatable<DevDungeonPauseMenuPrefab>
+    {
+        public UnityEngine.GameObject pauseMenuPrefab;
+
+        public bool Equals(DevDungeonPauseMenuPrefab other)
+        {
+            return pauseMenuPrefab.Equals(other.pauseMenuPrefab);
+        }
+
+        public override int GetHashCode()
+        {
+            return pauseMenuPrefab.GetHashCode();
+        }
+    }
+
+    /// <summary>
+    /// Lives on the SceneBlackboardEntity.
+    /// </summary>
+    public partial struct DevDungeonPauseMenu : IManagedStructComponent
+    {
+        public UnityEngine.GameObject pauseMenuGameObject;
+        public IPauseMenuDevDungeon   entryPoint;
+
+        public void Dispose()
+        {
+            if (pauseMenuGameObject != null)
+            {
+                UnityEngine.Object.Destroy(pauseMenuGameObject);
+                pauseMenuGameObject = null;
+                entryPoint          = null;
+            }
+        }
     }
 }
 

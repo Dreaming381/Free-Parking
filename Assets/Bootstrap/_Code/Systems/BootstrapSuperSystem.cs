@@ -17,6 +17,7 @@ namespace FreeParking.Bootstrap.Systems
         {
             GetOrCreateAndAddManagedSystem<ProcessBootstrapInputCommandsSystem>();
             GetOrCreateAndAddUnmanagedSystem<DisableMecanimOnPauseSystem>();
+            GetOrCreateAndAddUnmanagedSystem<ShowPauseMenuSystem>();
         }
     }
 }
