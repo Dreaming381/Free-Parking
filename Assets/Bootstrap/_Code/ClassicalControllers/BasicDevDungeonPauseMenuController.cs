@@ -91,6 +91,21 @@ namespace FreeParking
         {
             Destroy(m_thumbnailTexture);
         }
+
+        public virtual void OnResumePressed()
+        {
+            m_latiosWorldUnmanaged.syncPoint.CreateEntityCommandBuffer().RemoveComponent<PausedTag>(m_latiosWorldUnmanaged.sceneBlackboardEntity);
+            m_latiosWorldUnmanaged.syncPoint.AddMainThreadCompletionForProducer();
+        }
+
+        public virtual void OnExitDungeonPressed()
+        {
+            m_latiosWorldUnmanaged.syncPoint.CreateEntityCommandBuffer().AddComponent(m_latiosWorldUnmanaged.sceneBlackboardEntity, new RequestLoadScene
+            {
+                newScene = "Main World Scene"
+            });
+            m_latiosWorldUnmanaged.syncPoint.AddMainThreadCompletionForProducer();
+        }
     }
 }
 
