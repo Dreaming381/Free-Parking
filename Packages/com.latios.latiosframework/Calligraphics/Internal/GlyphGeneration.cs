@@ -38,11 +38,18 @@ namespace Latios.Calligraphics
                 //Handle line break
                 if (unicode.value == 10)  //Line feed
                 {
-                    var glyphsLine = renderGlyphs.AsNativeArray().GetSubArray(startOfLineGlyphIndex, renderGlyphs.Length - startOfLineGlyphIndex);
+                    var glyphsLine   = renderGlyphs.AsNativeArray().GetSubArray(startOfLineGlyphIndex, renderGlyphs.Length - startOfLineGlyphIndex);
+                    var overrideMode = baseConfiguration.alignMode;
+                    if ((overrideMode & AlignMode.HorizontalMask) == AlignMode.Justified)
+                    {
+                        // Don't perform justified spacing for the last line in the paragraph.
+                        overrideMode &= ~AlignMode.HorizontalMask;
+                        overrideMode |= AlignMode.Left;
+                    }
                     ApplyHorizontalAlignmentToGlyphs(ref glyphsLine,
                                                      ref characterGlyphIndicesWithPreceedingSpacesInLine,
                                                      baseConfiguration.maxLineWidth,
-                                                     baseConfiguration.alignMode);
+                                                     overrideMode);
                     lineCount++;
                     cumulativeOffset.x  = 0;
                     cumulativeOffset.y -= font.lineHeight * font.baseScale * baseConfiguration.fontSize;
@@ -162,7 +169,7 @@ namespace Latios.Calligraphics
                         unicode.value == 8204 ||  //Zero width non-joiner
                         unicode.value == 8205)  //Zero width joiner
                     {
-                        lastWordStartCharacterGlyphIndex = characterCount;
+                        lastWordStartCharacterGlyphIndex = renderGlyphs.Length;
                     }
                     if (unicode.value == 32)
                     {
@@ -175,14 +182,16 @@ namespace Latios.Calligraphics
             }
 
             var finalGlyphsLine = renderGlyphs.AsNativeArray().GetSubArray(startOfLineGlyphIndex, renderGlyphs.Length - startOfLineGlyphIndex);
-            var overrideMode    = baseConfiguration.alignMode;
-            if ((overrideMode & AlignMode.HorizontalMask) == AlignMode.Justified)
             {
-                // Don't perform justified spacing for the last line.
-                overrideMode &= ~AlignMode.HorizontalMask;
-                overrideMode |= AlignMode.Left;
+                var overrideMode = baseConfiguration.alignMode;
+                if ((overrideMode & AlignMode.HorizontalMask) == AlignMode.Justified)
+                {
+                    // Don't perform justified spacing for the last line.
+                    overrideMode &= ~AlignMode.HorizontalMask;
+                    overrideMode |= AlignMode.Left;
+                }
+                ApplyHorizontalAlignmentToGlyphs(ref finalGlyphsLine, ref characterGlyphIndicesWithPreceedingSpacesInLine, baseConfiguration.maxLineWidth, overrideMode);
             }
-            ApplyHorizontalAlignmentToGlyphs(ref finalGlyphsLine, ref characterGlyphIndicesWithPreceedingSpacesInLine, baseConfiguration.maxLineWidth, overrideMode);
             lineCount++;
             ApplyVerticalAlignmentToGlyphs(ref renderGlyphs, lineCount, baseConfiguration.alignMode, ref font, baseConfiguration.fontSize);
         }

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5af374ba47d300e4887aa7f1408c5778, type: 3}
+  m_Name: WelcomeToDevDungeonsDesc
+  m_EditorClassIdentifier: 
+  groupNameOrPath: DreamingImLatios
+  devDungeonName: WelcomeToDevDungeons
+  devDungeonDisplayName: Welcome to Dev Dungeons
+  initialScene: DreamingImLatios_WelcomeToDevDungeons
+  creators:
+  - Dreaming I'm Latios
+  thumbnail: {fileID: 0}
+  description: 'Welcome to Dev Dungeons!
+
+
+    This dungeon shows off Caligraphics
+    text.
+
+
+    Reminder: Escape pauses the game, and ctrl + backspace force-exits
+    the dungeon.
+
+
+    For gamepad players, Start pauses the game and Start + Select
+    force-exits the dungeon.'

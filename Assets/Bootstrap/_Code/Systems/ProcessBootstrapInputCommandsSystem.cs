@@ -36,10 +36,10 @@ namespace FreeParking.Bootstrap.Systems
 
             if (hitPause)
             {
-                if (worldBlackboardEntity.HasComponent<PausedTag>())
-                    worldBlackboardEntity.RemoveComponent<PausedTag>();
+                if (sceneBlackboardEntity.HasComponent<PausedTag>())
+                    sceneBlackboardEntity.RemoveComponent<PausedTag>();
                 else
-                    worldBlackboardEntity.AddComponent<PausedTag>();
+                    sceneBlackboardEntity.AddComponent<PausedTag>();
             }
             if (hitLeave)
             {

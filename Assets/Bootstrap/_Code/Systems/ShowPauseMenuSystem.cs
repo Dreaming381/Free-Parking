@@ -117,7 +117,7 @@ namespace FreeParking.Bootstrap.Systems
                 if (menu.pauseMenuGameObject != null && menu.entryPoint != null)
                     menu.entryPoint.SetEnabled(false);
             }
-            else if (latiosWorld.sceneBlackboardEntity.HasManagedStructComponent<MainWorldPauseMenu>())
+            else if (latiosWorld.sceneBlackboardEntity.HasManagedStructComponent<DevDungeonPauseMenu>())
             {
                 var menu = latiosWorld.sceneBlackboardEntity.GetManagedStructComponent<DevDungeonPauseMenu>();
                 if (menu.pauseMenuGameObject != null && menu.entryPoint != null)

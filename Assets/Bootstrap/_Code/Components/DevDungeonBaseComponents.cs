@@ -19,7 +19,7 @@ namespace FreeParking
         /// </summary>
         /// <param name="testString"></param>
         /// <returns></returns>
-        public unsafe bool CurrentDevDungeonPathStartsWith(ref FixedString512Bytes testString)
+        public unsafe bool CurrentDevDungeonPathStartsWith(FixedString512Bytes testString)
         {
             if (currentDevDungeonDescriptionBlob == BlobAssetReference<DevDungeonDescriptionBlob>.Null)
                 return false;
@@ -57,6 +57,9 @@ namespace FreeParking
 
         public bool Equals(DevDungeonPauseMenuPrefab other)
         {
+            if (pauseMenuPrefab == null)
+                return other.pauseMenuPrefab == null;
+
             return pauseMenuPrefab.Equals(other.pauseMenuPrefab);
         }
 

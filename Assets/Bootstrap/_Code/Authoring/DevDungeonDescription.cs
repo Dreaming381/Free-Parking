@@ -7,6 +7,7 @@ using UnityEngine;
 
 namespace FreeParking.Authoring
 {
+    [CreateAssetMenu(fileName = "NewDevDungeonDescription", menuName = "Free Parking/Dev Dungeon Description", order = 0)]
     public class DevDungeonDescription : ScriptableObject
     {
         [Tooltip("The name of the group creating the Dev Dungeon. Additional subgroups for organization can be added with '/' delineation.")]
@@ -28,7 +29,7 @@ namespace FreeParking.Authoring
         public Texture2D thumbnail;
 
         [Tooltip("Short description of the dev dungeon.")]
-        [TextArea]
+        [TextArea(10, 10)]
         public string description;
 
         public unsafe BlobAssetReference<DevDungeonDescriptionBlob> BakeIntoBlob(ref BlobBuilder builder)

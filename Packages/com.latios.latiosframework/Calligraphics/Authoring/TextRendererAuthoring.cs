@@ -91,6 +91,8 @@ namespace Latios.Calligraphics.Authoring
 
         void AddFontRendering(Entity entity, FontMaterialPair fontMaterialPair)
         {
+            if (fontMaterialPair.font == null)
+                return;
             DependsOn(fontMaterialPair.font);
             DependsOn(fontMaterialPair.material);
             var layer = GetLayer();
