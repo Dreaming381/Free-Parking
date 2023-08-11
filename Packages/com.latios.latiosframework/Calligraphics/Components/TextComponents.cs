@@ -29,6 +29,26 @@ namespace Latios.Calligraphics
     {
         public byte element;
     }
+    
+    [InternalBufferCapacity(0)]
+    public struct CharacterToRenderGlyphMap : IBufferElementData
+    {
+        public int glyphIndex;
+    }
+
+    [InternalBufferCapacity(0)]
+    public struct LineToCharacterMap : IBufferElementData
+    {
+        public int charIndex;
+    }
+
+    [InternalBufferCapacity(0)]
+    public struct WordToCharacterMap : IBufferElementData
+    {
+        public int charIndex;
+    }
+
+    
 
     public enum AlignMode : byte
     {

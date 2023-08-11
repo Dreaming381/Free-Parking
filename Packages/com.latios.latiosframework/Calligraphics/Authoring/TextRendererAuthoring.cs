@@ -65,8 +65,8 @@ namespace Latios.Calligraphics.Authoring
 
             var entity = GetEntity(TransformUsageFlags.Renderable);
 
+            //Fonts
             AddFontRendering(entity, authoring.fontsAndMaterials[0]);
-
             if (authoring.fontsAndMaterials.Count > 1)
             {
                 var additionalEntities = AddBuffer<AdditionalFontMaterialEntity>(entity).Reinterpret<Entity>();
@@ -78,6 +78,7 @@ namespace Latios.Calligraphics.Authoring
                 }
             }
 
+            //Text Content
             var calliString = new CalliString(AddBuffer<CalliByte>(entity));
             calliString.Append(authoring.text);
             AddComponent(entity, new TextBaseConfiguration
@@ -87,6 +88,11 @@ namespace Latios.Calligraphics.Authoring
                 maxLineWidth = math.select(float.MaxValue, authoring.maxLineWidth, authoring.wordWrap),
                 alignMode    = (AlignMode)(((byte)authoring.horizontalAlignment) | ((byte)authoring.verticalAlignment))
             });
+            
+            //Text Metrics
+            AddBuffer<CharacterToRenderGlyphMap>(entity);
+            AddBuffer<WordToCharacterMap>(entity);
+            AddBuffer<LineToCharacterMap>(entity);
         }
 
         void AddFontRendering(Entity entity, FontMaterialPair fontMaterialPair)

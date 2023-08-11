@@ -30,6 +30,9 @@ namespace Latios.Calligraphics.Systems
             m_singleFontQuery = state.Fluent()
                                 .WithAll<FontBlobReference>(    true)
                                 .WithAll<RenderGlyph>(          false)
+                                .WithAll<CharacterToRenderGlyphMap>(          false)
+                                .WithAll<WordToCharacterMap>(          false)
+                                .WithAll<LineToCharacterMap>(          false)
                                 .WithAll<CalliByte>(            true)
                                 .WithAll<TextBaseConfiguration>(true)
                                 .WithAll<TextRenderControl>(    false)
@@ -44,6 +47,9 @@ namespace Latios.Calligraphics.Systems
                 calliByteHandle             = GetBufferTypeHandle<CalliByte>(true),
                 textRenderControlHandle     = GetComponentTypeHandle<TextRenderControl>(false),
                 renderGlyphHandle           = GetBufferTypeHandle<RenderGlyph>(false),
+                characterMapHandle          = GetBufferTypeHandle<CharacterToRenderGlyphMap>(false),
+                wordStartHandle             = GetBufferTypeHandle<WordToCharacterMap>(false),
+                lineStartHandle             = GetBufferTypeHandle<LineToCharacterMap>(false),
                 textBaseConfigurationHandle = GetComponentTypeHandle<TextBaseConfiguration>(true),
                 fontBlobReferenceHandle     = GetComponentTypeHandle<FontBlobReference>(true),
             }.ScheduleParallel(m_singleFontQuery, state.Dependency);
@@ -53,6 +59,9 @@ namespace Latios.Calligraphics.Systems
         public partial struct Job : IJobChunk
         {
             public BufferTypeHandle<RenderGlyph>          renderGlyphHandle;
+            public BufferTypeHandle<CharacterToRenderGlyphMap>            characterMapHandle;
+            public BufferTypeHandle<WordToCharacterMap>            wordStartHandle;
+            public BufferTypeHandle<LineToCharacterMap>            lineStartHandle;
             public ComponentTypeHandle<TextRenderControl> textRenderControlHandle;
 
             [ReadOnly]
@@ -64,12 +73,18 @@ namespace Latios.Calligraphics.Systems
 
             [NativeDisableContainerSafetyRestriction]
             private NativeList<RichTextTag> m_richTextTags;
+            
+            [NativeDisableParallelForRestriction]
+            private GlyphMappingWriter m_glyphMappingWriter;
 
             [BurstCompile]
             public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
             {
                 var calliBytesBuffers      = chunk.GetBufferAccessor(ref calliByteHandle);
                 var renderGlyphBuffers     = chunk.GetBufferAccessor(ref renderGlyphHandle);
+                var characterMapBuffers    = chunk.GetBufferAccessor(ref characterMapHandle);
+                var wordStartBuffers       = chunk.GetBufferAccessor(ref wordStartHandle);
+                var lineStartBuffers       = chunk.GetBufferAccessor(ref lineStartHandle);
                 var textBaseConfigurations = chunk.GetNativeArray(ref textBaseConfigurationHandle);
                 var fontBlobReferences     = chunk.GetNativeArray(ref fontBlobReferenceHandle);
                 var textRenderControls     = chunk.GetNativeArray(ref textRenderControlHandle);
@@ -78,9 +93,14 @@ namespace Latios.Calligraphics.Systems
                 {
                     var calliBytes            = calliBytesBuffers[indexInChunk];
                     var renderGlyphs          = renderGlyphBuffers[indexInChunk];
+                    var characterMaps            = characterMapBuffers[indexInChunk];
+                    var lineStarts            = lineStartBuffers[indexInChunk];
+                    var wordStarts            = wordStartBuffers[indexInChunk];
                     var fontBlobReference     = fontBlobReferences[indexInChunk];
                     var textBaseConfiguration = textBaseConfigurations[indexInChunk];
                     var textRenderControl     = textRenderControls[indexInChunk];
+                    
+                    m_glyphMappingWriter = GlyphMappingWriter.Create(ref characterMaps, ref wordStarts, ref lineStarts);
 
                     if (!m_richTextTags.IsCreated)
                     {
@@ -89,7 +109,7 @@ namespace Latios.Calligraphics.Systems
 
                     RichTextParser.ParseTags(ref m_richTextTags, calliBytes);
 
-                    GlyphGeneration.CreateRenderGlyphs(ref renderGlyphs, ref fontBlobReference.blob.Value, in calliBytes, in textBaseConfiguration, ref m_richTextTags);
+                    GlyphGeneration.CreateRenderGlyphs(ref renderGlyphs, ref m_glyphMappingWriter, ref fontBlobReference.blob.Value, in calliBytes, in textBaseConfiguration, ref m_richTextTags);
 
                     textRenderControl.flags          = TextRenderControl.Flags.Dirty;
                     textRenderControls[indexInChunk] = textRenderControl;

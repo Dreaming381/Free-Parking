@@ -11,12 +11,14 @@ namespace Latios.Calligraphics
     public static class GlyphGeneration
     {
         internal static unsafe void CreateRenderGlyphs(ref DynamicBuffer<RenderGlyph> renderGlyphs,
+                                                       ref GlyphMappingWriter mappingWriter,
                                                        ref FontBlob font,
                                                        in DynamicBuffer<CalliByte>    calliBytes,
                                                        in TextBaseConfiguration baseConfiguration,
                                                        ref NativeList<RichTextTag>    tags)
         {
             renderGlyphs.Clear();
+            mappingWriter.Clear();
 
             float2                 cumulativeOffset                                = new float2();  // Tracks text progression and word wrap
             float2                 adjustmentOffset                                = new float2();  //Tracks placement adjustments
@@ -27,13 +29,33 @@ namespace Latios.Calligraphics
             int                    startOfLineGlyphIndex                           = 0;
             bool                   prevWasSpace                                    = false;
             int                    lineCount                                       = 0;
+            bool                   isLineStart                                     = true;
 
-            var characterEnumerator = new RichTextInfluenceCharEnumerator(tags, calliBytes);
+            var calliString = new CalliString(calliBytes);
+            
+            //Prepopulate the character mapping
+            for (int i = 0; i < calliString.Length; i++)
+            {
+                mappingWriter.AddCharacterToRenderGlyphMap(-1);
+            }
+
+            var characterEnumerator = new RichTextInfluenceCharEnumerator(tags, calliString);
+
 
             while (characterEnumerator.MoveNext())
             {
                 var unicode = characterEnumerator.Current.character;
                 characterCount++;
+
+                if (isLineStart)
+                {
+                    isLineStart = false;
+                    mappingWriter.AddLineStart(characterEnumerator.CurrentCharIndex);
+                    if (!prevWasSpace)
+                    {
+                        mappingWriter.AddWordStart(characterEnumerator.CurrentCharIndex);
+                    }
+                }
 
                 //Handle line break
                 if (unicode.value == 10)  //Line feed
@@ -51,6 +73,8 @@ namespace Latios.Calligraphics
                                                      baseConfiguration.maxLineWidth,
                                                      overrideMode);
                     lineCount++;
+                    isLineStart = true;
+
                     cumulativeOffset.x  = 0;
                     cumulativeOffset.y -= font.lineHeight * font.baseScale * baseConfiguration.fontSize;
                     continue;
@@ -58,33 +82,37 @@ namespace Latios.Calligraphics
 
                 if (font.characters.TryGetGlyph(math.asuint(unicode.value), out var glyphIndex))
                 {
-                    ref var glyphBlob   = ref font.characters[glyphIndex];
-                    var     renderGlyph = new RenderGlyph
+                    ref var glyphBlob = ref font.characters[glyphIndex];
+                    var renderGlyph = new RenderGlyph
                     {
-                        blPosition = GetBottomLeftPosition(ref font, ref glyphBlob, baseConfiguration.fontSize, adjustmentOffset + cumulativeOffset, false, false),
-                        trPosition = GetTopRightPosition(ref font, ref glyphBlob, baseConfiguration.fontSize, adjustmentOffset + cumulativeOffset, false, false),
-                        blUVA      = glyphBlob.bottomLeftUV,
-                        trUVA      = glyphBlob.topRightUV,
-                        blUVB      = glyphBlob.bottomLeftUV2,
-                        tlUVB      = glyphBlob.topLeftUV2,
-                        trUVB      = glyphBlob.topRightUV2,
-                        brUVB      = glyphBlob.bottomRightUV2,
-                        blColor    = baseConfiguration.color,
-                        tlColor    = baseConfiguration.color,
-                        trColor    = baseConfiguration.color,
-                        brColor    = baseConfiguration.color,
-                        unicode    = glyphBlob.unicode,
-                        scale      = baseConfiguration.fontSize,
+                        blPosition = GetBottomLeftPosition(ref font, ref glyphBlob, baseConfiguration.fontSize,
+                            adjustmentOffset + cumulativeOffset, false, false),
+                        trPosition = GetTopRightPosition(ref font, ref glyphBlob, baseConfiguration.fontSize,
+                            adjustmentOffset + cumulativeOffset, false, false),
+                        blUVA = glyphBlob.bottomLeftUV,
+                        trUVA = glyphBlob.topRightUV,
+                        blUVB = glyphBlob.bottomLeftUV2,
+                        tlUVB = glyphBlob.topLeftUV2,
+                        trUVB = glyphBlob.topRightUV2,
+                        brUVB = glyphBlob.bottomRightUV2,
+                        blColor = baseConfiguration.color,
+                        tlColor = baseConfiguration.color,
+                        trColor = baseConfiguration.color,
+                        brColor = baseConfiguration.color,
+                        unicode = glyphBlob.unicode,
+                        scale = baseConfiguration.fontSize,
                     };
-
+                    
                     var baseScale = font.baseScale;
                     ApplyTags(ref renderGlyph, ref font, ref glyphBlob, ref baseScale, characterEnumerator.Current);
                     renderGlyphs.Add(renderGlyph);
+                    
+                    mappingWriter.UpdateCharacterToRenderGlyphMap(characterEnumerator.CurrentCharIndex, renderGlyphs.Length - 1);
 
                     adjustmentOffset = float2.zero;
 
-                    var xAdvanceAdjustment   = 0f;
-                    var yAdvanceAdjustment   = 0f;
+                    var xAdvanceAdjustment = 0f;
+                    var yAdvanceAdjustment = 0f;
                     var xPlacementAdjustment = 0f;
                     var yPlacementAdjustment = 0f;
 
@@ -98,10 +126,14 @@ namespace Latios.Calligraphics
 
                             if (glyphAdjustment.secondAdjustment.glyphUnicode == math.asuint(peekChar.value))
                             {
-                                xAdvanceAdjustment   = glyphAdjustment.firstAdjustment.xAdvance * renderGlyph.scale * baseScale;
-                                yAdvanceAdjustment   = glyphAdjustment.firstAdjustment.yAdvance * renderGlyph.scale * baseScale;
-                                xPlacementAdjustment = glyphAdjustment.firstAdjustment.xPlacement * renderGlyph.scale * baseScale;
-                                yPlacementAdjustment = glyphAdjustment.firstAdjustment.yPlacement * renderGlyph.scale * baseScale;
+                                xAdvanceAdjustment = glyphAdjustment.firstAdjustment.xAdvance * renderGlyph.scale *
+                                                     baseScale;
+                                yAdvanceAdjustment = glyphAdjustment.firstAdjustment.yAdvance * renderGlyph.scale *
+                                                     baseScale;
+                                xPlacementAdjustment = glyphAdjustment.firstAdjustment.xPlacement * renderGlyph.scale *
+                                                       baseScale;
+                                yPlacementAdjustment = glyphAdjustment.firstAdjustment.yPlacement * renderGlyph.scale *
+                                                       baseScale;
                                 break;
                             }
                         }
@@ -110,13 +142,15 @@ namespace Latios.Calligraphics
                     adjustmentOffset.x = xPlacementAdjustment;
                     adjustmentOffset.y = yPlacementAdjustment;
 
-                    cumulativeOffset.x += renderGlyph.scale * baseScale * glyphBlob.horizontalAdvance + xAdvanceAdjustment;
+                    cumulativeOffset.x +=
+                        renderGlyph.scale * baseScale * glyphBlob.horizontalAdvance + xAdvanceAdjustment;
                     cumulativeOffset.y += yAdvanceAdjustment;
 
                     // Apply accumulated spaces to non-space character
                     while (unicode.value != 32 && accumulatedSpaces > 0)
                     {
-                        characterGlyphIndicesWithPreceedingSpacesInLine.Add(renderGlyphs.Length - 1 - startOfLineGlyphIndex);
+                        characterGlyphIndicesWithPreceedingSpacesInLine.Add(renderGlyphs.Length - 1 -
+                                                                            startOfLineGlyphIndex);
                         accumulatedSpaces--;
                     }
 
@@ -134,14 +168,15 @@ namespace Latios.Calligraphics
 
                         var yOffsetChange = font.lineHeight * renderGlyph.scale * baseScale;
                         var xOffsetChange = renderGlyphs[lastWordStartCharacterGlyphIndex].blPosition.x;
-                        if (xOffsetChange > 0 && !dropSpace)  // Always allow one visible character
+                        if (xOffsetChange > 0 && !dropSpace) // Always allow one visible character
                         {
                             // Finish line based on alignment
-                            var glyphsLine = renderGlyphs.AsNativeArray().GetSubArray(startOfLineGlyphIndex, lastWordStartCharacterGlyphIndex - startOfLineGlyphIndex);
+                            var glyphsLine = renderGlyphs.AsNativeArray().GetSubArray(startOfLineGlyphIndex,
+                                lastWordStartCharacterGlyphIndex - startOfLineGlyphIndex);
                             ApplyHorizontalAlignmentToGlyphs(ref glyphsLine,
-                                                             ref characterGlyphIndicesWithPreceedingSpacesInLine,
-                                                             baseConfiguration.maxLineWidth,
-                                                             baseConfiguration.alignMode);
+                                ref characterGlyphIndicesWithPreceedingSpacesInLine,
+                                baseConfiguration.maxLineWidth,
+                                baseConfiguration.alignMode);
                             startOfLineGlyphIndex = lastWordStartCharacterGlyphIndex;
                             lineCount++;
 
@@ -161,23 +196,27 @@ namespace Latios.Calligraphics
                     }
 
                     //Detect start of word
-                    if (unicode.value == 32 ||  //Space
-                        unicode.value == 9 ||  //Tab
-                        unicode.value == 45 ||  //Hyphen Minus
-                        unicode.value == 173 ||  //Soft hyphen
-                        unicode.value == 8203 ||  //Zero width space
-                        unicode.value == 8204 ||  //Zero width non-joiner
-                        unicode.value == 8205)  //Zero width joiner
+                    if (unicode.value == 32 || //Space
+                        unicode.value == 9 || //Tab
+                        unicode.value == 45 || //Hyphen Minus
+                        unicode.value == 173 || //Soft hyphen
+                        unicode.value == 8203 || //Zero width space
+                        unicode.value == 8204 || //Zero width non-joiner
+                        unicode.value == 8205) //Zero width joiner
                     {
                         lastWordStartCharacterGlyphIndex = renderGlyphs.Length;
                     }
+
                     if (unicode.value == 32)
                     {
                         accumulatedSpaces++;
                         prevWasSpace = true;
                     }
-                    else
+                    else if (prevWasSpace)
+                    {
                         prevWasSpace = false;
+                        mappingWriter.AddWordStart(characterEnumerator.CurrentCharIndex);
+                    }
                 }
             }
 

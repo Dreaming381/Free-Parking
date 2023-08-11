@@ -23,14 +23,14 @@ namespace Latios.Psyshock
         /// An optional callback prior to processing a bucket (single layer) or bucket combination (two layers).
         /// Each invocation of this callback will have a different jobIndex.
         /// </summary>
-        //void BeginBucket(in FindPairsBucketContext context) {
-        //}
+        void BeginBucket(in FindPairsBucketContext context) {
+        }
         /// <summary>
         /// An optional callback following processing a bucket (single layer) or bucket combination (two layers).
         /// Each invocation of this callback will have a different jobIndex.
         /// </summary>
-        //void EndBucket(in FindPairsBucketContext context) {
-        //}
+        void EndBucket(in FindPairsBucketContext context) {
+        }
     }
 
     /// <summary>
@@ -357,6 +357,9 @@ namespace Latios.Psyshock
                 disableEntityAliasChecks = false
             };
         }
+
+        public static int FindPairsJobIndexCount(in CollisionLayer layer) => 2 * layer.bucketCount - 1;
+        public static int FindPairsJobIndexCount(in CollisionLayer layerA, in CollisionLayer layerB) => 3 * layerA.bucketCount - 2;
 
         /// <summary>
         /// Request a FindPairs broadphase operation to report pairs within the layer.
