@@ -23,13 +23,15 @@ namespace Latios.Psyshock
         /// An optional callback prior to processing a bucket (single layer) or bucket combination (two layers).
         /// Each invocation of this callback will have a different jobIndex.
         /// </summary>
-        void BeginBucket(in FindPairsBucketContext context) {
+        void BeginBucket(in FindPairsBucketContext context)
+        {
         }
         /// <summary>
         /// An optional callback following processing a bucket (single layer) or bucket combination (two layers).
         /// Each invocation of this callback will have a different jobIndex.
         /// </summary>
-        void EndBucket(in FindPairsBucketContext context) {
+        void EndBucket(in FindPairsBucketContext context)
+        {
         }
     }
 
@@ -358,7 +360,24 @@ namespace Latios.Psyshock
             };
         }
 
+        /// <summary>
+        /// Returns the number of job indices that would be used on a FindPairs operation with this layer.
+        /// This can be used for allocating the correct size NativeStream and using the optional BeginBucket()
+        /// and EndBucket() callbacks.
+        /// </summary>
+        /// <param name="layer">The layer that would be used in a FindPairs operation</param>
+        /// <returns>A value defining the number of job indices that will be used by the FindPairs operation.
+        /// Every jobIndex will be less than this value.</returns>
         public static int FindPairsJobIndexCount(in CollisionLayer layer) => 2 * layer.bucketCount - 1;
+        /// <summary>
+        /// Returns the number of job indices that would be used on a FindPairs operation with these layers.
+        /// This can be used for allocating the correct size NativeStream and using the optional BeginBucket()
+        /// and EndBucket() callbacks.
+        /// </summary>
+        /// <param name="layerA">The first layer that would be used in a FindPairs operation</param>
+        /// <param name="layerB">The second layer that would be used in a FindPairs operation</param>
+        /// <returns>A value defining the number of job indices that will be used by the FindPairs operation.
+        /// Every jobIndex will be less than this value.</returns>
         public static int FindPairsJobIndexCount(in CollisionLayer layerA, in CollisionLayer layerB) => 3 * layerA.bucketCount - 2;
 
         /// <summary>
