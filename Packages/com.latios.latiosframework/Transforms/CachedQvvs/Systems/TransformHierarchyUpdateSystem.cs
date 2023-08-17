@@ -37,7 +37,7 @@ namespace Latios.Transforms.Systems
                 worldTransformHandle = GetComponentTypeHandle<WorldTransform>(true),
                 childHandle          = GetBufferTypeHandle<Child>(true),
                 childLookup          = GetBufferLookup<Child>(true),
-                localTransformLookup = GetComponentLookup<LocalTransform>(true),
+                localTransformLookup = GetComponentLookup<LocalTransform>(false),
                 parentLookup         = GetComponentLookup<PreviousParent>(true),
                 parentToWorldLookup  = GetComponentLookup<ParentToWorldTransform>(false),
                 worldTransformLookup = GetComponentLookup<WorldTransform>(false),
@@ -49,12 +49,13 @@ namespace Latios.Transforms.Systems
         [BurstCompile]
         struct Job : IJobChunk
         {
-            [ReadOnly] public ComponentTypeHandle<WorldTransform> worldTransformHandle;
-            [ReadOnly] public BufferTypeHandle<Child>             childHandle;
-            [ReadOnly] public BufferLookup<Child>                 childLookup;
-            [ReadOnly] public ComponentLookup<LocalTransform>     localTransformLookup;
-            [ReadOnly] public ComponentLookup<PreviousParent>     parentLookup;
+            [ReadOnly] public ComponentTypeHandle<WorldTransform>  worldTransformHandle;
+            [ReadOnly] public BufferTypeHandle<Child>              childHandle;
+            [ReadOnly] public BufferLookup<Child>                  childLookup;
+            [ReadOnly] public ComponentLookup<PreviousParent>      parentLookup;
+            [ReadOnly] public ComponentLookup<HierarchyUpdateMode> hierarchyUpdateModeLookup;
 
+            [NativeDisableParallelForRestriction] public ComponentLookup<LocalTransform>         localTransformLookup;
             [NativeDisableParallelForRestriction] public ComponentLookup<ParentToWorldTransform> parentToWorldLookup;
             [NativeDisableContainerSafetyRestriction] public ComponentLookup<WorldTransform>     worldTransformLookup;
 
@@ -111,7 +112,17 @@ namespace Latios.Transforms.Systems
                     {
                         parentToWorldLookup[entity] = new ParentToWorldTransform { parentToWorldTransform = parentWorldTransform };
                         ref var worldTransform                                                            = ref worldTransformLookup.GetRefRW(entity).ValueRW;
-                        qvvs.mul(ref worldTransform.worldTransform, in parentWorldTransform, localTransformLookup[entity].localTransform);
+                        if (hierarchyUpdateModeLookup.TryGetComponent(entity, out var flags))
+                        {
+                            HierarchyInternalUtilities.UpdateTransform(ref worldTransform.worldTransform,
+                                                                       ref localTransformLookup.GetRefRW(entity).ValueRW.localTransform,
+                                                                       in parentWorldTransform,
+                                                                       flags.modeFlags);
+                        }
+                        else
+                        {
+                            qvvs.mul(ref worldTransform.worldTransform, in parentWorldTransform, in localTransformLookup.GetRefRO(entity).ValueRO.localTransform);
+                        }
                         worldTransformToPropagate = worldTransform.worldTransform;
                     }
                     else
