@@ -1,123 +1,58 @@
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 
 namespace Latios.Calligraphics
 {
     public struct GlyphMapper
     {
-        [NativeDisableParallelForRestriction]
-        private DynamicBuffer<LineToCharacterMap> _lineStarts;
-        [NativeDisableParallelForRestriction]
-        private DynamicBuffer<WordToCharacterMap> _wordStarts;
-        [NativeDisableParallelForRestriction]
-        private DynamicBuffer<CharacterToRenderGlyphMap> _characterToRenderGlyphMaps;
-        
-        public int characterCount => _characterToRenderGlyphMaps.Length;
-        public int wordCount => _wordStarts.Length;
-        public int lineCount => _lineStarts.Length;
-        
-        internal static GlyphMapper Create(ref DynamicBuffer<CharacterToRenderGlyphMap> characterToRenderGlyphMaps, ref DynamicBuffer<WordToCharacterMap> wordStarts, ref DynamicBuffer<LineToCharacterMap> lineStarts)
+        NativeArray<int2> m_buffer;
+        const int         kHeaderSize = 5;
+
+        public int lineCount => m_buffer[0].y;
+        public int wordCount => m_buffer[1].y;
+        public int characterCountNoTags => m_buffer[2].y;
+        public int characterCountWithTags => m_buffer[3].y;
+        public int byteCountWithTags => m_buffer[4].y;
+
+        public GlyphMapper(DynamicBuffer<GlyphMappingElement> mappingBuffer)
         {
-            return new GlyphMapper
-            {
-                _lineStarts = lineStarts,
-                _wordStarts = wordStarts,
-                _characterToRenderGlyphMaps = characterToRenderGlyphMaps
-            };
+            m_buffer = mappingBuffer.AsNativeArray().Reinterpret<int2>();
         }
 
-        
-        public int GetMappedGlyphIndex(int index, IndexType indexType)
-        {
-            switch (indexType)
-            {
-                case IndexType.Character:
-                    return _characterToRenderGlyphMaps.Length > index ? _characterToRenderGlyphMaps[index].glyphIndex : -1;
-                case IndexType.Word:
-                    return _wordStarts.Length > index ? _characterToRenderGlyphMaps[_wordStarts[index].charIndex].glyphIndex : -1;
-                case IndexType.Line:
-                    return _lineStarts.Length > index ? _characterToRenderGlyphMaps[_lineStarts[index].charIndex].glyphIndex : -1;
-            }
+        public int2 GetGlyphStartIndexAndCountForLine(int lineIndex) => m_buffer[m_buffer[0].x + lineIndex];
 
-            return -1;
-        }
-        
-        public int GetCharacterGlyphIndex(int characterIndex)
+        public int2 GetGlyphStartIndexAndCountForWord(int wordIndex) => m_buffer[m_buffer[1].x + wordIndex];
+
+        public bool TryGetGlyphIndexForCharNoTags(int charIndex, out int glyphIndex)
         {
-            return _characterToRenderGlyphMaps.Length > characterIndex ? _characterToRenderGlyphMaps[characterIndex].glyphIndex : -1;
+            var batchIndex = charIndex / 32;
+            var bitIndex   = charIndex % 32;
+            var batch      = m_buffer[m_buffer[2].x + batchIndex];
+            var mask       = 0xffffffff >> (31 - bitIndex);
+            glyphIndex     = batch.x + math.countbits(mask & batch.y);
+            return (batch.y & (1 << bitIndex)) != 0;
         }
 
-        public int GetWordGlyphIndex(int wordIndex)
+        public bool TryGetGlyphIndexForCharWithTags(int charIndex, out int glyphIndex)
         {
-            return _wordStarts.Length > wordIndex ? _characterToRenderGlyphMaps[_wordStarts[wordIndex].charIndex].glyphIndex : -1;
+            var batchIndex = charIndex / 32;
+            var bitIndex   = charIndex % 32;
+            var batch      = m_buffer[m_buffer[3].x + batchIndex];
+            var mask       = 0xffffffff >> (31 - bitIndex);
+            glyphIndex     = batch.x + math.countbits(mask & batch.y);
+            return (batch.y & (1 << bitIndex)) != 0;
         }
 
-        public int GetLineGlyphIndex(int lineIndex)
+        public bool TryGetGlyphIndexForByte(int byteIndex, out int glyphIndex)
         {
-            return _lineStarts.Length > lineIndex ? _characterToRenderGlyphMaps[_lineStarts[lineIndex].charIndex].glyphIndex : -1;
-        }
-        
-        public int GetGlyphWordIndex(int glyphIndex)
-        {
-            if (_characterToRenderGlyphMaps[_wordStarts[^1].charIndex].glyphIndex <= glyphIndex)
-            {
-                return _wordStarts.Length - 1;
-            }
-            
-            for (int i = 0; i < _wordStarts.Length - 1; i++)
-            {
-                if (_characterToRenderGlyphMaps[_wordStarts[i].charIndex].glyphIndex <= glyphIndex && _characterToRenderGlyphMaps[_wordStarts[i + 1].charIndex].glyphIndex > glyphIndex)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-        
-        public int GetGlyphLineIndex(int glyphIndex)
-        {
-            if (_characterToRenderGlyphMaps[_lineStarts[^1].charIndex].glyphIndex <= glyphIndex)
-            {
-                return _lineStarts.Length - 1;
-            }
-
-            for (int i = 0; i < _lineStarts.Length - 1; i++)
-            {
-                if (_characterToRenderGlyphMaps[_lineStarts[i].charIndex].glyphIndex <= glyphIndex && _characterToRenderGlyphMaps[_lineStarts[i + 1].charIndex].glyphIndex > glyphIndex)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        public int GetWordLineIndex(int wordIndex)
-        {
-            var wordStartCharIndex = _wordStarts[wordIndex].charIndex;
-            
-            if (_lineStarts[^1].charIndex <= wordStartCharIndex)
-            {
-                return _lineStarts.Length - 1;
-            }
-
-            for (int i = 0; i < _lineStarts.Length - 1; i++)
-            {
-                if (_lineStarts[i].charIndex <= wordStartCharIndex && _lineStarts[i + 1].charIndex > wordStartCharIndex)
-                {
-                    return i;
-                }
-            }
-
-            return -1;
-        }
-
-        public enum IndexType
-        {
-            Character,
-            Word,
-            Line
+            var batchIndex = byteIndex / 32;
+            var bitIndex   = byteIndex % 32;
+            var batch      = m_buffer[m_buffer[4].x + batchIndex];
+            var mask       = 0xffffffff >> (31 - bitIndex);
+            glyphIndex     = batch.x + math.countbits(mask & batch.y);
+            return (batch.y & (1 << bitIndex)) != 0;
         }
     }
 }
+

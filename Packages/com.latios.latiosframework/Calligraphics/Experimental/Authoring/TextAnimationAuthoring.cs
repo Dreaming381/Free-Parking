@@ -13,36 +13,36 @@ namespace Latios.Calligraphics.Authoring
     {
         public List<GlyphAnimation> glyphAnimations = new List<GlyphAnimation>();
     }
-    
+
     [Serializable]
     public class GlyphAnimation
     {
-        public TransitionValue transitionValue;
-        public AnimationStyle animationStyle;
-        public InterpolationType interpolation;
-        public TextScope     scope;
-        public int startIndex;
-        public int endIndex;
+        public TransitionValue       transitionValue;
+        public AnimationStyle        animationStyle;
+        public InterpolationType     interpolation;
+        public TextScope             scope;
+        public int                   startIndex;
+        public int                   endIndex;
         public TransitionEndBehavior endBehavior;
-        public int loopCount;
-        public float loopDelay;
-        public float transitionTimeOffset;
-        public float transitionDuration = .5f;
-        public float progressiveTimeOffset = .1f;
-        public byte startValueByte = Byte.MinValue;
-        public byte endValueByte = Byte.MaxValue;
-        public float startValueFloat = float.MinValue;
-        public float endValueFloat = float.MaxValue;
-        public Color32 startValueColor = UnityEngine.Color.white;
-        public Color32 endValueColor = UnityEngine.Color.black;
-        public float2 startValueFloat2 = float2.zero;
-        public float2 endValueFloat2 = float2.zero;
-        public float noiseScaleFloat = 1;
-        public float2 noiseScaleFloat2 = float2.zero;
-        public float3 startValueFloat3 = float3.zero;
-        public float3 endValueFloat3 = float3.zero;
-        public Gradient startValueGradient = new Gradient();
-        public Gradient endValueGradient = new Gradient();
+        public int                   loopCount;
+        public float                 loopDelay;
+        public float                 transitionTimeOffset;
+        public float                 transitionDuration    = .5f;
+        public float                 progressiveTimeOffset = .1f;
+        public byte                  startValueByte        = Byte.MinValue;
+        public byte                  endValueByte          = Byte.MaxValue;
+        public float                 startValueFloat       = float.MinValue;
+        public float                 endValueFloat         = float.MaxValue;
+        public Color32               startValueColor       = UnityEngine.Color.white;
+        public Color32               endValueColor         = UnityEngine.Color.black;
+        public float2                startValueFloat2      = float2.zero;
+        public float2                endValueFloat2        = float2.zero;
+        public float                 noiseScaleFloat       = 1;
+        public float2                noiseScaleFloat2      = float2.zero;
+        public float3                startValueFloat3      = float3.zero;
+        public float3                endValueFloat3        = float3.zero;
+        public Gradient              startValueGradient    = new Gradient();
+        public Gradient              endValueGradient      = new Gradient();
     }
 
     public enum AnimationStyle
@@ -58,7 +58,7 @@ namespace Latios.Calligraphics.Authoring
             var textAuthoring = authoring.GetComponent<TextRendererAuthoring>();
             DependsOn(authoring);
             DependsOn(textAuthoring);
-            
+
             var entity = GetEntity(TransformUsageFlags.Renderable);
 
             //Add buffers
@@ -69,24 +69,24 @@ namespace Latios.Calligraphics.Authoring
                 foreach (var glyphAnimation in authoring.glyphAnimations)
                 {
                     var startIndex = glyphAnimation.scope == TextScope.All ? 0 : glyphAnimation.startIndex;
-                    var endIndex = glyphAnimation.scope == TextScope.All
-                        ? textAuthoring.text.Length
-                        : glyphAnimation.endIndex;
-                    
+                    var endIndex   = glyphAnimation.scope == TextScope.All ?
+                                     textAuthoring.text.Length :
+                                     glyphAnimation.endIndex;
+
                     if (glyphAnimation.animationStyle == AnimationStyle.Simultaneous)
                     {
                         var transition = new TextAnimationTransition
                         {
-                            transitionValue = glyphAnimation.transitionValue,
-                            interpolation = glyphAnimation.interpolation,
-                            scope = glyphAnimation.scope,
-                            startIndex = startIndex,
-                            endIndex = endIndex,
-                            transitionDuration = glyphAnimation.transitionDuration,
+                            transitionValue      = glyphAnimation.transitionValue,
+                            interpolation        = glyphAnimation.interpolation,
+                            scope                = glyphAnimation.scope,
+                            startIndex           = startIndex,
+                            endIndex             = endIndex,
+                            transitionDuration   = glyphAnimation.transitionDuration,
                             transitionTimeOffset = glyphAnimation.transitionTimeOffset,
-                            endBehavior = glyphAnimation.endBehavior,
-                            loopCount = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopCount : 0,
-                            loopDelay = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopDelay : 0,
+                            endBehavior          = glyphAnimation.endBehavior,
+                            loopCount            = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopCount : 0,
+                            loopDelay            = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopDelay : 0,
                         };
                         SetValue(glyphAnimation, ref transition);
                         AppendToBuffer(entity, transition);
@@ -99,57 +99,63 @@ namespace Latios.Calligraphics.Authoring
                             var transition = new TextAnimationTransition
                             {
                                 transitionValue = glyphAnimation.transitionValue,
-                                interpolation = glyphAnimation.interpolation,
-                                scope = glyphAnimation.scope == TextScope.All
-                                    ? TextScope.Glyph
-                                    : glyphAnimation.scope,
-                                startIndex = i,
-                                endIndex = i,
-                                transitionDuration = glyphAnimation.transitionDuration,
+                                interpolation   = glyphAnimation.interpolation,
+                                scope           = glyphAnimation.scope == TextScope.All ?
+                                                  TextScope.Glyph :
+                                                  glyphAnimation.scope,
+                                startIndex           = i,
+                                endIndex             = i,
+                                transitionDuration   = glyphAnimation.transitionDuration,
                                 transitionTimeOffset = glyphAnimation.transitionTimeOffset + elementCount * glyphAnimation.progressiveTimeOffset,
-                                endBehavior = glyphAnimation.endBehavior,
-                                loopCount = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopCount : 0,
-                                loopDelay = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopDelay : 0,
+                                endBehavior          = glyphAnimation.endBehavior,
+                                loopCount            = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopCount : 0,
+                                loopDelay            = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopDelay : 0,
                             };
                             SetValue(glyphAnimation, ref transition);
-                            
+
                             AppendToBuffer(entity, transition);
                             elementCount++;
                         }
                     }
                 }
             }
+
+            AddComponent(entity, new GlyphMappingMask
+            {
+                mask = GlyphMappingMask.WriteMask.Line | GlyphMappingMask.WriteMask.Word | GlyphMappingMask.WriteMask.CharNoTags
+            });
+            AddBuffer<GlyphMappingElement>(entity);
         }
 
         private void SetValue(GlyphAnimation glyphAnimation,
-            ref TextAnimationTransition transition)
+                              ref TextAnimationTransition transition)
         {
             switch (glyphAnimation.transitionValue)
             {
                 case TransitionValue.Opacity:
                     transition.startValueByte = glyphAnimation.startValueByte;
-                    transition.endValueByte = glyphAnimation.endValueByte;
+                    transition.endValueByte   = glyphAnimation.endValueByte;
                     break;
                 case TransitionValue.Scale:
                     transition.startValueFloat2 = glyphAnimation.startValueFloat2;
-                    transition.endValueFloat2 = glyphAnimation.endValueFloat2;
+                    transition.endValueFloat2   = glyphAnimation.endValueFloat2;
                     break;
                 case TransitionValue.Color:
                 {
                     transition.startValueBlColor = glyphAnimation.startValueColor;
-                    transition.endValueBlColor = glyphAnimation.endValueColor;
+                    transition.endValueBlColor   = glyphAnimation.endValueColor;
                     transition.startValueTrColor = glyphAnimation.startValueColor;
-                    transition.endValueTrColor = glyphAnimation.endValueColor;
+                    transition.endValueTrColor   = glyphAnimation.endValueColor;
                     transition.startValueBrColor = glyphAnimation.startValueColor;
-                    transition.endValueBrColor = glyphAnimation.endValueColor;
+                    transition.endValueBrColor   = glyphAnimation.endValueColor;
                     transition.startValueTlColor = glyphAnimation.startValueColor;
-                    transition.endValueTlColor = glyphAnimation.endValueColor;
+                    transition.endValueTlColor   = glyphAnimation.endValueColor;
                     break;
                 }
                 case TransitionValue.Position:
                 {
                     transition.startValueFloat2 = glyphAnimation.startValueFloat2;
-                    transition.endValueFloat2 = glyphAnimation.endValueFloat2;
+                    transition.endValueFloat2   = glyphAnimation.endValueFloat2;
                     break;
                 }
                 case TransitionValue.NoisePosition:
@@ -166,3 +172,4 @@ namespace Latios.Calligraphics.Authoring
         }
     }
 }
+

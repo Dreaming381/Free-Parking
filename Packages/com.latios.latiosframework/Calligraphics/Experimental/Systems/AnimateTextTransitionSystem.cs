@@ -28,12 +28,10 @@ namespace Latios.Calligraphics.Systems
         public void OnCreate(ref SystemState state)
         {
             m_query = state.Fluent()
-                      .WithAll<TextAnimationTransition>(  false)
-                      .WithAll<RenderGlyph>(              false)
-                      .WithAll<TextRenderControl>(        false)
-                      .WithAll<CharacterToRenderGlyphMap>(true)
-                      .WithAll<WordToCharacterMap>(       true)
-                      .WithAll<LineToCharacterMap>(       true)
+                      .WithAll<TextAnimationTransition>( false)
+                      .WithAll<RenderGlyph>(             false)
+                      .WithAll<TextRenderControl>(       false)
+                      .WithAll<GlyphMappingElement>(     true)
                       .Build();
 
             m_rng = new Rng("AnimateTextTransitionSystem");
@@ -44,14 +42,12 @@ namespace Latios.Calligraphics.Systems
         {
             state.Dependency = new TransitionJob
             {
-                rng                     = m_rng,
-                deltaTime               = state.WorldUnmanaged.Time.DeltaTime,
-                transitionHandle        = GetBufferTypeHandle<TextAnimationTransition>(false),
-                textRenderControlHandle = GetComponentTypeHandle<TextRenderControl>(false),
-                renderGlyphHandle       = GetBufferTypeHandle<RenderGlyph>(false),
-                characterMapHandle      = GetBufferTypeHandle<CharacterToRenderGlyphMap>(true),
-                wordStartHandle         = GetBufferTypeHandle<WordToCharacterMap>(true),
-                lineStartHandle         = GetBufferTypeHandle<LineToCharacterMap>(true),
+                rng                       = m_rng,
+                deltaTime                 = state.WorldUnmanaged.Time.DeltaTime,
+                transitionHandle          = GetBufferTypeHandle<TextAnimationTransition>(false),
+                textRenderControlHandle   = GetComponentTypeHandle<TextRenderControl>(false),
+                renderGlyphHandle         = GetBufferTypeHandle<RenderGlyph>(false),
+                glyphMappingElementHandle = GetBufferTypeHandle<GlyphMappingElement>(true),
             }.ScheduleParallel(m_query, state.Dependency);
 
             m_rng.Shuffle();
@@ -74,15 +70,9 @@ namespace Latios.Calligraphics.Systems
 
             public BufferTypeHandle<TextAnimationTransition> transitionHandle;
             public BufferTypeHandle<RenderGlyph>             renderGlyphHandle;
-            [ReadOnly]
-            public BufferTypeHandle<CharacterToRenderGlyphMap> characterMapHandle;
-            [ReadOnly]
-            public BufferTypeHandle<WordToCharacterMap> wordStartHandle;
-            [ReadOnly]
-            public BufferTypeHandle<LineToCharacterMap>   lineStartHandle;
-            public ComponentTypeHandle<TextRenderControl> textRenderControlHandle;
+            public ComponentTypeHandle<TextRenderControl>    textRenderControlHandle;
 
-            private GlyphMapper m_glyphMapper;
+            [ReadOnly] public BufferTypeHandle<GlyphMappingElement> glyphMappingElementHandle;
 
             [BurstCompile]
             public void Execute(in ArchetypeChunk chunk, int unfilteredChunkIndex, bool useEnabledMask, in v128 chunkEnabledMask)
@@ -90,21 +80,16 @@ namespace Latios.Calligraphics.Systems
                 var random              = rng.GetSequence(unfilteredChunkIndex);
                 var transitionBuffers   = chunk.GetBufferAccessor(ref transitionHandle);
                 var renderGlyphBuffers  = chunk.GetBufferAccessor(ref renderGlyphHandle);
-                var characterMapBuffers = chunk.GetBufferAccessor(ref characterMapHandle);
-                var wordStartBuffers    = chunk.GetBufferAccessor(ref wordStartHandle);
-                var lineStartBuffers    = chunk.GetBufferAccessor(ref lineStartHandle);
+                var glyphMappingBuffers = chunk.GetBufferAccessor(ref glyphMappingElementHandle);
                 var textRenderControls  = chunk.GetNativeArray(ref textRenderControlHandle);
 
                 for (int indexInChunk = 0; indexInChunk < chunk.Count; indexInChunk++)
                 {
                     var transitions       = transitionBuffers[indexInChunk];
                     var renderGlyphs      = renderGlyphBuffers[indexInChunk];
-                    var characterMaps     = characterMapBuffers[indexInChunk];
-                    var wordStarts        = wordStartBuffers[indexInChunk];
-                    var lineStarts        = lineStartBuffers[indexInChunk];
                     var textRenderControl = textRenderControls[indexInChunk];
 
-                    m_glyphMapper = GlyphMapper.Create(ref characterMaps, ref wordStarts, ref lineStarts);
+                    var glyphMapper = new GlyphMapper(glyphMappingBuffers[indexInChunk]);
 
                     for (int i = 0; i < transitions.Length; i++)
                     {
@@ -129,7 +114,7 @@ namespace Latios.Calligraphics.Systems
 
                         if (transition.currentTime == 0)
                         {
-                            AnimationResolver.Initialize(ref transition, ref random, m_glyphMapper);
+                            AnimationResolver.Initialize(ref transition, ref random, glyphMapper);
                         }
 
                         //Get scope indices
@@ -142,31 +127,33 @@ namespace Latios.Calligraphics.Systems
                                 endIndex   = renderGlyphs.Length;
                                 break;
                             case TextScope.Glyph:
-                                startIndex = m_glyphMapper.GetCharacterGlyphIndex(transition.startIndex);
-                                endIndex   = m_glyphMapper.GetCharacterGlyphIndex(transition.endIndex);
+                                if (!glyphMapper.TryGetGlyphIndexForCharNoTags(transition.startIndex, out startIndex))
+                                    startIndex = -1;
+                                if (!glyphMapper.TryGetGlyphIndexForCharNoTags(transition.endIndex, out endIndex))
+                                    endIndex = -1;
                                 break;
                             case TextScope.Word:
-                                startIndex = m_glyphMapper.GetWordGlyphIndex(transition.startIndex);
-                                if (transition.endIndex >= m_glyphMapper.wordCount - 1)
+                                startIndex = glyphMapper.GetGlyphStartIndexAndCountForWord(transition.startIndex).x;
+                                if (transition.endIndex >= glyphMapper.wordCount - 1)
                                 {
                                     endIndex = renderGlyphs.Length - 1;
                                 }
                                 else if (transition.endIndex == transition.startIndex)
-                                    endIndex = m_glyphMapper.GetWordGlyphIndex(transition.endIndex + 1) - 1;
+                                    endIndex = glyphMapper.GetGlyphStartIndexAndCountForWord(transition.endIndex + 1).x - 1;
                                 else
-                                    endIndex = m_glyphMapper.GetWordGlyphIndex(transition.endIndex);
+                                    endIndex = glyphMapper.GetGlyphStartIndexAndCountForWord(transition.endIndex).x;
 
                                 break;
                             case TextScope.Line:
-                                startIndex = m_glyphMapper.GetLineGlyphIndex(transition.startIndex);
-                                if (transition.endIndex >= m_glyphMapper.lineCount - 1)
+                                startIndex = glyphMapper.GetGlyphStartIndexAndCountForLine(transition.startIndex).x;
+                                if (transition.endIndex >= glyphMapper.lineCount - 1)
                                 {
                                     endIndex = renderGlyphs.Length - 1;
                                 }
                                 else if (transition.endIndex == transition.startIndex)
-                                    endIndex = m_glyphMapper.GetLineGlyphIndex(transition.endIndex + 1) - 1;
+                                    endIndex = glyphMapper.GetGlyphStartIndexAndCountForLine(transition.endIndex + 1).x - 1;
                                 else
-                                    endIndex = m_glyphMapper.GetLineGlyphIndex(transition.endIndex);
+                                    endIndex = glyphMapper.GetGlyphStartIndexAndCountForLine(transition.endIndex).x;
 
                                 break;
                         }
@@ -177,7 +164,7 @@ namespace Latios.Calligraphics.Systems
                             float t = (transition.currentTime - transition.transitionTimeOffset) /
                                       transition.transitionDuration;
 
-                            AnimationResolver.SetValue(ref renderGlyphs, transition, m_glyphMapper, startIndex,
+                            AnimationResolver.SetValue(ref renderGlyphs, transition, glyphMapper, startIndex,
                                                        endIndex, t);
                         }
 

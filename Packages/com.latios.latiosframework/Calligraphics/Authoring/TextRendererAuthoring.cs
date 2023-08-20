@@ -88,11 +88,6 @@ namespace Latios.Calligraphics.Authoring
                 maxLineWidth = math.select(float.MaxValue, authoring.maxLineWidth, authoring.wordWrap),
                 alignMode    = (AlignMode)(((byte)authoring.horizontalAlignment) | ((byte)authoring.verticalAlignment))
             });
-            
-            //Text Metrics
-            AddBuffer<CharacterToRenderGlyphMap>(entity);
-            AddBuffer<WordToCharacterMap>(entity);
-            AddBuffer<LineToCharacterMap>(entity);
         }
 
         void AddFontRendering(Entity entity, FontMaterialPair fontMaterialPair)
