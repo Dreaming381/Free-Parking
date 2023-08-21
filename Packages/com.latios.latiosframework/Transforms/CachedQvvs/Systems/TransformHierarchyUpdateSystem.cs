@@ -34,14 +34,15 @@ namespace Latios.Transforms.Systems
         {
             var job = new Job
             {
-                worldTransformHandle = GetComponentTypeHandle<WorldTransform>(true),
-                childHandle          = GetBufferTypeHandle<Child>(true),
-                childLookup          = GetBufferLookup<Child>(true),
-                localTransformLookup = GetComponentLookup<LocalTransform>(false),
-                parentLookup         = GetComponentLookup<PreviousParent>(true),
-                parentToWorldLookup  = GetComponentLookup<ParentToWorldTransform>(false),
-                worldTransformLookup = GetComponentLookup<WorldTransform>(false),
-                lastSystemVersion    = state.LastSystemVersion
+                worldTransformHandle      = GetComponentTypeHandle<WorldTransform>(true),
+                childHandle               = GetBufferTypeHandle<Child>(true),
+                childLookup               = GetBufferLookup<Child>(true),
+                localTransformLookup      = GetComponentLookup<LocalTransform>(false),
+                parentLookup              = GetComponentLookup<PreviousParent>(true),
+                parentToWorldLookup       = GetComponentLookup<ParentToWorldTransform>(false),
+                worldTransformLookup      = GetComponentLookup<WorldTransform>(false),
+                hierarchyUpdateModeLookup = GetComponentLookup<HierarchyUpdateMode>(true),
+                lastSystemVersion         = state.LastSystemVersion
             };
             state.Dependency = job.ScheduleParallelByRef(m_query, state.Dependency);
         }
