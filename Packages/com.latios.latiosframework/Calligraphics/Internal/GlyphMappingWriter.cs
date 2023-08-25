@@ -164,6 +164,18 @@ namespace Latios.Calligraphics
 
         public void EndWriter(ref DynamicBuffer<GlyphMappingElement> mappingsBuffer, int glyphCount)
         {
+            // Finish lines and words
+            if (m_startedLine)
+            {
+                ref var back = ref m_glyphStartAndCountByLine.ElementAt(m_glyphStartAndCountByLine.Length - 1);
+                back.y       = glyphCount - back.x;
+            }
+            if (m_startedWord)
+            {
+                ref var back = ref m_glyphStartAndCountByWord.ElementAt(m_glyphStartAndCountByWord.Length - 1);
+                back.y       = glyphCount - back.x;
+            }
+
             // Trim anticipated words and newlines that never came to fruition.
             while (m_glyphStartAndCountByLine[m_glyphStartAndCountByLine.Length - 1].x == glyphCount)
                 m_glyphStartAndCountByLine.RemoveAtSwapBack(m_glyphStartAndCountByLine.Length - 1);
@@ -175,17 +187,17 @@ namespace Latios.Calligraphics
             // The first five elements serve as a start and count header to the remaining embedded arrays. Starts are absolute.
             int elementsRequired = 5 + m_glyphStartAndCountByLine.Length + m_glyphStartAndCountByWord.Length + m_glyphIndexByCharNoTags.Length + m_glyphIndexByCharWithTags.Length +
                                    m_glyphIndexByByte.Length;
-            mappingsBuffer.ResizeUninitialized(elementsRequired);
+            mappingsBuffer.EnsureCapacity(elementsRequired);
             elementsRequired                                      = 5;
-            mappingsBuffer.Add(new GlyphMappingElement { element  = new int2(elementsRequired, elementsRequired + m_glyphStartAndCountByLine.Length) });
+            mappingsBuffer.Add(new GlyphMappingElement { element  = new int2(elementsRequired, m_glyphStartAndCountByLine.Length) });
             elementsRequired                                     += m_glyphStartAndCountByLine.Length;
-            mappingsBuffer.Add(new GlyphMappingElement { element  = new int2(elementsRequired, elementsRequired + m_glyphStartAndCountByWord.Length) });
+            mappingsBuffer.Add(new GlyphMappingElement { element  = new int2(elementsRequired, m_glyphStartAndCountByWord.Length) });
             elementsRequired                                     += m_glyphStartAndCountByWord.Length;
-            mappingsBuffer.Add(new GlyphMappingElement { element  = new int2(elementsRequired, elementsRequired + m_glyphIndexByCharNoTags.Length) });
+            mappingsBuffer.Add(new GlyphMappingElement { element  = new int2(elementsRequired, m_glyphIndexByCharNoTags.Length) });
             elementsRequired                                     += m_glyphIndexByCharNoTags.Length;
-            mappingsBuffer.Add(new GlyphMappingElement { element  = new int2(elementsRequired, elementsRequired + m_glyphIndexByCharWithTags.Length) });
+            mappingsBuffer.Add(new GlyphMappingElement { element  = new int2(elementsRequired, m_glyphIndexByCharWithTags.Length) });
             elementsRequired                                     += m_glyphIndexByCharWithTags.Length;
-            mappingsBuffer.Add(new GlyphMappingElement { element  = new int2(elementsRequired, elementsRequired + m_glyphIndexByByte.Length) });
+            mappingsBuffer.Add(new GlyphMappingElement { element  = new int2(elementsRequired, m_glyphIndexByByte.Length) });
             elementsRequired                                     += m_glyphIndexByByte.Length;
 
             foreach (var element in m_glyphStartAndCountByLine)

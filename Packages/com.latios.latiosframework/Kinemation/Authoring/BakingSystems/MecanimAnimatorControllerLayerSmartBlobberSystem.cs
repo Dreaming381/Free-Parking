@@ -199,44 +199,56 @@ namespace Latios.Kinemation.Authoring.Systems
             blobAnimatorState.cycleOffset    = parentState.cycleOffset;
             blobAnimatorState.mirror         = parentState.mirror;
             blobAnimatorState.ikOnFeet       = parentState.iKOnFeet;
-
             blobAnimatorState.speedMultiplierParameterIndex = -1;
-            for (int i = 0; i < parameters.Length; i++)
+
+            if (parentState.speedParameterActive)
             {
-                if (parameters[i].name == parentState.speedParameter)
+                for (int i = 0; i < parameters.Length; i++)
                 {
-                    blobAnimatorState.speedMultiplierParameterIndex = (short)i;
-                    break;
+                    if (parameters[i].name == parentState.speedParameter)
+                    {
+                        blobAnimatorState.speedMultiplierParameterIndex = (short)i;
+                        break;
+                    }
                 }
             }
 
             blobAnimatorState.cycleOffsetParameterIndex = -1;
-            for (int i = 0; i < parameters.Length; i++)
+            if (parentState.cycleOffsetParameterActive)
             {
-                if (parameters[i].name == parentState.cycleOffsetParameter)
+                for (int i = 0; i < parameters.Length; i++)
                 {
-                    blobAnimatorState.cycleOffsetParameterIndex = (short)i;
-                    break;
+                    if (parameters[i].name == parentState.cycleOffsetParameter)
+                    {
+                        blobAnimatorState.cycleOffsetParameterIndex = (short)i;
+                        break;
+                    }
                 }
             }
 
             blobAnimatorState.mirrorParameterIndex = -1;
-            for (int i = 0; i < parameters.Length; i++)
+            if (parentState.mirrorParameterActive)
             {
-                if (parameters[i].name == parentState.mirrorParameter)
+                for (int i = 0; i < parameters.Length; i++)
                 {
-                    blobAnimatorState.mirrorParameterIndex = (short)i;
-                    break;
+                    if (parameters[i].name == parentState.mirrorParameter)
+                    {
+                        blobAnimatorState.mirrorParameterIndex = (short)i;
+                        break;
+                    }
                 }
             }
 
             blobAnimatorState.timeParameterIndex = -1;
-            for (int i = 0; i < parameters.Length; i++)
+            if (parentState.timeParameterActive)
             {
-                if (parameters[i].name == parentState.timeParameter)
+                for (int i = 0; i < parameters.Length; i++)
                 {
-                    blobAnimatorState.timeParameterIndex = (short)i;
-                    break;
+                    if (parameters[i].name == parentState.timeParameter)
+                    {
+                        blobAnimatorState.timeParameterIndex = (short)i;
+                        break;
+                    }
                 }
             }
 

@@ -29,8 +29,8 @@ namespace Latios.Calligraphics
             var batchIndex = charIndex / 32;
             var bitIndex   = charIndex % 32;
             var batch      = m_buffer[m_buffer[2].x + batchIndex];
-            var mask       = 0xffffffff >> (31 - bitIndex);
-            glyphIndex     = batch.x + math.countbits(mask & batch.y);
+            var mask       = 0xffffffff >> (32 - bitIndex);
+            glyphIndex     = batch.x + math.select(math.countbits(mask & batch.y), 0, bitIndex == 0);
             return (batch.y & (1 << bitIndex)) != 0;
         }
 
@@ -39,8 +39,8 @@ namespace Latios.Calligraphics
             var batchIndex = charIndex / 32;
             var bitIndex   = charIndex % 32;
             var batch      = m_buffer[m_buffer[3].x + batchIndex];
-            var mask       = 0xffffffff >> (31 - bitIndex);
-            glyphIndex     = batch.x + math.countbits(mask & batch.y);
+            var mask       = 0xffffffff >> (32 - bitIndex);
+            glyphIndex     = batch.x + math.select(math.countbits(mask & batch.y), 0, bitIndex == 0);
             return (batch.y & (1 << bitIndex)) != 0;
         }
 
@@ -49,8 +49,8 @@ namespace Latios.Calligraphics
             var batchIndex = byteIndex / 32;
             var bitIndex   = byteIndex % 32;
             var batch      = m_buffer[m_buffer[4].x + batchIndex];
-            var mask       = 0xffffffff >> (31 - bitIndex);
-            glyphIndex     = batch.x + math.countbits(mask & batch.y);
+            var mask       = 0xffffffff >> (32 - bitIndex);
+            glyphIndex     = batch.x + math.select(math.countbits(mask & batch.y), 0, bitIndex == 0);
             return (batch.y & (1 << bitIndex)) != 0;
         }
     }
