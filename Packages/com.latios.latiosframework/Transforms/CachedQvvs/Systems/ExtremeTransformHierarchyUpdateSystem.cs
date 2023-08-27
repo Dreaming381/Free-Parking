@@ -9,7 +9,6 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 using static Unity.Entities.SystemAPI;
-using static UnityEngine.EventSystems.EventTrigger;
 
 // This system uses PreviousParent in all cases because it is guaranteed to be updated
 // (ParentSystem just ran) and it is updated when the entity is enabled so change filters
