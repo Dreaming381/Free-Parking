@@ -4,6 +4,7 @@ using System.Linq;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Latios.Calligraphics.Authoring
 {
@@ -16,10 +17,10 @@ namespace Latios.Calligraphics.Authoring
     [Serializable]
     public class GlyphAnimation
     {
-        public TransitionValue       transitionValue;
+        public GlyphProperty       glyphProperty;
         public AnimationStyle        animationStyle;
         public InterpolationType     interpolation;
-        public TextScope             scope;
+        public TransitionTextUnitScope             unitScope;
         public int                   startIndex;
         public int                   endIndex;
         public TransitionEndBehavior endBehavior;
@@ -67,8 +68,8 @@ namespace Latios.Calligraphics.Authoring
                 //Add transitions
                 foreach (var glyphAnimation in authoring.glyphAnimations)
                 {
-                    var startIndex = glyphAnimation.scope == TextScope.All ? 0 : glyphAnimation.startIndex;
-                    var endIndex   = glyphAnimation.scope == TextScope.All ?
+                    var startIndex = glyphAnimation.unitScope == TransitionTextUnitScope.All ? 0 : glyphAnimation.startIndex;
+                    var endIndex   = glyphAnimation.unitScope == TransitionTextUnitScope.All ?
                                      textAuthoring.text.Length :
                                      glyphAnimation.endIndex;
 
@@ -76,13 +77,13 @@ namespace Latios.Calligraphics.Authoring
                     {
                         var transition = new TextAnimationTransition
                         {
-                            transitionValue      = glyphAnimation.transitionValue,
+                            glyphProperty      = glyphAnimation.glyphProperty,
                             interpolation        = glyphAnimation.interpolation,
-                            scope                = glyphAnimation.scope,
+                            scope                = glyphAnimation.unitScope,
                             startIndex           = startIndex,
                             endIndex             = endIndex,
                             transitionDuration   = glyphAnimation.transitionDuration,
-                            transitionTimeOffset = glyphAnimation.transitionTimeOffset,
+                            transitionDelay = glyphAnimation.transitionTimeOffset,
                             endBehavior          = glyphAnimation.endBehavior,
                             loopCount            = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopCount : 0,
                             loopDelay            = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopDelay : 0,
@@ -97,15 +98,15 @@ namespace Latios.Calligraphics.Authoring
                         {
                             var transition = new TextAnimationTransition
                             {
-                                transitionValue = glyphAnimation.transitionValue,
+                                glyphProperty = glyphAnimation.glyphProperty,
                                 interpolation   = glyphAnimation.interpolation,
-                                scope           = glyphAnimation.scope == TextScope.All ?
-                                                  TextScope.Glyph :
-                                                  glyphAnimation.scope,
+                                scope           = glyphAnimation.unitScope == TransitionTextUnitScope.All ?
+                                                  TransitionTextUnitScope.Glyph :
+                                                  glyphAnimation.unitScope,
                                 startIndex           = i,
                                 endIndex             = i,
                                 transitionDuration   = glyphAnimation.transitionDuration,
-                                transitionTimeOffset = glyphAnimation.transitionTimeOffset + elementCount * glyphAnimation.progressiveTimeOffset,
+                                transitionDelay = glyphAnimation.transitionTimeOffset + elementCount * glyphAnimation.progressiveTimeOffset,
                                 endBehavior          = glyphAnimation.endBehavior,
                                 loopCount            = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopCount : 0,
                                 loopDelay            = (glyphAnimation.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop ? glyphAnimation.loopDelay : 0,
@@ -129,17 +130,17 @@ namespace Latios.Calligraphics.Authoring
         private void SetValue(GlyphAnimation glyphAnimation,
                               ref TextAnimationTransition transition)
         {
-            switch (glyphAnimation.transitionValue)
+            switch (glyphAnimation.glyphProperty)
             {
-                case TransitionValue.Opacity:
+                case GlyphProperty.Opacity:
                     transition.startValueByte = glyphAnimation.startValueByte;
                     transition.endValueByte   = glyphAnimation.endValueByte;
                     break;
-                case TransitionValue.Scale:
+                case GlyphProperty.Scale:
                     transition.startValueFloat2 = glyphAnimation.startValueFloat2;
                     transition.endValueFloat2   = glyphAnimation.endValueFloat2;
                     break;
-                case TransitionValue.Color:
+                case GlyphProperty.Color:
                 {
                     transition.startValueBlColor = glyphAnimation.startValueColor;
                     transition.endValueBlColor   = glyphAnimation.endValueColor;
@@ -151,18 +152,18 @@ namespace Latios.Calligraphics.Authoring
                     transition.endValueTlColor   = glyphAnimation.endValueColor;
                     break;
                 }
-                case TransitionValue.Position:
+                case GlyphProperty.Position:
                 {
                     transition.startValueFloat2 = glyphAnimation.startValueFloat2;
                     transition.endValueFloat2   = glyphAnimation.endValueFloat2;
                     break;
                 }
-                case TransitionValue.NoisePosition:
+                case GlyphProperty.PositionNoise:
                 {
                     transition.noiseScaleFloat2 = glyphAnimation.noiseScaleFloat2;
                     break;
                 }
-                case TransitionValue.NoiseRotation:
+                case GlyphProperty.RotationNoise:
                 {
                     transition.noiseScaleFloat = glyphAnimation.noiseScaleFloat;
                     break;

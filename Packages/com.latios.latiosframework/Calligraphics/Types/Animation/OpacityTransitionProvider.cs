@@ -5,11 +5,11 @@ using UnityEngine;
 
 namespace Latios.Calligraphics
 {
-    public struct OpacityTransitionProvider : ITransitionProvider
+    internal struct OpacityTransitionProvider : ITransitionProvider
     {
         public void Initialize(ref TextAnimationTransition transition, ref Rng.RngSequence rng, GlyphMapper glyphMapper)
         {
-            if (transition.currentLoop > 0 && (transition.endBehavior & TransitionEndBehavior.KeepFinalValue) == TransitionEndBehavior.KeepFinalValue)
+            if (transition.currentIteration > 0 && (transition.endBehavior & TransitionEndBehavior.KeepFinalValue) == TransitionEndBehavior.KeepFinalValue)
             {
                 (transition.startValueByte, transition.endValueByte) = (transition.endValueByte, transition.startValueByte);
             }
@@ -21,7 +21,7 @@ namespace Latios.Calligraphics
             var endValue  = new Color32(0, 0, 0, transition.endValueByte);
             Color32 value = startValue;
 
-            if (transition.currentTime >= transition.transitionTimeOffset)
+            if (transition.currentTime >= transition.transitionDelay)
             {
                 value = Interpolation.Interpolate(startValue, endValue, normalizedTime, transition.interpolation);
             }

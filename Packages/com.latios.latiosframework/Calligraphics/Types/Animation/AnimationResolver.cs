@@ -7,29 +7,29 @@ namespace Latios.Calligraphics
     {
         internal static void Initialize(ref TextAnimationTransition transition, ref Rng.RngSequence rng, GlyphMapper glyphMapper)
         {
-            switch (transition.transitionValue)
+            switch (transition.glyphProperty)
             {
-                case TransitionValue.Color:
+                case GlyphProperty.Color:
                 {
                     new ColorTransitionProvider().Initialize(ref transition, ref rng, glyphMapper);;
                     break;
                 }
-                case TransitionValue.Scale:
+                case GlyphProperty.Scale:
                 {
                     new ScaleTransitionProvider().Initialize(ref transition, ref rng, glyphMapper);;
                     break;
                 }
-                case TransitionValue.Position:
+                case GlyphProperty.Position:
                 {
                     new PositionTransitionProvider().Initialize(ref transition, ref rng, glyphMapper);;
                     break;
                 }
-                case TransitionValue.NoisePosition:
+                case GlyphProperty.PositionNoise:
                 {
                     new NoisePositionTransitionProvider().Initialize(ref transition, ref rng, glyphMapper);;
                     break;
                 }
-                case TransitionValue.NoiseRotation:
+                case GlyphProperty.RotationNoise:
                 {
                     new NoiseRotationTransitionProvider().Initialize(ref transition, ref rng, glyphMapper);;
                     break;
@@ -45,29 +45,29 @@ namespace Latios.Calligraphics
         internal static void SetValue(ref DynamicBuffer<RenderGlyph> renderGlyphs, TextAnimationTransition transition, GlyphMapper glyphMapper,
             int startIndex, int endIndex, float normalizedTime)
         {
-            switch (transition.transitionValue)
+            switch (transition.glyphProperty)
             {
-                case TransitionValue.Color:
+                case GlyphProperty.Color:
                 {
                     new ColorTransitionProvider().SetValue(ref renderGlyphs, transition, glyphMapper, startIndex, endIndex, normalizedTime);
                     break;
                 }
-                case TransitionValue.Scale:
+                case GlyphProperty.Scale:
                 {
                     new ScaleTransitionProvider().SetValue(ref renderGlyphs, transition, glyphMapper, startIndex, endIndex, normalizedTime);
                     break;
                 }
-                case TransitionValue.Position:
+                case GlyphProperty.Position:
                 {
                     new PositionTransitionProvider().SetValue(ref renderGlyphs, transition, glyphMapper, startIndex, endIndex, normalizedTime);
                     break;
                 }
-                case TransitionValue.NoisePosition:
+                case GlyphProperty.PositionNoise:
                 {
                     new NoisePositionTransitionProvider().SetValue(ref renderGlyphs, transition, glyphMapper, startIndex, endIndex, normalizedTime);
                     break;
                 }
-                case TransitionValue.NoiseRotation:
+                case GlyphProperty.RotationNoise:
                 {
                     new NoiseRotationTransitionProvider().SetValue(ref renderGlyphs, transition, glyphMapper, startIndex, endIndex, normalizedTime);
                     break;
@@ -82,36 +82,11 @@ namespace Latios.Calligraphics
 
         internal static void  DisposeTransition(ref TextAnimationTransition transition)
         {
-            switch (transition.transitionValue)
+            switch (transition.glyphProperty)
             {
-                case TransitionValue.Color:
+                case GlyphProperty.PositionNoise:
                 {
-                    ((ITransitionProvider)new ColorTransitionProvider()).DisposeTransition(ref transition);
-                    break;
-                }
-                case TransitionValue.Scale:
-                {
-                    ((ITransitionProvider)new ScaleTransitionProvider()).DisposeTransition(ref transition);
-                    break;
-                }
-                case TransitionValue.Position:
-                {
-                    ((ITransitionProvider)new PositionTransitionProvider()).DisposeTransition(ref transition);
-                    break;
-                }
-                case TransitionValue.NoisePosition:
-                {
-                    ((ITransitionProvider)new NoisePositionTransitionProvider()).DisposeTransition(ref transition);
-                    break;
-                }
-                case TransitionValue.NoiseRotation:
-                {
-                    ((ITransitionProvider)new NoiseRotationTransitionProvider()).DisposeTransition(ref transition);
-                    break;
-                }
-                default:
-                {
-                    ((ITransitionProvider)new OpacityTransitionProvider()).DisposeTransition(ref transition);
+                    new NoisePositionTransitionProvider().DisposeTransition(ref transition);
                     break;
                 }
             }

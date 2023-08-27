@@ -5,11 +5,10 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Mathematics;
-using UnityEngine;
 
 namespace Latios.Calligraphics
 {
-    public struct NoisePositionTransitionProvider : ITransitionProvider
+    internal struct NoisePositionTransitionProvider : ITransitionProvider
     {
         public unsafe void Initialize(ref TextAnimationTransition transition, ref Rng.RngSequence rng, GlyphMapper glyphMapper)
         {
@@ -59,7 +58,7 @@ namespace Latios.Calligraphics
             var                 valuesCount = transition.endIndex - transition.startIndex + 1;
             NativeArray<float2> values      = new NativeArray<float2>(valuesCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
 
-            if (transition.currentTime >= transition.transitionTimeOffset)
+            if (transition.currentTime >= transition.transitionDelay)
             {
                 for (int i = 0; i < valuesCount; i++)
                 {
@@ -84,13 +83,13 @@ namespace Latios.Calligraphics
                 var renderGlyph = renderGlyphs[i];
                 switch (transition.scope)
                 {
-                    case TextScope.Glyph:
+                    case TransitionTextUnitScope.Glyph:
                         SetPositionValue(ref renderGlyph, values[transition.endIndex - i]);
                         break;
-                    case TextScope.Word:
+                    case TransitionTextUnitScope.Word:
                         SetPositionValue(ref renderGlyph, values[transition.endIndex - glyphMapper.GetGlyphStartIndexAndCountForWord(i).x]);
                         break;
-                    case TextScope.Line:
+                    case TransitionTextUnitScope.Line:
                         SetPositionValue(ref renderGlyph, values[transition.endIndex - glyphMapper.GetGlyphStartIndexAndCountForLine(i).x]);
                         break;
                     default:

@@ -13,16 +13,16 @@ namespace Latios.Calligraphics.Editor
         {
             var root = new VisualElement();
 
-            var transitionValueProperty = property.FindPropertyRelative("transitionValue");
-            var transitionValueField = new PropertyField(transitionValueProperty);
-            root.Add(transitionValueField);
+            var glyphProperty      = property.FindPropertyRelative("glyphProperty");
+            var glyphPropertyField = new PropertyField(glyphProperty);
+            root.Add(glyphPropertyField);
             var interpolationField = new PropertyField(property.FindPropertyRelative("interpolation"));
             root.Add(interpolationField);
             var animationStyleProperty = property.FindPropertyRelative("animationStyle");
-            var animationStyleField = new PropertyField(animationStyleProperty);
+            var animationStyleField    = new PropertyField(animationStyleProperty);
             root.Add(animationStyleField);
-            var scopeProperty = property.FindPropertyRelative("scope");
-            var scopeField = new PropertyField(scopeProperty);
+            var scopeProperty = property.FindPropertyRelative("unitScope");
+            var scopeField    = new PropertyField(scopeProperty);
             root.Add(scopeField);
             var startIndexField = new PropertyField(property.FindPropertyRelative("startIndex"));
             root.Add(startIndexField);
@@ -35,7 +35,7 @@ namespace Latios.Calligraphics.Editor
             var progressiveTimeOffsetField = new PropertyField(property.FindPropertyRelative("progressiveTimeOffset"));
             root.Add(progressiveTimeOffsetField);
             var endBehaviorProperty = property.FindPropertyRelative("endBehavior");
-            var endBehaviorField = new PropertyField(endBehaviorProperty);
+            var endBehaviorField    = new PropertyField(endBehaviorProperty);
             root.Add(endBehaviorField);
             var loopCountField = new PropertyField(property.FindPropertyRelative("loopCount"));
             root.Add(loopCountField);
@@ -104,23 +104,23 @@ namespace Latios.Calligraphics.Editor
             {
                 hideShowAnimationStyleFields(e.changedProperty.enumValueIndex);
             });
-            hideShowAnimationStyleFields(transitionValueProperty.enumValueIndex);
+            hideShowAnimationStyleFields(glyphProperty.enumValueIndex);
 
             Action<int> hideShowScopeFields = (enumValue) =>
             {
-                var scope = (TextScope)enumValue;
+                var scope = (TransitionTextUnitScope)enumValue;
                 switch (scope)
                 {
-                    case TextScope.All:
+                    case TransitionTextUnitScope.All:
                     {
                         startIndexField.style.display = DisplayStyle.None;
-                        endIndexField.style.display = DisplayStyle.None;
+                        endIndexField.style.display   = DisplayStyle.None;
                         break;
                     }
                     default:
                     {
                         startIndexField.style.display = DisplayStyle.Flex;
-                        endIndexField.style.display = DisplayStyle.Flex;
+                        endIndexField.style.display   = DisplayStyle.Flex;
                         break;
                     }
                 }
@@ -133,114 +133,115 @@ namespace Latios.Calligraphics.Editor
 
             Action<int> hideShowAnimationTypeFields = (enumValue) =>
             {
-                var animationType = (TransitionValue)enumValue;
-                switch (animationType)
+                var glyphProperty = (GlyphProperty)enumValue;
+                switch (glyphProperty)
                 {
-                    case TransitionValue.Opacity:
+                    case GlyphProperty.Opacity:
                     {
-                        startValueByteField.style.display = DisplayStyle.Flex;
-                        endValueByteField.style.display = DisplayStyle.Flex;
-                        startValueFloatField.style.display = DisplayStyle.None;
-                        endValueFloatField.style.display = DisplayStyle.None;
-                        startValueColorField.style.display = DisplayStyle.None;
-                        endValueColorField.style.display = DisplayStyle.None;
+                        startValueByteField.style.display   = DisplayStyle.Flex;
+                        endValueByteField.style.display     = DisplayStyle.Flex;
+                        startValueFloatField.style.display  = DisplayStyle.None;
+                        endValueFloatField.style.display    = DisplayStyle.None;
+                        startValueColorField.style.display  = DisplayStyle.None;
+                        endValueColorField.style.display    = DisplayStyle.None;
                         startValueFloat2Field.style.display = DisplayStyle.None;
-                        endValueFloat2Field.style.display = DisplayStyle.None;
+                        endValueFloat2Field.style.display   = DisplayStyle.None;
                         startValueFloat3Field.style.display = DisplayStyle.None;
-                        endValueFloat3Field.style.display = DisplayStyle.None;
+                        endValueFloat3Field.style.display   = DisplayStyle.None;
                         noiseScaleFloat2Field.style.display = DisplayStyle.None;
-                        noiseScaleFloatField.style.display = DisplayStyle.None;
+                        noiseScaleFloatField.style.display  = DisplayStyle.None;
                         break;
                     }
-                    case TransitionValue.Scale:
+                    case GlyphProperty.Scale:
                     {
-                        startValueByteField.style.display = DisplayStyle.None;
-                        endValueByteField.style.display = DisplayStyle.None;
-                        startValueFloatField.style.display = DisplayStyle.None;
-                        endValueFloatField.style.display = DisplayStyle.None;
-                        startValueColorField.style.display = DisplayStyle.None;
-                        endValueColorField.style.display = DisplayStyle.None;
+                        startValueByteField.style.display   = DisplayStyle.None;
+                        endValueByteField.style.display     = DisplayStyle.None;
+                        startValueFloatField.style.display  = DisplayStyle.None;
+                        endValueFloatField.style.display    = DisplayStyle.None;
+                        startValueColorField.style.display  = DisplayStyle.None;
+                        endValueColorField.style.display    = DisplayStyle.None;
                         startValueFloat2Field.style.display = DisplayStyle.Flex;
-                        endValueFloat2Field.style.display = DisplayStyle.Flex;
+                        endValueFloat2Field.style.display   = DisplayStyle.Flex;
                         startValueFloat3Field.style.display = DisplayStyle.None;
-                        endValueFloat3Field.style.display = DisplayStyle.None;
+                        endValueFloat3Field.style.display   = DisplayStyle.None;
                         noiseScaleFloat2Field.style.display = DisplayStyle.None;
-                        noiseScaleFloatField.style.display = DisplayStyle.None;
+                        noiseScaleFloatField.style.display  = DisplayStyle.None;
                         break;
                     }
-                    case TransitionValue.Color:
+                    case GlyphProperty.Color:
                     {
-                        startValueByteField.style.display = DisplayStyle.None;
-                        endValueByteField.style.display = DisplayStyle.None;
-                        startValueFloatField.style.display = DisplayStyle.None;
-                        endValueFloatField.style.display = DisplayStyle.None;
-                        startValueColorField.style.display = DisplayStyle.Flex;
-                        endValueColorField.style.display = DisplayStyle.Flex;
+                        startValueByteField.style.display   = DisplayStyle.None;
+                        endValueByteField.style.display     = DisplayStyle.None;
+                        startValueFloatField.style.display  = DisplayStyle.None;
+                        endValueFloatField.style.display    = DisplayStyle.None;
+                        startValueColorField.style.display  = DisplayStyle.Flex;
+                        endValueColorField.style.display    = DisplayStyle.Flex;
                         startValueFloat2Field.style.display = DisplayStyle.None;
-                        endValueFloat2Field.style.display = DisplayStyle.None;
+                        endValueFloat2Field.style.display   = DisplayStyle.None;
                         startValueFloat3Field.style.display = DisplayStyle.None;
-                        endValueFloat3Field.style.display = DisplayStyle.None;
+                        endValueFloat3Field.style.display   = DisplayStyle.None;
                         noiseScaleFloat2Field.style.display = DisplayStyle.None;
-                        noiseScaleFloatField.style.display = DisplayStyle.None;
+                        noiseScaleFloatField.style.display  = DisplayStyle.None;
                         break;
                     }
-                    case TransitionValue.Position:
+                    case GlyphProperty.Position:
                     {
-                        startValueByteField.style.display = DisplayStyle.None;
-                        endValueByteField.style.display = DisplayStyle.None;
-                        startValueFloatField.style.display = DisplayStyle.None;
-                        endValueFloatField.style.display = DisplayStyle.None;
-                        startValueColorField.style.display = DisplayStyle.None;
-                        endValueColorField.style.display = DisplayStyle.None;
+                        startValueByteField.style.display   = DisplayStyle.None;
+                        endValueByteField.style.display     = DisplayStyle.None;
+                        startValueFloatField.style.display  = DisplayStyle.None;
+                        endValueFloatField.style.display    = DisplayStyle.None;
+                        startValueColorField.style.display  = DisplayStyle.None;
+                        endValueColorField.style.display    = DisplayStyle.None;
                         startValueFloat2Field.style.display = DisplayStyle.Flex;
-                        endValueFloat2Field.style.display = DisplayStyle.Flex;
+                        endValueFloat2Field.style.display   = DisplayStyle.Flex;
                         startValueFloat3Field.style.display = DisplayStyle.None;
-                        endValueFloat3Field.style.display = DisplayStyle.None;
+                        endValueFloat3Field.style.display   = DisplayStyle.None;
                         noiseScaleFloat2Field.style.display = DisplayStyle.None;
-                        noiseScaleFloatField.style.display = DisplayStyle.None;
+                        noiseScaleFloatField.style.display  = DisplayStyle.None;
                         break;
                     }
-                    case TransitionValue.NoisePosition:
+                    case GlyphProperty.PositionNoise:
                     {
-                        startValueByteField.style.display = DisplayStyle.None;
-                        endValueByteField.style.display = DisplayStyle.None;
-                        startValueFloatField.style.display = DisplayStyle.None;
-                        endValueFloatField.style.display = DisplayStyle.None;
-                        startValueColorField.style.display = DisplayStyle.None;
-                        endValueColorField.style.display = DisplayStyle.None;
+                        startValueByteField.style.display   = DisplayStyle.None;
+                        endValueByteField.style.display     = DisplayStyle.None;
+                        startValueFloatField.style.display  = DisplayStyle.None;
+                        endValueFloatField.style.display    = DisplayStyle.None;
+                        startValueColorField.style.display  = DisplayStyle.None;
+                        endValueColorField.style.display    = DisplayStyle.None;
                         startValueFloat2Field.style.display = DisplayStyle.None;
-                        endValueFloat2Field.style.display = DisplayStyle.None;
+                        endValueFloat2Field.style.display   = DisplayStyle.None;
                         startValueFloat3Field.style.display = DisplayStyle.None;
-                        endValueFloat3Field.style.display = DisplayStyle.None;
+                        endValueFloat3Field.style.display   = DisplayStyle.None;
                         noiseScaleFloat2Field.style.display = DisplayStyle.Flex;
-                        noiseScaleFloatField.style.display = DisplayStyle.None;
+                        noiseScaleFloatField.style.display  = DisplayStyle.None;
                         break;
                     }
-                    case TransitionValue.NoiseRotation:
+                    case GlyphProperty.RotationNoise:
                     {
-                        startValueByteField.style.display = DisplayStyle.None;
-                        endValueByteField.style.display = DisplayStyle.None;
-                        startValueFloatField.style.display = DisplayStyle.None;
-                        endValueFloatField.style.display = DisplayStyle.None;
-                        startValueColorField.style.display = DisplayStyle.None;
-                        endValueColorField.style.display = DisplayStyle.None;
+                        startValueByteField.style.display   = DisplayStyle.None;
+                        endValueByteField.style.display     = DisplayStyle.None;
+                        startValueFloatField.style.display  = DisplayStyle.None;
+                        endValueFloatField.style.display    = DisplayStyle.None;
+                        startValueColorField.style.display  = DisplayStyle.None;
+                        endValueColorField.style.display    = DisplayStyle.None;
                         startValueFloat2Field.style.display = DisplayStyle.None;
-                        endValueFloat2Field.style.display = DisplayStyle.None;
+                        endValueFloat2Field.style.display   = DisplayStyle.None;
                         startValueFloat3Field.style.display = DisplayStyle.None;
-                        endValueFloat3Field.style.display = DisplayStyle.None;
+                        endValueFloat3Field.style.display   = DisplayStyle.None;
                         noiseScaleFloat2Field.style.display = DisplayStyle.None;
-                        noiseScaleFloatField.style.display = DisplayStyle.Flex;
-                        break;  
+                        noiseScaleFloatField.style.display  = DisplayStyle.Flex;
+                        break;
                     }
                 }
             };
-            transitionValueField.RegisterValueChangeCallback(e =>
+            glyphPropertyField.RegisterValueChangeCallback(e =>
             {
                 hideShowAnimationTypeFields(e.changedProperty.enumValueIndex);
             });
-            hideShowAnimationTypeFields(transitionValueProperty.enumValueIndex);
+            hideShowAnimationTypeFields(glyphProperty.enumValueIndex);
 
             return root;
         }
     }
 }
+

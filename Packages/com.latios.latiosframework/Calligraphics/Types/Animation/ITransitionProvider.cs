@@ -1,7 +1,6 @@
 using Latios.Kinemation.TextBackend;
 using Unity.Burst;
 using Unity.Entities;
-using UnityEngine.Accessibility;
 
 namespace Latios.Calligraphics
 {
@@ -20,3 +19,4 @@ namespace Latios.Calligraphics
     {
     }
 }
+

@@ -24,7 +24,6 @@ namespace Latios.Calligraphics.Systems
         EntityQuery m_query;
         Rng         m_rng;
 
-        [BurstCompile]
         public void OnCreate(ref SystemState state)
         {
             m_query = state.Fluent()
@@ -34,7 +33,7 @@ namespace Latios.Calligraphics.Systems
                       .WithAll<GlyphMappingElement>(     true)
                       .Build();
 
-            m_rng = new Rng("AnimateTextTransitionSystem");
+            m_rng = new Rng(new FixedString128Bytes("AnimateTextTransitionSystem"));
         }
 
         [BurstCompile]
@@ -97,13 +96,13 @@ namespace Latios.Calligraphics.Systems
 
                         //Loop if appropriate
                         if ((transition.endBehavior & TransitionEndBehavior.Loop) == TransitionEndBehavior.Loop &&
-                            transition.currentTime >= transition.transitionTimeOffset + transition.transitionDuration &&
+                            transition.currentTime >= transition.transitionDelay + transition.transitionDuration &&
                             transition.currentTime >= transition.loopDelay)
                         {
-                            transition.currentLoop++;
+                            transition.currentIteration++;
                             transition.currentTime = 0f;
 
-                            if (transition.currentLoop > transition.loopCount && (transition.endBehavior & TransitionEndBehavior.Revert) == TransitionEndBehavior.Revert)
+                            if (transition.currentIteration > transition.loopCount && (transition.endBehavior & TransitionEndBehavior.Revert) == TransitionEndBehavior.Revert)
                             {
                                 AnimationResolver.DisposeTransition(ref transition);
                                 transitions.RemoveAtSwapBack(i);
@@ -122,17 +121,17 @@ namespace Latios.Calligraphics.Systems
                         var endIndex   = 0;
                         switch (transition.scope)
                         {
-                            case TextScope.All:
+                            case TransitionTextUnitScope.All:
                                 startIndex = 0;
                                 endIndex   = renderGlyphs.Length;
                                 break;
-                            case TextScope.Glyph:
+                            case TransitionTextUnitScope.Glyph:
                                 if (!glyphMapper.TryGetGlyphIndexForCharNoTags(transition.startIndex, out startIndex))
                                     startIndex = -1;
                                 if (!glyphMapper.TryGetGlyphIndexForCharNoTags(transition.endIndex, out endIndex))
                                     endIndex = -1;
                                 break;
-                            case TextScope.Word:
+                            case TransitionTextUnitScope.Word:
                                 startIndex = glyphMapper.GetGlyphStartIndexAndCountForWord(transition.startIndex).x;
                                 if (transition.endIndex >= glyphMapper.wordCount - 1)
                                 {
@@ -144,7 +143,7 @@ namespace Latios.Calligraphics.Systems
                                     endIndex = glyphMapper.GetGlyphStartIndexAndCountForWord(transition.endIndex).x;
 
                                 break;
-                            case TextScope.Line:
+                            case TransitionTextUnitScope.Line:
                                 startIndex = glyphMapper.GetGlyphStartIndexAndCountForLine(transition.startIndex).x;
                                 if (transition.endIndex >= glyphMapper.lineCount - 1)
                                 {
@@ -161,7 +160,7 @@ namespace Latios.Calligraphics.Systems
                         if (startIndex > -1 && endIndex >= startIndex)
                         {
                             //Apply transition
-                            float t = (transition.currentTime - transition.transitionTimeOffset) /
+                            float t = (transition.currentTime - transition.transitionDelay) /
                                       transition.transitionDuration;
 
                             AnimationResolver.SetValue(ref renderGlyphs, transition, glyphMapper, startIndex,
@@ -178,7 +177,7 @@ namespace Latios.Calligraphics.Systems
             }
         }
 
-        //[BurstCompile]
+        [BurstCompile]
         public struct DisposeJob : IJobChunk
         {
             public BufferTypeHandle<TextAnimationTransition> transitionHandle;
