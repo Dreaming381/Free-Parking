@@ -73,7 +73,8 @@ namespace DreamingImLatios.Welcome.Systems
                         if (character.value == 10) // Linefeed
                             state.pauseTimeRemaining = stats.pauseDuration;
 
-                        text.Append("<alpha=#00>");
+                        FixedString32Bytes s = "<alpha=#00>";
+                        text.Append(s);
                     }
                     characterIndex++;
                 }
