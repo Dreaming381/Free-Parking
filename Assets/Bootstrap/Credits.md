@@ -6,6 +6,10 @@ www.kenney.nl
 
 Alexandru Gheorghe
 
+Quaternius
+
+rubberduck
+
 ## Level Design
 
 ## Programming
