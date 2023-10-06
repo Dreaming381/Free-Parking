@@ -7,12 +7,14 @@ using UnityEngine;
 
 namespace FreeParking.MainWorld.MainGameplay.Authoring
 {
+    [AddComponentMenu("Free Parking/Main World/Player Motion")]
     public class PlayerMotionAuthoring : MonoBehaviour
     {
         public float capsuleRadius     = 0.3f;
         public float capsuleHeight     = 1f;
         public float targetHoverHeight = 0.5f;
         public float skinWidth         = 0.01f;
+        public float maxSlopeAngle     = 60f;
 
         public float maxSpeed     = 4f;
         public float maxTurnSpeed = 180f;
@@ -40,6 +42,7 @@ namespace FreeParking.MainWorld.MainGameplay.Authoring
                 },
                 targetHoverHeight = authoring.targetHoverHeight,
                 skinWidth         = authoring.skinWidth,
+                cosMaxSlope       = math.cos(math.radians(authoring.maxSlopeAngle)),
                 maxSpeed          = authoring.maxSpeed,
                 maxTurnSpeed      = math.radians(authoring.maxTurnSpeed),
                 gravity           = -math.abs(authoring.gravity),

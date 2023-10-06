@@ -11,4 +11,4 @@ ScriptedImporter:
   generateWrapperCode: 1
   wrapperCodePath: Assets/Main World/_Code/PlayerInput.cs
   wrapperClassName: 
-  wrapperCodeNamespace: NetForce
+  wrapperCodeNamespace: FreeParking.MainWorld

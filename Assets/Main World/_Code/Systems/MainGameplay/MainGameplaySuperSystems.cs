@@ -12,7 +12,8 @@ namespace FreeParking.MainWorld.MainGameplay.Systems
     {
         protected override void CreateSystems()
         {
-            // Todo:
+            GetOrCreateAndAddManagedSystem<PlayerInputSystem>();
+            GetOrCreateAndAddUnmanagedSystem<PlayerAndCameraMotionSystem>();
         }
     }
 }

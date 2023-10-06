@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace FreeParking.MainWorld.MainGameplay.Authoring
 {
+    [AddComponentMenu("Free Parking/Main World/Environment")]
     [DisallowMultipleComponent]
     public class EnvironmentAuthoring : MonoBehaviour
     {

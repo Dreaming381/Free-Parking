@@ -17,6 +17,7 @@ namespace FreeParking.MainWorld.MainGameplay
         public CapsuleCollider collider;
         public float           targetHoverHeight;
         public float           skinWidth;
+        public float           cosMaxSlope;
 
         public float maxSpeed;
         public float maxTurnSpeed;
@@ -32,6 +33,7 @@ namespace FreeParking.MainWorld.MainGameplay
     {
         public float speed;
         public float verticalSpeed;
+        public bool  isSafeToInteract;  // Safe for interacting and such.
     }
 
     public struct PlayerInteractionDesiredActions : IComponentData
