@@ -51,6 +51,8 @@ namespace FreeParking.Bootstrap
 
             BootstrapTools.InjectUnitySystems(systems, world, world.simulationSystemGroup);
 
+            world.worldBlackboardEntity.AddOrSetCollectionComponentAndDisposeOld(new GameFlags(64));
+
             CoreBootstrap.InstallSceneManager(world);
             Latios.Transforms.TransformsBootstrap.InstallTransforms(world, world.simulationSystemGroup);
             Latios.Myri.MyriBootstrap.InstallMyri(world);
