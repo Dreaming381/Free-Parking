@@ -58,5 +58,31 @@ namespace FreeParking.MainWorld.MainGameplay
     public struct NpcCollisionTag : IComponentData { }
 
     public struct InteractableTargetTag : IComponentData { }
+
+    public struct QuestBlob
+    {
+        public struct Subquest
+        {
+            public GameFlagHandle            completionFlag;
+            public BlobArray<byte>           prelistText;
+            public BlobArray<GameFlagHandle> checklistFlags;
+            public BlobArray<byte>           postlistText;
+        }
+
+        public FixedString128Bytes questName;
+        public BlobArray<Subquest> subquests;
+    }
+
+    // Lives on the worldBlackboardEntity.
+    public struct ActiveQuest : IBufferElementData
+    {
+        public BlobAssetReference<QuestBlob> quest;
+    }
+
+    // Lives on the worldBlackboardEntity.
+    public struct FinishedQuest : IBufferElementData
+    {
+        public BlobAssetReference<QuestBlob> quest;
+    }
 }
 
