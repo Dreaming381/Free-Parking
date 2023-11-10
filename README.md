@@ -7,7 +7,7 @@ discover, learn, and develop the features of the Latios Famework. The project
 offers a lot of creative freedom to contributors. Whether you are just starting
 out, or a seasoned user of these technologies, park here and explore!
 
-The Unity version is currently 2022.3.3f1
+The Unity version is currently 2022.3.13f1
 
 Join the Latios Framework Community [Discord](https://discord.gg/Sb8aQDuUe8)
 
