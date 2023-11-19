@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Latios.Kinemation.InternalSourceGen;
 using Latios.Psyshock;
 using Latios.Transforms;
 using Latios.Transforms.Abstract;
@@ -9,12 +10,8 @@ using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
-using Unity.Entities.UniversalDelegates;
 using Unity.Jobs;
-using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
-using Unity.Rendering;
-using UnityEngine.Profiling;
 
 namespace Latios.Kinemation.Systems
 {
@@ -68,9 +65,9 @@ namespace Latios.Kinemation.Systems
             m_worldTransformHandle = new WorldTransformReadOnlyAspect.TypeHandle(ref CheckedStateRef);
             m_worldTransformLookup = new WorldTransformReadOnlyAspect.Lookup(ref CheckedStateRef);
 
-            m_skeletonQuery        = Fluent.WithAll<DependentSkinnedMesh>(true).WithAll<ChunkPerCameraSkeletonCullingMask>(true, true).Build();
-            m_skinnedMeshQuery     = Fluent.WithAll<SkeletonDependent>(true).WithAll<ChunkPerCameraCullingMask>(true, true).Build();
-            m_skinnedMeshMetaQuery = Fluent.WithAll<ChunkHeader>(true).WithAll<ChunkPerCameraCullingMask>(true).Build();
+            m_skeletonQuery        = Fluent.With<DependentSkinnedMesh>(true).With<ChunkPerCameraSkeletonCullingMask>(true, true).Build();
+            m_skinnedMeshQuery     = Fluent.With<SkeletonDependent>(true).With<ChunkPerCameraCullingMask>(true, true).Build();
+            m_skinnedMeshMetaQuery = Fluent.With<ChunkHeader>(true).With<ChunkPerCameraCullingMask>(true).Build();
 
             RequireForUpdate(m_skeletonQuery);
             RequireForUpdate(m_skinnedMeshQuery);

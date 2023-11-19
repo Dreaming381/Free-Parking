@@ -11,8 +11,9 @@ The Unity version is currently 2022.3.13f1
 
 Join the Latios Framework Community [Discord](https://discord.gg/Sb8aQDuUe8).
 
-If you would like to develop or experiment with new yet-to-be-finalized Latios
-Framework features, please use the prerelease/0.9 branch.
+This branch contains experimental features that have not yet been finalized in
+an official Latios Framework release. Only use this branch if you intend to
+experiment with or help develop new features.
 
 ## Core Gameplay
 

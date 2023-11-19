@@ -41,6 +41,16 @@ namespace Latios
 
         public static float4 length(simdFloat3 a) => math.sqrt(dot(a, a));
 
+        public static simdFloat3 normalize(simdFloat3 x) {
+            return math.rsqrt(dot(x, x)) * x;
+        }
+
+        public static simdFloat3 normalizesafe(simdFloat3 x, float3 defaultvalue = new float3())
+        {
+            var len = dot(x, x);
+            return select(new simdFloat3(defaultvalue), x * math.rsqrt(len), len > math.FLT_MIN_NORMAL);
+        }
+
         public static simdFloat3 select(simdFloat3 a, simdFloat3 b, bool4 c)
         {
             simdFloat3 result = default;
@@ -150,6 +160,11 @@ namespace Latios
         public static float4 cmaxxyz(simdFloat3 s)
         {
             return math.max(math.max(s.x, s.y), s.z);
+        }
+
+        public static float3 csumabcd(simdFloat3 s)
+        {
+            return new float3(math.csum(s.x), math.csum(s.y), math.csum(s.z));
         }
 
         public static simdFloat3 abs(simdFloat3 s)

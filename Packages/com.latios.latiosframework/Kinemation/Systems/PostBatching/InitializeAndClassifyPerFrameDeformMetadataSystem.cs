@@ -1,9 +1,9 @@
+using Latios.Kinemation.InternalSourceGen;
 using Unity.Burst;
 using Unity.Burst.Intrinsics;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
-using Unity.Mathematics;
 
 using static Unity.Entities.SystemAPI;
 
@@ -20,7 +20,7 @@ namespace Latios.Kinemation.Systems
         public void OnCreate(ref SystemState state)
         {
             latiosWorld = state.GetLatiosWorldUnmanaged();
-            m_query     = state.Fluent().WithAll<ChunkHeader>(true).WithAny<ChunkDeformPrefixSums>(true).WithAny<ChunkCopyDeformTag>(true).Build();
+            m_query     = state.Fluent().With<ChunkHeader>(true).WithAnyEnabled<ChunkDeformPrefixSums>(true).WithAnyEnabled<ChunkCopyDeformTag>(true).Build();
 
             latiosWorld.worldBlackboardEntity.AddComponent<MaxRequiredDeformData>();
             latiosWorld.worldBlackboardEntity.AddOrSetCollectionComponentAndDisposeOld(new DeformClassificationMap());
@@ -94,6 +94,8 @@ namespace Latios.Kinemation.Systems
             [ReadOnly] public ComponentTypeHandle<DynamicMeshState>  dynamicMeshStateHandle;
             [ReadOnly] public BufferTypeHandle<DynamicMeshVertex>    dynamicMeshVertexHandle;
 
+            [ReadOnly] public ComponentTypeHandle<DisableComputeShaderProcessingTag> disableComputeShaderProcessingTagHandle;
+
             [ReadOnly] public ComponentTypeHandle<DualQuaternionSkinningDeformTag> dqsDeformTagHandle;
 
             public NativeParallelHashMap<ArchetypeChunk, DeformClassification>.ParallelWriter deformClassificationMap;
@@ -148,6 +150,12 @@ namespace Latios.Kinemation.Systems
                             classification |= DeformClassification.RequiresGpuComputeDqsSkinning;
                         else
                             classification |= DeformClassification.RequiresGpuComputeMatrixSkinning;
+                    }
+
+                    if (chunk.Has(ref disableComputeShaderProcessingTagHandle))
+                    {
+                        classification &= ~(DeformClassification.RequiresGpuComputeBlendShapes | DeformClassification.RequiresGpuComputeMatrixSkinning |
+                                            DeformClassification.RequiresGpuComputeDqsSkinning);
                     }
 
                     deformClassificationMap.TryAdd(chunk, classification);

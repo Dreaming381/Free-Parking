@@ -18,7 +18,7 @@ namespace NetForce.Systems
         protected override void OnCreate()
         {
             m_input = new PlayerInput();
-            m_query = Fluent.WithAll<PlayerTag>(true).WithAny<ForwardDesiredActions>().Build();
+            m_query = Fluent.With<PlayerTag>(true).WithAnyEnabled<ForwardDesiredActions>().Build();
         }
 
         protected override void OnStartRunning() => m_input.Enable();
