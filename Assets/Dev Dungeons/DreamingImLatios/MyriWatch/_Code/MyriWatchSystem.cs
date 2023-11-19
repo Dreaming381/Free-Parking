@@ -17,7 +17,7 @@ namespace DreamingImLatios.MyriWatch.Systems
         LatiosWorldUnmanaged latiosWorld;
         Rng                  rng;
 
-        [BurstCompile]
+        //[BurstCompile]
         public void OnCreate(ref SystemState state)
         {
             latiosWorld = state.GetLatiosWorldUnmanaged();

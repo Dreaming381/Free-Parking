@@ -20,13 +20,16 @@ Free Parking can continue to thrive as the rules around AI evolve.
 Additionally, most assets are subjected to some form of copyright license. Some
 of these can be legally used in Free Parking, while others cannot.
 
+There is an exception for AI assets made with Unity muse. Such assets are
+permitted.
+
 ### Good licenses
 
 Assets licensed under CC0 or “Public Domain” are awesome! They carry no
 restrictions to their use.
 
 There are many other Creative Commons licenses and other free licenses that are
-permissible. The main two things for Free Parking is that they must be
+permissible. The main two things for Free Parking are that they must be
 distributable in source form, and must allow derivatives.
 
 ### Bad licenses
@@ -48,7 +51,7 @@ GitHub project. Examples of such licenses include:
 
 However, such assets may additionally be authored under an additional license,
 such as a Creative Commons license. In such cases, it is up to the licensee
-(Free Parking) to chose the license to be governed by. Most free Unity Asset
+(Free Parking) to choose the license to be governed by. Most free Unity Asset
 Store publishers aren’t aware of this caveat, so if you really want to use a
 Unity Asset Store asset, reach out to the publisher to see if they are willing
 to provide an alternate license.
@@ -74,11 +77,19 @@ guide for models created in Blender:
 
 <https://polynook.com/learn/how-to-export-models-from-blender-to-unity>
 
+## Are your characters deformation-ready?
+
+Kinemation requires all skinned mesh materials use special shaders for
+deformations to work. Such shaders can be created with Shader Graph. You can
+find such shaders in *Imports -\> \_Latios Shader Graphs*. If you do not find an
+appropriate shader there for your model, feel free to create one in that
+directory.
+
 ## Did you add your name to the credits?
 
 If you made it this far, you are almost done. Go into the Bootstraps folder of
 the Free Parking and open Credits.md in a text editor. Add your name under the
-*Imports* heading, leaving an blank lines before and after.
+*Imports* heading, leaving blank lines before and after.
 
 Don’t be shy! You deserve to be on that list!
 
@@ -91,3 +102,9 @@ merged, it is in and the assets are available for everyone to use. Success!
 
 That ends this guide. If you have any questions about the process, don’t
 hesitate to ask!
+
+## Imports not up to snuff?
+
+Not all existing imports have reached their full potential. Materials may lack
+PBR properties, or characters may lack appropriate shaders. Feel free to make
+them better and document your changes in your Pull Request!

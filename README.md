@@ -9,7 +9,10 @@ out, or a seasoned user of these technologies, park here and explore!
 
 The Unity version is currently 2022.3.13f1
 
-Join the Latios Framework Community [Discord](https://discord.gg/Sb8aQDuUe8)
+Join the Latios Framework Community [Discord](https://discord.gg/Sb8aQDuUe8).
+
+If you would like to develop or experiment with new yet-to-be-finalized Latios
+Framework features, please use the prerelease/0.9 branch.
 
 ## Core Gameplay
 
@@ -51,7 +54,7 @@ for the following:
 -   NSFW material
 -   Highly offensive material
 -   Copyrighted works
--   AI-generated content
+-   AI-generated content (except for Unity Muse which is permitted)
 
 Otherwise, anything goes! Have fun!
 
@@ -65,3 +68,11 @@ Domain](https://creativecommons.org/publicdomain/zero/1.0/).
 
 If you believe your copyrighted work has been inappropriately included in this
 project, please reach out!
+
+## Is This Project Dead?
+
+I determine how much this project is valued by the Latios Framework community
+based on how much others from the community contribute to it. The more the
+community contributes to this project, the more time and effort I will put into
+the project as well. Otherwise, I sometimes use this project as a place to
+experiment with new features as I develop them.
