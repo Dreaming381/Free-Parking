@@ -22,7 +22,7 @@ namespace NetForce.Systems
         public void OnCreate(ref SystemState state)
         {
             latiosWorld       = state.GetLatiosWorldUnmanaged();
-            m_query           = state.Fluent().WithAll<ForwardCharacterControllerV1State>().Build();
+            m_query           = state.Fluent().With<ForwardCharacterControllerV1State>().Build();
             m_transformLookup = new PhysicsTransformAspectLookup(ref state);
         }
 

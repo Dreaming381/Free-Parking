@@ -19,7 +19,7 @@ namespace FreeParking.MainWorld.MainGameplay.Systems
         protected override void OnCreate()
         {
             m_input = new PlayerInput();
-            m_query = Fluent.WithAny<PlayerMotionDesiredActions>().WithAny<PlayerInteractionDesiredActions>().Build();
+            m_query = Fluent.WithAnyEnabled<PlayerMotionDesiredActions, PlayerInteractionDesiredActions>().Build();
         }
 
         protected override void OnStartRunning() => m_input.Enable();

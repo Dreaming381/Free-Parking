@@ -48,7 +48,7 @@ namespace FreeParking.Bootstrap.Systems
                 state.Dependency = new EnableJob
                 {
                     entities      = m_entitiesToResume.AsDeferredJobArray(),
-                    enabledLookup = GetComponentLookup<MecanimControllerEnabledFlag>(),
+                    enabledLookup = GetComponentLookup<MecanimController>(),
                 }.Schedule(state.Dependency);
             }
             m_previouslyPaused = paused;
@@ -60,7 +60,7 @@ namespace FreeParking.Bootstrap.Systems
         {
             public NativeList<Entity> entities;
 
-            public void Execute(Entity entity, EnabledRefRW<MecanimControllerEnabledFlag> enabled)
+            public void Execute(Entity entity, EnabledRefRW<MecanimController> enabled)
             {
                 entities.Add(entity);
                 enabled.ValueRW = false;
@@ -70,14 +70,14 @@ namespace FreeParking.Bootstrap.Systems
         [BurstCompile]
         struct EnableJob : IJob
         {
-            [ReadOnly] public NativeArray<Entity>                entities;
-            public ComponentLookup<MecanimControllerEnabledFlag> enabledLookup;
+            [ReadOnly] public NativeArray<Entity>     entities;
+            public ComponentLookup<MecanimController> enabledLookup;
 
             public void Execute()
             {
                 for (int i = 0; i < entities.Length; i++)
                 {
-                    var enabled = enabledLookup.GetComponentEnabledRefRWOptional<MecanimControllerEnabledFlag>(entities[i]);
+                    var enabled = enabledLookup.GetComponentEnabledRefRWOptional<MecanimController>(entities[i]);
                     if (enabled.IsValid)
                         enabled.ValueRW = true;
                 }

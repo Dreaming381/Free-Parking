@@ -25,7 +25,7 @@ namespace FreeParking.MainWorld.MainGameplay.Systems
         {
             latiosWorld = state.GetLatiosWorldUnmanaged();
 
-            m_collisionQuery = state.Fluent().WithAny<EnvironmentTag>().WithAny<NpcCollisionTag>().PatchQueryForBuildingCollisionLayer().Build();
+            m_collisionQuery = state.Fluent().WithAnyEnabled<EnvironmentTag, NpcCollisionTag>().PatchQueryForBuildingCollisionLayer().Build();
             m_handles        = new BuildCollisionLayerTypeHandles(ref state);
         }
 

@@ -22,7 +22,7 @@ namespace NetForce.Systems
             latiosWorld = state.GetLatiosWorldUnmanaged();
             m_handles   = new BuildCollisionLayerTypeHandles(ref state);
 
-            m_environmentQuery = state.Fluent().WithAll<EnvironmentTag>(true).PatchQueryForBuildingCollisionLayer().Build();
+            m_environmentQuery = state.Fluent().With<EnvironmentTag>(true).PatchQueryForBuildingCollisionLayer().Build();
         }
 
         [BurstCompile]

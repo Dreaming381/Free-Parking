@@ -1,3 +1,4 @@
+using Latios.Kinemation.InternalSourceGen;
 using Unity.Burst;
 using Unity.Burst.CompilerServices;
 using Unity.Burst.Intrinsics;
@@ -6,7 +7,6 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Entities.Exposed;
 using Unity.Jobs;
-using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
 using Unity.Rendering;
 using UnityEngine.Rendering;
@@ -29,8 +29,8 @@ namespace Latios.Kinemation.Systems
         {
             latiosWorld = state.GetLatiosWorldUnmanaged();
 
-            m_query = state.Fluent().WithAll<DependentSkinnedMesh>(true).WithAll<ExposedSkeletonCullingIndex>(true)
-                      .WithAll<ChunkPerCameraSkeletonCullingMask>(false, true).WithAll<ChunkPerCameraSkeletonCullingSplitsMask>(false, true).Build();
+            m_query = state.Fluent().With<DependentSkinnedMesh>(true).With<ExposedSkeletonCullingIndex>(true)
+                      .With<ChunkPerCameraSkeletonCullingMask>(false, true).With<ChunkPerCameraSkeletonCullingSplitsMask>(false, true).Build();
 
             m_singleJob2 = new SingleSplitCullingJobPart2
             {
