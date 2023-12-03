@@ -11,17 +11,17 @@ namespace Latios.Psyshock
     /// It is often derived from a Mesh.
     /// </summary>
     [Serializable]
-    [StructLayout(LayoutKind.Explicit)]
+    [StructLayout(LayoutKind.Explicit, Size = 32)]
     public struct ConvexCollider
     {
         /// <summary>
         /// The blob asset containing the raw convex hull data
         /// </summary>
-        [FieldOffset(0)] public BlobAssetReference<ConvexColliderBlob> convexColliderBlob;
+        [FieldOffset(24)] public BlobAssetReference<ConvexColliderBlob> convexColliderBlob;
         /// <summary>
         /// The premultiplied scale and stretch in local space
         /// </summary>
-        [FieldOffset(8)] public float3 scale;
+        [FieldOffset(0)] public float3 scale;
 
         /// <summary>
         /// Creates a new ConvexCollider
