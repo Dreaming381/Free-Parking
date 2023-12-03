@@ -64,6 +64,8 @@ namespace Latios.Kinemation.Systems
         [BurstCompile]
         public partial struct Job : IJobChunk
         {
+            const float CLIP_WEIGHT_CULL_THRESHOLD = 0.0001f;
+            
             [ReadOnly] public BufferTypeHandle<MecanimLayerStateMachineStatus> layerStatusesHandle;
             [ReadOnly] public BufferTypeHandle<MecanimParameter>               parametersHandle;
             [ReadOnly] public BufferTypeHandle<BoneReference>                  boneReferenceHandle;
@@ -161,7 +163,10 @@ namespace Latios.Kinemation.Systems
                     var totalWeight = 0f;
                     for (int i = 0; i < clipWeights.Length; i++)
                     {
-                        totalWeight += clipWeights[i].weight;
+                        var clipWeight = clipWeights[i].weight;
+                        if (clipWeight < CLIP_WEIGHT_CULL_THRESHOLD)
+                            continue;
+                        totalWeight += clipWeight;
                     }
 
                     //Initialize Qvvs transforms
@@ -175,7 +180,7 @@ namespace Latios.Kinemation.Systems
                         var     clipWeight  = clipWeights[i];
                         var     blendWeight = clipWeight.weight / totalWeight;
                         //Cull clips with negligible weight
-                        if (blendWeight < 0.0001f)
+                        if (blendWeight < CLIP_WEIGHT_CULL_THRESHOLD)
                             continue;
 
                         ref var state = ref controllerBlob.layers[clipWeight.layerIndex].states[clipWeight.stateIndex];
@@ -261,7 +266,7 @@ namespace Latios.Kinemation.Systems
                             ref var clip        = ref clipSet.clips[clipWeight.mecanimClipIndex];
                             var     blendWeight = clipWeight.weight / totalWeight;
                             //Cull clips with negligible weight
-                            if (blendWeight < 0.0001f)
+                            if (blendWeight < CLIP_WEIGHT_CULL_THRESHOLD)
                                 continue;
 
                             ref var state      = ref controllerBlob.layers[clipWeight.layerIndex].states[clipWeight.stateIndex];
@@ -292,14 +297,22 @@ namespace Latios.Kinemation.Systems
                                 var previousClipSample = clip.SampleBone(0, time - speedModifiedDeltaTime);
 
                                 deltaTransform.position += currentClipSample.position - previousClipSample.position;
-                                deltaTransform.rotation  = math.mul(math.inverse(currentClipSample.rotation), previousClipSample.rotation);
+                                deltaTransform.rotation = math.mul(currentClipSample.rotation, math.inverse(previousClipSample.rotation));
                             }
 
                             currentRoot.position += deltaTransform.position * blendWeight;
-                            currentRoot.rotation  = math.slerp(currentRoot.rotation, deltaTransform.rotation, blendWeight);
+                            currentRoot.rotation = math.slerp(currentRoot.rotation, math.mul(currentRoot.rotation, deltaTransform.rotation), blendWeight);
                         }
 
                         //Get the previous clip deltas
+                        var previousFrameTotalWeight = 0f;
+                        for (int i = 0; i < previousFrameClipInfo.Length; i++)
+                        {
+                            var clipWeight = previousFrameClipInfo[i].weight;
+                            if (clipWeight < CLIP_WEIGHT_CULL_THRESHOLD)
+                                continue;
+                            previousFrameTotalWeight += clipWeight;
+                        }
                         var previousRoot = TransformQvvs.identity;
                         for (int i = 0; i < previousFrameClipInfo.Length; i++)
                         {
@@ -313,15 +326,11 @@ namespace Latios.Kinemation.Systems
                             ref var clip        = ref clipSet.clips[clipWeight.mecanimClipIndex];
                             var     blendWeight = clipWeight.weight / totalWeight;
                             //Cull clips with negligible weight
-                            if (blendWeight < 0.0001f)
+                            if (blendWeight < CLIP_WEIGHT_CULL_THRESHOLD) 
                                 continue;
 
                             ref var state      = ref controllerBlob.layers[clipWeight.layerIndex].states[clipWeight.stateIndex];
                             var     time       = state.isLooping ? clip.LoopToClipTime(clipWeight.motionTime) : math.min(clipWeight.motionTime, clip.duration);
-                            var     stateSpeed = state.speedMultiplierParameterIndex != -1 ?
-                                             parameters[state.speedMultiplierParameterIndex].floatParam * state.speed :
-                                             state.speed;
-                            var speedModifiedDeltaTime = deltaTime * stateSpeed;
 
                             var sampleTransform = clip.SampleBone(0, time);
 
@@ -332,12 +341,12 @@ namespace Latios.Kinemation.Systems
                                 var endClipSample = clip.SampleBone(0, clip.duration);
 
                                 sampleTransform.position -= endClipSample.position;
-                                sampleTransform.rotation  = math.mul(math.inverse(sampleTransform.rotation), endClipSample.rotation);
+                                sampleTransform.rotation = math.mul(endClipSample.rotation, math.inverse(sampleTransform.rotation));
 
                                 var remainderSample = clip.SampleBone(0, clipWeight.timeFragment - (clip.duration - time));
 
                                 sampleTransform.position -= remainderSample.position;
-                                sampleTransform.rotation  = math.mul(math.inverse(sampleTransform.rotation), remainderSample.rotation);
+                                sampleTransform.rotation = math.mul(sampleTransform.rotation, math.inverse(remainderSample.rotation));
                             }
                             else
                             {
@@ -345,11 +354,11 @@ namespace Latios.Kinemation.Systems
                                 var timeFragmentSample = clip.SampleBone(0, time + clipWeight.timeFragment);
 
                                 sampleTransform.position -= timeFragmentSample.position;
-                                sampleTransform.rotation  = math.mul(math.inverse(sampleTransform.rotation), timeFragmentSample.rotation);
+                                sampleTransform.rotation = math.mul(sampleTransform.rotation, math.inverse(timeFragmentSample.rotation));
                             }
 
                             previousRoot.position += sampleTransform.position * blendWeight;
-                            previousRoot.rotation  = math.slerp(previousRoot.rotation, sampleTransform.rotation, blendWeight);
+                            previousRoot.rotation = math.slerp(previousRoot.rotation, math.mul(previousRoot.rotation, sampleTransform.rotation), blendWeight);
                         }
 
                         //write the deltas to the root transform
@@ -357,8 +366,8 @@ namespace Latios.Kinemation.Systems
                         var rootDelta = TransformQvvs.identity;
 
                         rootDelta.position = currentRoot.position - previousRoot.position;
-                        rootDelta.rotation = math.mul(math.inverse(previousRoot.rotation), currentRoot.rotation);
-
+                        rootDelta.rotation = math.mul(currentRoot.rotation, math.inverse(previousRoot.rotation));
+                        
                         rootBone.localTransform = qvvs.mul(rootBone.localTransform, rootDelta);
                     }
 
