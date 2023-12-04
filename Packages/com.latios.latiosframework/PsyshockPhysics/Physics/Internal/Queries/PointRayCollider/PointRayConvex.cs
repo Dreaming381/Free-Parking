@@ -65,9 +65,9 @@ namespace Latios.Psyshock
                 var   edgeRange             = blob.edgeIndicesInFacesStartsAndCounts[bestPlaneIndex];
                 float maxEdgeSignedDistance = float.MinValue;
                 int   bestFaceEdgeIndex     = 0;
-                for (int i = 0; i < edgeRange.y; i++)
+                for (int i = 0; i < edgeRange.count; i++)
                 {
-                    float dot = math.dot(scaledPoint.xyz1(), blob.faceEdgeOutwardPlanes[i + edgeRange.x]);
+                    float dot = math.dot(scaledPoint.xyz1(), blob.faceEdgeOutwardPlanes[i + edgeRange.start]);
                     if (dot > maxEdgeSignedDistance)
                     {
                         maxEdgeSignedDistance = dot;
@@ -85,7 +85,7 @@ namespace Latios.Psyshock
                     return result.distance <= maxDistance;
                 }
 
-                var    edgeVertices = blob.vertexIndicesInEdges[blob.edgeIndicesInFaces[bestFaceEdgeIndex + edgeRange.x]];
+                var    edgeVertices = blob.vertexIndicesInEdges[blob.edgeIndicesInFaces[bestFaceEdgeIndex + edgeRange.start].index];
                 float3 vertexA      = new float3(blob.verticesX[edgeVertices.x], blob.verticesY[edgeVertices.x], blob.verticesZ[edgeVertices.x]);
                 float3 vertexB      = new float3(blob.verticesX[edgeVertices.y], blob.verticesY[edgeVertices.y], blob.verticesZ[edgeVertices.y]);
 
@@ -115,8 +115,8 @@ namespace Latios.Psyshock
 
                 result.hitpoint    = (vertexA + ab * edgeDot / edgeLengthSq) * convex.scale;
                 result.distance    = math.distance(result.hitpoint, point);
-                result.normal      = math.normalize(blob.edgeNormals[blob.edgeIndicesInFaces[bestFaceEdgeIndex + edgeRange.x]] * invScale);
-                result.featureCode = (ushort)(0x4000 + blob.edgeIndicesInFaces[bestFaceEdgeIndex + edgeRange.x]);
+                result.normal      = math.normalize(blob.edgeNormals[blob.edgeIndicesInFaces[bestFaceEdgeIndex + edgeRange.start].index] * invScale);
+                result.featureCode = (ushort)(0x4000 + blob.edgeIndicesInFaces[bestFaceEdgeIndex + edgeRange.start].index);
                 return result.distance <= maxDistance;
             }
             else if (dimensions == 0)
@@ -436,13 +436,13 @@ namespace Latios.Psyshock
                 var    edgeRange   = blob.edgeIndicesInFacesStartsAndCounts[bestIndex];
                 bool   hitEdge     = false;
                 bool   nearsEdge   = false;
-                for (int i = 0; i < edgeRange.y; i++)
+                for (int i = 0; i < edgeRange.count; i++)
                 {
-                    float dot = math.dot(scaledPoint.xyz1(), blob.faceEdgeOutwardPlanes[i + edgeRange.x]);
+                    float dot = math.dot(scaledPoint.xyz1(), blob.faceEdgeOutwardPlanes[i + edgeRange.start]);
                     if (dot > 0f)
                     {
                         nearsEdge   = true;
-                        var indices = blob.vertexIndicesInEdges[blob.edgeIndicesInFaces[i + edgeRange.x]];
+                        var indices = blob.vertexIndicesInEdges[blob.edgeIndicesInFaces[i + edgeRange.start].index];
                         var cap     = new CapsuleCollider(new float3(blob.verticesX[indices.x], blob.verticesY[indices.x], blob.verticesZ[indices.x]),
                                                           new float3(blob.verticesX[indices.y], blob.verticesY[indices.y], blob.verticesZ[indices.y]), radius);
                         if (PointRayCapsule.RaycastCapsule(in scaledRay, in cap, out float newFraction, out _))
@@ -543,7 +543,7 @@ namespace Latios.Psyshock
                 // Feature is face. Grab the face.
                 faceIndex = featureCode & 0x3fff;
                 facePlane = new Plane(new float3(blob.facePlaneX[faceIndex], blob.facePlaneY[faceIndex], blob.facePlaneZ[faceIndex]), blob.facePlaneDist[faceIndex]);
-                edgeCount = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].y;
+                edgeCount = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].count;
             }
             else if (featureType == 1)
             {
@@ -558,13 +558,13 @@ namespace Latios.Psyshock
                 {
                     faceIndex = faceIndices.x;
                     facePlane = facePlaneA;
-                    edgeCount = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].y;
+                    edgeCount = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].count;
                 }
                 else
                 {
                     faceIndex = faceIndices.y;
                     facePlane = facePlaneB;
-                    edgeCount = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].y;
+                    edgeCount = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].count;
                 }
             }
             else
@@ -572,12 +572,12 @@ namespace Latios.Psyshock
                 // Feature is vertex. One of adjacent faces is best.
                 var vertexIndex        = featureCode & 0x3fff;
                 var facesStartAndCount = blob.faceIndicesByVertexStartsAndCounts[vertexIndex];
-                faceIndex              = blob.faceIndicesByVertex[facesStartAndCount.x];
+                faceIndex              = blob.faceIndicesByVertex[facesStartAndCount.start];
                 facePlane              = new Plane(new float3(blob.facePlaneX[faceIndex], blob.facePlaneY[faceIndex], blob.facePlaneZ[faceIndex]), blob.facePlaneDist[faceIndex]);
                 float bestDot          = math.dot(localDirectionToAlign, facePlane.normal);
-                for (int i = 1; i < facesStartAndCount.y; i++)
+                for (int i = 1; i < facesStartAndCount.count; i++)
                 {
-                    var otherFaceIndex = blob.faceIndicesByVertex[facesStartAndCount.x + i];
+                    var otherFaceIndex = blob.faceIndicesByVertex[facesStartAndCount.start + i];
                     var otherPlane     = new Plane(new float3(blob.facePlaneX[otherFaceIndex], blob.facePlaneY[otherFaceIndex], blob.facePlaneZ[otherFaceIndex]),
                                                    blob.facePlaneDist[otherFaceIndex]);
                     var otherDot = math.dot(localDirectionToAlign, otherPlane.normal);
@@ -588,7 +588,7 @@ namespace Latios.Psyshock
                         facePlane = otherPlane;
                     }
                 }
-                edgeCount = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].y;
+                edgeCount = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].count;
             }
         }
     }

@@ -279,7 +279,7 @@ namespace Latios.Psyshock
                     var rayStart        = math.transform(bInATransform, capsule.pointA);
                     var rayDisplacement = math.transform(bInATransform, capsule.pointB) - rayStart;
 
-                    var    edgeIndicesBase = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].x;
+                    var    edgeIndicesBase = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].start;
                     float4 enterFractions  = float4.zero;
                     float4 exitFractions   = 1f;
                     bool4  projectsOnFace  = true;
