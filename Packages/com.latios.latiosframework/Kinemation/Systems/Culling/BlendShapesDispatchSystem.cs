@@ -8,7 +8,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Latios.Kinemation
+namespace Latios.Kinemation.Systems
 {
     [RequireMatchingQueriesForUpdate]
     [DisableAutoCreation]
@@ -88,7 +88,7 @@ namespace Latios.Kinemation
                 }.Schedule(collectJh);
 
                 // Fetching this now because culling jobs are still running (hopefully).
-                var graphicsPool = worldBlackboardEntity.GetManagedStructComponent<GraphicsBufferManager>().pool;
+                var graphicsBroker = worldBlackboardEntity.GetManagedStructComponent<GraphicsBufferBrokerReference>().graphicsBufferBroker;
 
                 yield return true;
 
@@ -112,7 +112,7 @@ namespace Latios.Kinemation
                 }
 
                 var metaBufferSize = (uint)payloads.Length * 2 + requiredWeightsBufferSize.Value;
-                var metaBuffer     = graphicsPool.GetUploadMetaBuffer(metaBufferSize);
+                var metaBuffer     = graphicsBroker.GetMetaUint4UploadBuffer(metaBufferSize);
 
                 Dependency = new WriteMetaBufferJob
                 {
@@ -131,9 +131,9 @@ namespace Latios.Kinemation
                 if (terminate)
                     break;
 
-                var persistentBuffer = graphicsPool.GetDeformBuffer(worldBlackboardEntity.GetComponentData<MaxRequiredDeformData>().maxRequiredDeformVertices);
-                m_dispatchShader.SetBuffer(0, _srcVertices,      graphicsPool.GetMeshVerticesBufferRO());
-                m_dispatchShader.SetBuffer(0, _blendShapeDeltas, graphicsPool.GetMeshBlendShapesBufferRO());
+                var persistentBuffer = graphicsBroker.GetDeformBuffer(worldBlackboardEntity.GetComponentData<MaxRequiredDeformData>().maxRequiredDeformVertices);
+                m_dispatchShader.SetBuffer(0, _srcVertices,      graphicsBroker.GetMeshVerticesBuffer());
+                m_dispatchShader.SetBuffer(0, _blendShapeDeltas, graphicsBroker.GetMeshBlendShapesBufferRO());
                 m_dispatchShader.SetBuffer(0, _dstVertices,      persistentBuffer);
                 m_dispatchShader.SetBuffer(0, _metaBuffer,       metaBuffer);
 

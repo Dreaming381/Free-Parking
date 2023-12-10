@@ -328,11 +328,6 @@ namespace InternalSourceGen
         public JobHandle TryDispose(JobHandle inputDeps) => inputDeps;
     }
 
-    internal partial struct GraphicsBufferManager : IManagedStructComponent
-    {
-        public GraphicsBufferTrackingPool pool;
-    }
-
     internal unsafe partial struct BrgCullingContext : ICollectionComponent
     {
         //public BatchCullingContext cullingContext;
@@ -441,11 +436,6 @@ namespace InternalSourceGen
 
         // The data is owned by a world or system rewindable allocator.
         public JobHandle TryDispose(JobHandle inputDeps) => inputDeps;
-    }
-
-    internal struct GlyphCountThisFrame : IComponentData
-    {
-        public uint glyphCount;
     }
     #endregion
 }

@@ -1,6 +1,6 @@
 using Latios;
 using Latios.Kinemation;
-using Latios.Transforms;
+using Latios.Mimic.Mecanim;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
