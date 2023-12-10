@@ -24,11 +24,13 @@ public class LatiosEditorBootstrap : ICustomEditorBootstrap
         var world = new LatiosWorld(defaultEditorWorld.Name);
 
         var systems = DefaultWorldInitialization.GetAllSystemTypeIndices(WorldSystemFilterFlags.Default, true);
-        BootstrapTools.InjectSystems(systems, world, world.simulationSystemGroup);
+        BootstrapTools.InjectUnitySystems(systems, world, world.simulationSystemGroup);
 
         Latios.Transforms.TransformsBootstrap.InstallTransforms(world, world.simulationSystemGroup);
         Latios.Kinemation.KinemationBootstrap.InstallKinemation(world);
         Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphics(world);
+
+        BootstrapTools.InjectUserSystems(systems, world, world.simulationSystemGroup);
 
         return world;
     }
@@ -43,7 +45,7 @@ public class LatiosBootstrap : ICustomBootstrap
         World.DefaultGameObjectInjectionWorld = world;
 
         var systems = DefaultWorldInitialization.GetAllSystemTypeIndices(WorldSystemFilterFlags.Default);
-        BootstrapTools.InjectSystems(systems, world, world.simulationSystemGroup);
+        BootstrapTools.InjectUnitySystems(systems, world, world.simulationSystemGroup);
 
         Latios.Transforms.TransformsBootstrap.InstallTransforms(world, world.simulationSystemGroup);
         Latios.Myri.MyriBootstrap.InstallMyri(world);
@@ -51,6 +53,8 @@ public class LatiosBootstrap : ICustomBootstrap
         Latios.Kinemation.KinemationBootstrap.InstallMecanimFeatures(world);
         Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphics(world);
         Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphicsAnimations(world);
+
+        BootstrapTools.InjectUserSystems(systems, world, world.simulationSystemGroup);
 
         world.initializationSystemGroup.SortSystems();
         world.simulationSystemGroup.SortSystems();
