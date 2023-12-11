@@ -45,12 +45,13 @@ namespace Latios.Mimic.Mecanim.Systems
                 previousDeltaTime = m_previousDeltaTime,
                 deltaTime         = Time.DeltaTime
             }.ScheduleParallel(m_query, state.Dependency);
+            state.Dependency = new ApplyRootMotionJob().ScheduleParallel(m_query, state.Dependency);
 
             m_previousDeltaTime = Time.DeltaTime;
         }
 
         [BurstCompile]
-        public partial struct Job : IJobEntity
+        partial struct Job : IJobEntity
         {
             const float CLIP_WEIGHT_CULL_THRESHOLD = 0.0001f;
 
@@ -61,7 +62,6 @@ namespace Latios.Mimic.Mecanim.Systems
             [NativeDisableContainerSafetyRestriction] NativeList<float>                floatCache;
 
             public void Execute(ref MecanimController controller,
-                                LocalTransformQvvsReadWriteAspect localTransform,
                                 OptimizedSkeletonAspect optimizedSkeleton,
                                 in DynamicBuffer<MecanimLayerStateMachineStatus> layerStatuses,
                                 in DynamicBuffer<MecanimParameter>               parametersBuffer,
@@ -281,7 +281,8 @@ namespace Latios.Mimic.Mecanim.Systems
                     rootDelta.position = currentRoot.position - previousRoot.position;
                     rootDelta.rotation = math.mul(math.inverse(previousRoot.rotation), currentRoot.rotation);
 
-                    localTransform.localTransform = qvvs.mul(localTransform.localTransform, rootDelta);
+                    var rootBone            = optimizedSkeleton.bones[0];
+                    rootBone.localTransform = rootDelta;
                 }
 
                 //Store previous frame clip info
@@ -290,6 +291,16 @@ namespace Latios.Mimic.Mecanim.Systems
                 {
                     previousFrameClipInfo.Add(clipWeights[i]);
                 }
+            }
+        }
+
+        [BurstCompile]
+        partial struct ApplyRootMotionJob : IJobEntity
+        {
+            public void Execute(LocalTransformQvvsReadWriteAspect localTransform, OptimizedRootDeltaRO root, in MecanimController controller)
+            {
+                if (controller.applyRootMotion)
+                    localTransform.localTransform = qvvs.mul(localTransform.localTransform, root.rootDelta);
             }
         }
     }
