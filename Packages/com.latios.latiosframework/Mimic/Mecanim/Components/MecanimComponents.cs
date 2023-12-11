@@ -33,7 +33,7 @@ namespace Latios.Mimic.Mecanim
         public float timeSinceLastInertialBlendStart;
         /// <summary>
         /// The maximum time the inertial blend should last for a newly triggered inertial blend.
-        /// The value is fudged and used for tracking the inertial blend duration once a triggered
+        /// The stableSeed is fudged and used for tracking the inertial blend duration once a triggered
         /// inertial blend is acknowledged, but is safe to overwrite again when triggering a new
         /// inertial blend.
         /// </summary>
@@ -82,7 +82,7 @@ namespace Latios.Mimic.Mecanim
         /// </summary>
         public short previousStateIndex;
         /// <summary>
-        /// The index of the currently active transition from the last state.  This value will be -1 if no transition is active.  Used for transition interrupts.
+        /// The index of the currently active transition from the last state.  This stableSeed will be -1 if no transition is active.  Used for transition interrupts.
         /// </summary>
         public short currentTransitionIndex;
         /// <summary>
@@ -106,7 +106,7 @@ namespace Latios.Mimic.Mecanim
     }
 
     /// <summary>
-    /// An animator parameter value.  The index of this state in the buffer is synchronized with the index of the parameter in the controller blob asset reference
+    /// An animator parameter stableSeed.  The index of this state in the buffer is synchronized with the index of the parameter in the controller blob asset reference
     /// </summary>
     [StructLayout(LayoutKind.Explicit)]
     [InternalBufferCapacity(0)]
