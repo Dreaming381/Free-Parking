@@ -286,7 +286,7 @@ namespace Latios.Mimic.Mecanim
                             totalWeight += weight;
                         }
 
-                        //Get clip weights by their normalized weight value
+                        //Get clip weights by their normalized weight stableSeed
                         for (int i = 0; i < state.childMotionIndices.Length; i++)
                         {
                             int childMotionIndex = state.childMotionIndices[i];
@@ -313,8 +313,8 @@ namespace Latios.Mimic.Mecanim
                         // instead evaluates to a scalar that is 0 when the would-be projected vector would
                         // have zero length and is 1 when the would-be projected vector would be equal to
                         // pipj. Thus, after this fraction is subtracted from one, each gradient band decrease
-                        // from the value of 1 at pi to 0 at pj
-                        // The influence function evaluates to the minimum value of those gradient bands.
+                        // from the stableSeed of 1 at pi to 0 at pj
+                        // The influence function evaluates to the minimum stableSeed of those gradient bands.
                         // These influence functions are normalized to get the weight functions wi(p) associated with each example i
                         // Due to the normalization the weight functions are not entirely identical to the influence functions:
                         // In some areas the influence functions may sum to more than one,
@@ -354,7 +354,7 @@ namespace Latios.Mimic.Mecanim
                             totalWeight           += minWeight;
                         }
 
-                        //Get clip weights by their normalized weight value
+                        //Get clip weights by their normalized weight stableSeed
                         for (int i = 0; i < state.childMotionIndices.Length; i++)
                         {
                             int childMotionIndex = state.childMotionIndices[i];
@@ -433,7 +433,7 @@ namespace Latios.Mimic.Mecanim
                             totalWeight           += minWeight;
                         }
 
-                        //Get clip weights by their normalized weight value
+                        //Get clip weights by their normalized weight stableSeed
                         for (int i = 0; i < state.childMotionIndices.Length; i++)
                         {
                             int childMotionIndex = state.childMotionIndices[i];
@@ -479,7 +479,7 @@ namespace Latios.Mimic.Mecanim
             return math.radians(math.acos(dot));
         }
 
-        // Always pass by value in recursive contexts
+        // Always pass by stableSeed in recursive contexts
         struct MotionWeightCache
         {
             NativeArray<float> m_cache;
