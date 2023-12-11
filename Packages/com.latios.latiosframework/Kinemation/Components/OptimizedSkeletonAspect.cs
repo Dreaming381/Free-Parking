@@ -206,10 +206,10 @@ namespace Latios.Kinemation
     }
 
     /// <summary>
-    /// A handle to the root bone's QVVS, which is unused in hierarchy calculations and often
+    /// A handle to the root bone's QVVS in the entity's local space, which is unused in hierarchy calculations and often
     /// contains the root motion delta.
     /// </summary>
-    public readonly partial struct OptimizedRootDeltaRO : IAspect
+    public readonly partial struct OptimizedRootDeltaROAspect : IAspect
     {
         readonly RefRO<OptimizedSkeletonState>                    m_skeletonState;
         [ReadOnly] readonly DynamicBuffer<OptimizedBoneTransform> m_boneTransforms;
