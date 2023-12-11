@@ -297,7 +297,7 @@ namespace Latios.Mimic.Mecanim.Systems
         [BurstCompile]
         partial struct ApplyRootMotionJob : IJobEntity
         {
-            public void Execute(LocalTransformQvvsReadWriteAspect localTransform, OptimizedRootDeltaRO root, in MecanimController controller)
+            public void Execute(LocalTransformQvvsReadWriteAspect localTransform, OptimizedRootDeltaROAspect root, in MecanimController controller)
             {
                 if (controller.applyRootMotion)
                     localTransform.localTransform = qvvs.mul(localTransform.localTransform, root.rootDelta);
