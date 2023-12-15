@@ -68,7 +68,7 @@ namespace Latios.Psyshock
                     u.distanceToEdge   = -dist;
                     u.closestEdgeIndex = 1;
                 }
-                else
+                else  // Colinear points are removed
                 {
                     unhomedCount--;
                     if (i < unhomedCount)

@@ -130,6 +130,8 @@ namespace Latios.Kinemation.Authoring
                                      int firstValidMaterialIndex,
                                      int firstUniqueSubmeshIndex = int.MaxValue)
         {
+            firstUniqueSubmeshIndex = math.clamp(firstUniqueSubmeshIndex, 1, sharedMaterials.Count);
+
             // Takes a dependency on the material
             foreach (var material in sharedMaterials)
                 baker.DependsOn(material);
@@ -140,8 +142,11 @@ namespace Latios.Kinemation.Authoring
             // RenderMeshDescription accesses the GameObject layer in its constructor.
             // Declaring the dependency on the GameObject with GetLayer, so the baker rebakes if the layer changes
             baker.GetLayer(authoring);
-            var desc       = new RenderMeshDescription(authoring);
-            var renderMesh = new RenderMesh(authoring, mesh, sharedMaterials, firstValidMaterialIndex);
+            var desc             = new RenderMeshDescription(authoring);
+            var batchedMaterials = new List<Material>(firstUniqueSubmeshIndex);
+            for (int i = 0; i < firstUniqueSubmeshIndex; i++)
+                batchedMaterials.Add(sharedMaterials[i]);
+            var renderMesh = new RenderMesh(authoring, mesh, batchedMaterials, firstValidMaterialIndex);
 
             // Always disable per-object motion vectors for static objects
             if (baker.IsStatic())
@@ -248,7 +253,7 @@ namespace Latios.Kinemation.Authoring
             Entity               referenceEntity                = default;
             var                  materialsList                  = new List<Material>(materialCount);
             DeformClassification requiredPropertiesForReference = DeformClassification.None;
-            for (var m = firstValidMaterialIndex; m != materialCount; m++)
+            for (var m = firstValidMaterialIndex; m < materialCount; m++)
             {
                 if (sharedMaterials[m] == null)
                 {
@@ -304,6 +309,8 @@ namespace Latios.Kinemation.Authoring
 
                     baker.AddComponent<CopyParentRequestTag>(meshEntity);
                     baker.AddComponent(                      meshEntity, new CopyDeformFromEntity { sourceDeformedEntity = referenceEntity });
+                    renderMesh.subMesh                                                                                   = m;
+                    AddRendererComponents(meshEntity, baker, renderMeshDescription, renderMesh);
 
                     additionalEntities.Add(meshEntity);
                 }
@@ -319,7 +326,7 @@ namespace Latios.Kinemation.Authoring
                     Debug.LogWarning(
                         $"Submesh {m} for Skinned Mesh Renderer {renderer.gameObject.name} uses shader {material.shader.name} which does not support deformations. Please see the Kinemation Getting Started Guide Part 2 to learn how to set up a proper shader graph shader for deformations.");
                 }
-                else if (m != firstValidMaterialIndex)
+                else if (m != firstValidMaterialIndex && m >= firstUniqueSubmeshIndex)
                 {
                     AddMaterialPropertiesFromDeformClassification(baker, meshEntity, classification);
                 }

@@ -178,23 +178,81 @@ namespace Latios.Psyshock
             }
             else  //if (dimensions == 2)
             {
-                //Todo:
                 var mask = math.select(1f, 0f, math.isfinite(invScale));
                 if (math.abs(math.csum(point * mask)) > maxDistance)
                 {
+                    // The point is too far away from the infinite plane.
                     result = default;
                     return false;
                 }
 
-                var flipMask  = 1f - mask;
-                var diff      = blob.localAabb.max - blob.localAabb.min;
-                diff         *= mask;
-                var hitPoint  = flipMask * point;
+                var     flipMask    = 1f - mask;
+                var     hitPoint    = flipMask * point;
+                var     hitpoint2D  = hitPoint.yz;
+                ref var planarHull  = ref blob.yz2DVertexIndices;
+                ref var verticesX2d = ref blob.verticesY;
+                ref var verticesY2d = ref blob.verticesZ;
+                if (mask.y > 0.5f)
+                {
+                    hitpoint2D  = hitPoint.xz;
+                    planarHull  = ref blob.xz2DVertexIndices;
+                    verticesX2d = ref blob.verticesX;
+                }
+                else if (mask.z > 0.5f)
+                {
+                    hitpoint2D  = hitPoint.xy;
+                    planarHull  = ref blob.xy2DVertexIndices;
+                    verticesX2d = ref blob.verticesX;
+                    verticesY2d = ref blob.verticesY;
+                }
 
-                var inflateRay      = new Ray(hitPoint - diff, hitPoint + diff);
-                var inflateConvex   = convex;
-                inflateConvex.scale = math.select(1f, convex.scale, math.isfinite(invScale));
-                if (RaycastConvex(in inflateRay, in inflateConvex, out _, out _))
+                var cw = true;
+                {
+                    var a  = new float2(verticesX2d[planarHull[0]], verticesY2d[planarHull[0]]);
+                    var b  = new float2(verticesX2d[planarHull[1]], verticesY2d[planarHull[1]]);
+                    var c  = new float2(verticesX2d[planarHull[2]], verticesY2d[planarHull[2]]);
+                    var ab = b - a;
+                    var bc = c - b;
+                    cw     = ab.x * bc.y - bc.x * ab.y >= 0f;
+                }
+
+                result.distance    = -1f;
+                result.hitpoint    = 0f;
+                result.normal      = 0f;
+                result.featureCode = 0;
+                var previousVert   = new float2(verticesX2d[planarHull[planarHull.Length - 1]], verticesY2d[planarHull[planarHull.Length - 1]]);
+                for (int i = 0; i < planarHull.Length; i++)
+                {
+                    var currentVert = new float2(verticesX2d[planarHull[i]], verticesY2d[planarHull[i]]);
+                    var ab          = currentVert - previousVert;
+                    var ap          = hitpoint2D - currentVert;
+                    var abRot       = math.select(new float2(-ab.y, ab.x), new float2(ab.y, -ab.x), cw);
+                    if (math.dot(ap, abRot) < 0f)
+                        continue;
+                    var dot            = math.dot(ap, ab);
+                    var edgeLengthSq   = math.lengthsq(ab);
+                    var clampedDot     = math.clamp(dot, 0f, edgeLengthSq);
+                    var pointOnSegment = previousVert + edgeLengthSq * clampedDot / edgeLengthSq;
+                    var newDistance    = math.distancesq(hitpoint2D, pointOnSegment);
+                    if (newDistance > result.distance)
+                    {
+                        result.distance    = newDistance;
+                        result.hitpoint.xy = pointOnSegment;
+                        result.normal.xy   = abRot;
+                        if (dot >= edgeLengthSq)
+                            result.featureCode = (ushort)i;
+                        else if (dot <= 0f)
+                        {
+                            if (i == 0)
+                                result.featureCode = (ushort)(planarHull.Length - 1);
+                            else
+                                result.featureCode = (ushort)(i - 1);
+                        }
+                        else
+                            result.featureCode = (ushort)(0x4000 + i);
+                    }
+                }
+                if (result.distance < 0f)
                 {
                     result.hitpoint    = hitPoint;
                     result.distance    = math.abs(math.csum(point * mask));
@@ -203,43 +261,19 @@ namespace Latios.Psyshock
                     return true;
                 }
 
-                result          = default;
-                result.distance = float.MaxValue;
-
-                for (int i = 0; i < blob.vertexIndicesInEdges.Length; i++)
+                if (result.distance <= maxDistance * maxDistance)
                 {
-                    var    indices  = blob.vertexIndicesInEdges[i];
-                    float3 vertexA  = new float3(blob.verticesX[indices.x], blob.verticesY[indices.x], blob.verticesZ[indices.x]);
-                    float3 vertexB  = new float3(blob.verticesX[indices.y], blob.verticesY[indices.y], blob.verticesZ[indices.y]);
-                    vertexA        *= flipMask;
-                    vertexB        *= flipMask;
-
-                    float3 edge           = vertexB - vertexA;
-                    float3 ap             = point - vertexA;
-                    float  dot            = math.dot(ap, edge);
-                    float  edgeLengthSq   = math.lengthsq(edge);
-                    dot                   = math.clamp(dot, 0f, edgeLengthSq);
-                    float3 pointOnSegment = vertexA + edge * dot / edgeLengthSq;
-                    float  newDistance    = math.distance(pointOnSegment, point);
-
-                    if (newDistance < result.distance)
+                    result.distance = math.sqrt(result.distance);
+                    result.normal   = math.normalize(result.normal);
+                    if (mask.x > 0.5f)
                     {
-                        result.distance    = newDistance;
-                        result.hitpoint    = pointOnSegment;
-                        result.featureCode = (ushort)math.select(math.select(0x4000 + i, indices.x, dot == 0f), indices.y, dot == edgeLengthSq);
+                        result.hitpoint = result.hitpoint.zxy;
+                        result.normal   = result.normal.zxy;
                     }
-                }
-
-                if (result.distance <= maxDistance)
-                {
-                    var normalScale = math.select(0f, invScale, flipMask == 1f);
-                    if (result.featureCode >= 0x4000)
+                    else if (mask.y > 0.5f)
                     {
-                        result.normal = math.normalize(normalScale * blob.edgeNormals[result.featureCode & 0x7fff]);
-                    }
-                    else
-                    {
-                        result.normal = math.normalize(normalScale * blob.vertexNormals[result.featureCode & 0x7fff]);
+                        result.hitpoint = result.hitpoint.xzy;
+                        result.normal   = result.normal.xzy;
                     }
                     return true;
                 }
