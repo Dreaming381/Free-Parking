@@ -18,7 +18,7 @@ namespace Latios.Calligraphics.Rendering.Systems
 {
     [WorldSystemFilter(WorldSystemFilterFlags.Default | WorldSystemFilterFlags.Editor)]
     [RequireMatchingQueriesForUpdate]
-    [UpdateInGroup(typeof(CullingRoundRobinEarlyExtensionsSuperSystems))]
+    [UpdateInGroup(typeof(CullingRoundRobinEarlyExtensionsSuperSystem))]
     [DisableAutoCreation]
     public partial class TextRenderingDispatchSystem : CullingComputeDispatchSubSystemBase
     {
