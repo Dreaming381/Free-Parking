@@ -8,7 +8,6 @@ using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Mathematics;
-
 using static Unity.Entities.SystemAPI;
 
 namespace Latios.Mimic.Mecanim.Systems
@@ -20,6 +19,7 @@ namespace Latios.Mimic.Mecanim.Systems
     {
         private EntityQuery                              m_query;
         private LocalTransformQvvsReadWriteAspect.Lookup m_localTransformLookup;
+        private BlendShapesAspect.Lookup                 m_blendShapesLookup;
 
         private float m_previousDeltaTime;
 
@@ -37,6 +37,7 @@ namespace Latios.Mimic.Mecanim.Systems
             builder.Dispose();
 
             m_localTransformLookup = new LocalTransformQvvsReadWriteAspect.Lookup(ref state);
+            m_blendShapesLookup = new BlendShapesAspect.Lookup(ref state);
 
             m_previousDeltaTime = 8f * math.EPSILON;
         }
@@ -44,6 +45,7 @@ namespace Latios.Mimic.Mecanim.Systems
         public void OnUpdate(ref SystemState state)
         {
             m_localTransformLookup.Update(ref state);
+            m_blendShapesLookup.Update(ref state);
 
             state.Dependency = new Job
             {
@@ -52,7 +54,9 @@ namespace Latios.Mimic.Mecanim.Systems
                 clipEventsHandle            = GetBufferTypeHandle<MecanimActiveClipEvent>(false),
                 layerStatusesHandle         = GetBufferTypeHandle<MecanimLayerStateMachineStatus>(true),
                 boneReferenceHandle         = GetBufferTypeHandle<BoneReference>(true),
+                blendShapeClipSetHandle     = GetBufferTypeHandle<BlendShapeClipSet>(true),
                 localTransformLookup        = m_localTransformLookup,
+                blendShapesLookup           = m_blendShapesLookup, 
                 inertialBlendStatesHandle   = GetBufferTypeHandle<ExposedSkeletonInertialBlendState>(false),
                 previousFrameClipInfoHandle = GetBufferTypeHandle<TimedMecanimClipInfo>(false),
                 previousDeltaTime           = m_previousDeltaTime,
@@ -72,12 +76,14 @@ namespace Latios.Mimic.Mecanim.Systems
             [ReadOnly] public BufferTypeHandle<BoneReference>                  boneReferenceHandle;
             public BufferTypeHandle<MecanimActiveClipEvent>                    clipEventsHandle;
             public BufferTypeHandle<TimedMecanimClipInfo>                      previousFrameClipInfoHandle;
+            public BufferTypeHandle<BlendShapeClipSet>                         blendShapeClipSetHandle;
 
             public BufferTypeHandle<ExposedSkeletonInertialBlendState> inertialBlendStatesHandle;
             public ComponentTypeHandle<MecanimController>              controllerHandle;
 
             [NativeDisableParallelForRestriction] public LocalTransformQvvsReadWriteAspect.Lookup localTransformLookup;
-
+            [NativeDisableParallelForRestriction] public BlendShapesAspect.Lookup                 blendShapesLookup;
+            
             public float deltaTime;
             public float previousDeltaTime;
 
@@ -95,7 +101,8 @@ namespace Latios.Mimic.Mecanim.Systems
                 var boneReferencesBuffers        = chunk.GetBufferAccessor(ref boneReferenceHandle);
                 var previousFrameClipInfoBuffers = chunk.GetBufferAccessor(ref previousFrameClipInfoHandle);
                 var inertialBlendStatesBuffers   = chunk.GetBufferAccessor(ref inertialBlendStatesHandle);
-
+                var blendShapeClipSetBuffers     = chunk.GetBufferAccessor(ref blendShapeClipSetHandle);
+                
                 var enumerator = new ChunkEntityEnumerator(useEnabledMask, chunkEnabledMask, chunk.Count);
                 while (enumerator.NextEntityIndex(out var indexInChunk))
                 {
@@ -106,6 +113,7 @@ namespace Latios.Mimic.Mecanim.Systems
                     var     layerStatuses         = layerStatusesBuffers[indexInChunk].AsNativeArray();
                     var     boneReferences        = boneReferencesBuffers[indexInChunk].AsNativeArray();
                     var     previousFrameClipInfo = previousFrameClipInfoBuffers[indexInChunk];
+                    var     blendShapeClipSets     = blendShapeClipSetBuffers[indexInChunk];
 
                     if (!clipWeights.IsCreated)
                     {
@@ -259,118 +267,15 @@ namespace Latios.Mimic.Mecanim.Systems
                     //Root motion
                     if (controller.applyRootMotion)
                     {
-                        //Get the current clip deltas
-                        var currentRoot = TransformQvvs.identity;
-                        for (int i = 0; i < clipWeights.Length; i++)
-                        {
-                            var     clipWeight  = clipWeights[i];
-                            ref var clip        = ref clipSet.clips[clipWeight.mecanimClipIndex];
-                            var     blendWeight = clipWeight.weight / totalWeight;
-                            //Cull clips with negligible weight
-                            if (blendWeight < CLIP_WEIGHT_CULL_THRESHOLD)
-                                continue;
-
-                            ref var state      = ref controllerBlob.layers[clipWeight.layerIndex].states[clipWeight.stateIndex];
-                            var     time       = state.isLooping ? clip.LoopToClipTime(clipWeight.motionTime) : math.min(clipWeight.motionTime, clip.duration);
-                            var     stateSpeed = state.speedMultiplierParameterIndex != -1 ?
-                                             parameters[state.speedMultiplierParameterIndex].floatParam * state.speed :
-                                             state.speed;
-                            var speedModifiedDeltaTime = deltaTime * stateSpeed;
-                            var deltaTransform         = TransformQvvs.identity;
-                            var hasLooped              = state.isLooping && time - deltaTime < 0f;
-
-                            //If the clip has looped, get a sample of the end of the clip to incorporate it into the delta
-                            if (hasLooped)
-                            {
-                                deltaTransform         = clip.SampleBone(0, time);
-                                var previousClipSample = clip.SampleBone(0, time - speedModifiedDeltaTime);
-
-                                var sampleEnd     = math.select(clip.duration, -clip.duration, stateSpeed < 0f);
-                                var endClipSample = clip.SampleBone(0, sampleEnd);
-
-                                deltaTransform.position += endClipSample.position - previousClipSample.position;
-                                deltaTransform.rotation  = math.mul(deltaTransform.rotation, math.mul(math.inverse(endClipSample.rotation), previousClipSample.rotation));
-                            }
-                            else if (time < clip.duration)
-                            {
-                                //Get the delta as normal
-                                var currentClipSample  = clip.SampleBone(0, time);
-                                var previousClipSample = clip.SampleBone(0, time - speedModifiedDeltaTime);
-
-                                deltaTransform.position += currentClipSample.position - previousClipSample.position;
-                                deltaTransform.rotation  = math.mul(currentClipSample.rotation, math.inverse(previousClipSample.rotation));
-                            }
-
-                            currentRoot.position += deltaTransform.position * blendWeight;
-                            currentRoot.rotation  = math.slerp(currentRoot.rotation, math.mul(currentRoot.rotation, deltaTransform.rotation), blendWeight);
-                        }
-
-                        //Get the previous clip deltas
-                        var previousFrameTotalWeight = 0f;
-                        for (int i = 0; i < previousFrameClipInfo.Length; i++)
-                        {
-                            var clipWeight = previousFrameClipInfo[i].weight;
-                            if (clipWeight < CLIP_WEIGHT_CULL_THRESHOLD)
-                                continue;
-                            previousFrameTotalWeight += clipWeight;
-                        }
-                        var previousRoot = TransformQvvs.identity;
-                        for (int i = 0; i < previousFrameClipInfo.Length; i++)
-                        {
-                            var clipWeight = previousFrameClipInfo[i];
-                            //We can tell if the clip is playing still by comparing the timeFragment to deltaTime
-                            //If the clip is no longer playing, we need to capture the fragmented delta by sampling at the motion time and at the motion time + time fragment
-                            var isPlaying = clipWeight.timeFragment == deltaTime;
-                            if (isPlaying)
-                                continue;
-
-                            ref var clip        = ref clipSet.clips[clipWeight.mecanimClipIndex];
-                            var     blendWeight = clipWeight.weight / totalWeight;
-                            //Cull clips with negligible weight
-                            if (blendWeight < CLIP_WEIGHT_CULL_THRESHOLD)
-                                continue;
-
-                            ref var state = ref controllerBlob.layers[clipWeight.layerIndex].states[clipWeight.stateIndex];
-                            var     time  = state.isLooping ? clip.LoopToClipTime(clipWeight.motionTime) : math.min(clipWeight.motionTime, clip.duration);
-
-                            var sampleTransform = clip.SampleBone(0, time);
-
-                            //If the clip has looped, we need the previous sample to capture the delta of the clip end
-                            var hasLooped = state.isLooping && time - deltaTime < 0f;
-                            if (hasLooped)
-                            {
-                                var endClipSample = clip.SampleBone(0, clip.duration);
-
-                                sampleTransform.position -= endClipSample.position;
-                                sampleTransform.rotation  = math.mul(endClipSample.rotation, math.inverse(sampleTransform.rotation));
-
-                                var remainderSample = clip.SampleBone(0, clipWeight.timeFragment - (clip.duration - time));
-
-                                sampleTransform.position -= remainderSample.position;
-                                sampleTransform.rotation  = math.mul(sampleTransform.rotation, math.inverse(remainderSample.rotation));
-                            }
-                            else
-                            {
-                                //need to get the sample at the time fragment
-                                var timeFragmentSample = clip.SampleBone(0, time + clipWeight.timeFragment);
-
-                                sampleTransform.position -= timeFragmentSample.position;
-                                sampleTransform.rotation  = math.mul(sampleTransform.rotation, math.inverse(timeFragmentSample.rotation));
-                            }
-
-                            previousRoot.position += sampleTransform.position * blendWeight;
-                            previousRoot.rotation  = math.slerp(previousRoot.rotation, math.mul(previousRoot.rotation, sampleTransform.rotation), blendWeight);
-                        }
-
                         //write the deltas to the root transform
                         var rootBone  = localTransformLookup[boneReferences[0].bone];
-                        var rootDelta = TransformQvvs.identity;
-
-                        rootDelta.position = currentRoot.position - previousRoot.position;
-                        rootDelta.rotation = math.mul(currentRoot.rotation, math.inverse(previousRoot.rotation));
-
+                        var rootDelta = MecanimInternalUtilities.GetRootMotionDelta(ref controllerBlob, ref clipSet, parameters, deltaTime, clipWeights, previousFrameClipInfo, totalWeight, CLIP_WEIGHT_CULL_THRESHOLD);
+                        
                         rootBone.localTransform = qvvs.mul(rootBone.localTransform, rootDelta);
                     }
+                    
+                    //Blend shapes
+                    MecanimInternalUtilities.ApplyBlendShapeBlends(blendShapeClipSets, ref blendShapesLookup, clipWeights, totalWeight, CLIP_WEIGHT_CULL_THRESHOLD);
 
                     //Store previous frame clip info
                     previousFrameClipInfo.Clear();

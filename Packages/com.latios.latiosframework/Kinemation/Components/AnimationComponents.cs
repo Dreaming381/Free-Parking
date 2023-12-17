@@ -192,10 +192,10 @@ namespace Latios.Kinemation
         public short                    parameterCount;
         public BlobArray<ParameterClip> clips;
         /// <summary>
-        /// Equivalent to the FixedString64Bytes.GetHashCode() for each parameter name
+        /// Equivalent to the FixedString128Bytes.GetHashCode() for each parameter name
         /// </summary>
-        public BlobArray<int>                parameterNameHashes;
-        public BlobArray<FixedString64Bytes> parameterNames;
+        public BlobArray<int>                 parameterNameHashes;
+        public BlobArray<FixedString128Bytes> parameterNames;
     }
 
     /// <summary>

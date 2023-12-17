@@ -51,6 +51,19 @@ namespace Latios.Mimic.Mecanim
         /// </summary>
         public bool triggerStartInertialBlend;
     }
+    
+    /// <summary>
+    /// Contains entity references to meshes that can be transformed by blend shapes.
+    /// </summary>
+    [InternalBufferCapacity(0)]
+    public struct BlendShapeClipSet : IBufferElementData
+    {
+        public Entity meshEntity;
+        /// <summary>
+        /// The blend shape parameter values for each clip
+        /// </summary>
+        public BlobAssetReference<ParameterClipSetBlob> clips;
+    }
 
     /// <summary>
     /// Contains the stateful data of an animator controller layer.

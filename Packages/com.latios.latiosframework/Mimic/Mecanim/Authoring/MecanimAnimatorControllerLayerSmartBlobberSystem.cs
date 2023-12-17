@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Latios.Authoring;
 using Latios.Authoring.Systems;
+using Latios.Kinemation;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -71,6 +72,7 @@ namespace Latios.Mimic.Mecanim.Authoring.Systems
         protected override void OnCreate()
         {
             new SmartBlobberTools<MecanimControllerBlob>().Register(World);
+            new SmartBlobberTools<ParameterClipSetBlob>().Register(World);
         }
 
         protected override void OnUpdate()
@@ -188,7 +190,7 @@ namespace Latios.Mimic.Mecanim.Authoring.Systems
                                         AnimatorControllerParameter[] parameters,
                                         AnimationClip[]               clips)
         {
-            blobAnimatorState.name = new FixedString64Bytes("ChildMotion");
+            blobAnimatorState.name = new FixedString64Bytes(motion.name);
 
             blobAnimatorState.averageDuration     = motion.averageDuration;
             blobAnimatorState.averageSpeed        = motion.averageSpeed;
