@@ -29,6 +29,8 @@ namespace InternalSourceGen
         public int                                    meshEntryIndex;
     }
 
+    internal struct BoundMeshNeedsReinit : IComponentData { }
+
     [WriteGroup(typeof(ChunkPerCameraCullingMask))]
     internal struct ChunkSkinningCullingTag : IComponentData { }
 

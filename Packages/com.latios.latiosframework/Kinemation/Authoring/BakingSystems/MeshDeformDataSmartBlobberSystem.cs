@@ -101,10 +101,10 @@ namespace Latios.Kinemation.Authoring.Systems
                 hashmap.TryAdd(meshRef, default);
             }).WithEntityQueryOptions(EntityQueryOptions.IncludePrefab | EntityQueryOptions.IncludeDisabledEntities).Run();
 
-            var builders                 = new NativeArray<MeshDeformDataBuilder>(hashmap.Count(), Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-            var blendShapeRequestBuffers = new NativeArray<NativeArray<BlendShapeVertexDisplacement> >(builders.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+            var builders                 = new NativeArray<MeshDeformDataBuilder>(hashmap.Count(), Allocator.TempJob, NativeArrayOptions.ClearMemory);
+            var blendShapeRequestBuffers = new NativeArray<NativeArray<BlendShapeVertexDisplacement> >(builders.Length, Allocator.TempJob, NativeArrayOptions.ClearMemory);
             var blendShapeRequests       =
-                new NativeArray<UnityEngine.Rendering.AsyncGPUReadbackRequest>(builders.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
+                new NativeArray<UnityEngine.Rendering.AsyncGPUReadbackRequest>(builders.Length, Allocator.TempJob, NativeArrayOptions.ClearMemory);
             int index = 0;
             foreach (var pair in hashmap)
             {
@@ -187,8 +187,11 @@ namespace Latios.Kinemation.Authoring.Systems
                     }
                     else
                     {
-                        var builder                = builders[i];
-                        var buffer                 = blendShapeRequestBuffers[i];
+                        var builder = builders[i];
+                        var buffer  = blendShapeRequestBuffers[i];
+                        //for (int n = 0; n < 10; n++)
+                        //    if (buffer[n].targetVertexIndex > builder.reference.mesh.Value.vertexCount)
+                        //        UnityEngine.Debug.LogWarning("Async readback is returning a corrupted blend shape buffer.");
                         builder.blendShapeVertices = new UnsafeList<BlendShapeVertexDisplacement>(buffer.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
                         builder.blendShapeVertices.AddRange(buffer.GetUnsafeReadOnlyPtr(), buffer.Length);
                         buffer.Dispose();
@@ -425,7 +428,9 @@ namespace Latios.Kinemation.Authoring.Systems
                     shapeVertices.Sort(new BlendShapeVertexComparer());
                     float bound = 0f;
                     foreach (var vertex in shapeVertices)
-                        bound      = math.max(bound, math.length(vertex.positionDisplacement));
+                    {
+                        bound = math.max(bound, math.length(vertex.positionDisplacement));
+                    }
                     shapeBounds[i] = bound;
 
                     // Search for matching permutation. PermutationIds are just set to the first shape index with the permutation.

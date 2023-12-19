@@ -120,6 +120,10 @@ namespace Latios.Kinemation.Authoring
             //Debug.Log($"Baked Mesh {renderMesh.mesh.name}, Material {renderMesh.material.name}");
             baker.SetSharedComponentManaged(entity, renderMesh);
             baker.SetSharedComponentManaged(entity, renderMeshDescription.FilterSettings);
+
+            // Needed for Blend shapes and dynamic meshes
+            var localBounds                                     = renderMesh.mesh.bounds.ToAABB();
+            baker.SetComponent(entity, new RenderBounds { Value = localBounds });
         }
 
         internal static void Convert(IBaker baker,
