@@ -199,6 +199,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: truck_flat
       objectReference: {fileID: 0}
+    - target: {fileID: 400332594282750415, guid: 08236d61f09bacf44b3095c66a4a0c71,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1064420658350111605, guid: 08236d61f09bacf44b3095c66a4a0c71,
         type: 3}
       propertyPath: m_LocalPosition.x

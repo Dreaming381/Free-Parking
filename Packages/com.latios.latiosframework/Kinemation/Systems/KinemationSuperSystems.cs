@@ -174,6 +174,7 @@ namespace Latios.Kinemation.Systems
         {
             EnableSystemSorting = false;
 
+            GetOrCreateAndAddUnmanagedSystem<LiveBakingCheckForReinitsSystem>();
             GetOrCreateAndAddUnmanagedSystem<LatiosUpdateEntitiesGraphicsChunkStructureSystem>();
             GetOrCreateAndAddUnmanagedSystem<LatiosAddWorldAndChunkRenderBoundsSystem>();
             GetOrCreateAndAddUnmanagedSystem<KinemationBindingReactiveSystem>();
