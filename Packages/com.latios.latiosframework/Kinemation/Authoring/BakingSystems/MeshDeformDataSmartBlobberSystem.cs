@@ -151,9 +151,11 @@ namespace Latios.Kinemation.Authoring.Systems
                         builder.blendShapeRanges.Add(in range);
                         verticesCount = math.max(verticesCount, range.endIndex + 1);
                     }
-                    var cpuBuffer =
-                        new NativeArray<BlendShapeVertexDisplacement>((int)verticesCount, Allocator.Persistent, NativeArrayOptions.UninitializedMemory);
-                    blendShapeRequests[index]       = UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(ref cpuBuffer, gpuBuffer, cpuBuffer.Length, 0);
+                    builder.blendShapeBufferSize = verticesCount;
+                    var cpuBuffer                = new NativeArray<BlendShapeVertexDisplacement>(gpuBuffer.count * 10,
+                                                                                                 Allocator.Persistent,
+                                                                                                 NativeArrayOptions.UninitializedMemory);
+                    blendShapeRequests[index]       = UnityEngine.Rendering.AsyncGPUReadback.RequestIntoNativeArray(ref cpuBuffer, gpuBuffer);
                     blendShapeRequestBuffers[index] = cpuBuffer;
                     m_graphicsBufferCache.Add(gpuBuffer);
                 }
@@ -192,8 +194,10 @@ namespace Latios.Kinemation.Authoring.Systems
                         //for (int n = 0; n < 10; n++)
                         //    if (buffer[n].targetVertexIndex > builder.reference.mesh.Value.vertexCount)
                         //        UnityEngine.Debug.LogWarning("Async readback is returning a corrupted blend shape buffer.");
-                        builder.blendShapeVertices = new UnsafeList<BlendShapeVertexDisplacement>(buffer.Length, Allocator.TempJob, NativeArrayOptions.UninitializedMemory);
-                        builder.blendShapeVertices.AddRange(buffer.GetUnsafeReadOnlyPtr(), buffer.Length);
+                        builder.blendShapeVertices = new UnsafeList<BlendShapeVertexDisplacement>((int)builder.blendShapeBufferSize,
+                                                                                                  Allocator.TempJob,
+                                                                                                  NativeArrayOptions.UninitializedMemory);
+                        builder.blendShapeVertices.AddRange(buffer.GetUnsafeReadOnlyPtr(), (int)builder.blendShapeBufferSize);
                         buffer.Dispose();
                         builders[i] = builder;
                     }
@@ -249,6 +253,7 @@ namespace Latios.Kinemation.Authoring.Systems
             public BlobAssetReference<MeshDeformDataBlob>   resultBlob;
             public MeshReference                            reference;
             public Bounds                                   meshBounds;
+            public uint                                     blendShapeBufferSize;  // Size ignoring excess that Unity sometimes provides
 
             public unsafe void BuildBlob(int meshIndex, ref MeshDeformDataContext context)
             {
