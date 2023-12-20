@@ -289,10 +289,10 @@ namespace Latios.Psyshock
                         int4 indices       = i + new int4(0, 1, 2, 3);
                         indices            = math.select(indices, indices - edgeCount, indices >= edgeCount);
                         indices           += edgeIndicesBase;
-                        var segmentA       = blob.vertexIndicesInEdges[indices.x];
-                        var segmentB       = blob.vertexIndicesInEdges[indices.y];
-                        var segmentC       = blob.vertexIndicesInEdges[indices.z];
-                        var segmentD       = blob.vertexIndicesInEdges[indices.w];
+                        var segmentA       = blob.vertexIndicesInEdges[blob.edgeIndicesInFaces[indices.x].index];
+                        var segmentB       = blob.vertexIndicesInEdges[blob.edgeIndicesInFaces[indices.y].index];
+                        var segmentC       = blob.vertexIndicesInEdges[blob.edgeIndicesInFaces[indices.z].index];
+                        var segmentD       = blob.vertexIndicesInEdges[blob.edgeIndicesInFaces[indices.w].index];
                         var edgeVerticesA  = new simdFloat3(new float4(blob.verticesX[segmentA.x], blob.verticesX[segmentB.x], blob.verticesX[segmentC.x],
                                                                        blob.verticesX[segmentD.x]),
                                                             new float4(blob.verticesY[segmentA.x], blob.verticesY[segmentB.x], blob.verticesY[segmentC.x],
