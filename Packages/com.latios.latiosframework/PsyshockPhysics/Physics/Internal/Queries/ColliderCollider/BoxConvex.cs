@@ -167,7 +167,7 @@ namespace Latios.Psyshock
                 int4 positiveSideCounts = 0;
                 int4 negativeSideCounts = 0;
 
-                UnityContactManifoldExtra2D result          = default;
+                UnityContactManifoldExtra3D result          = default;
                 var                         edgeIndicesBase = blob.edgeIndicesInFacesStartsAndCounts[faceIndex].start;
 
                 // Project and clip edges of A onto the face of B.
@@ -429,6 +429,35 @@ namespace Latios.Psyshock
         {
             public UnitySim.ContactsBetweenResult baseStorage;
             public fixed float                    extraContactsData[384];
+
+            public ref UnitySim.ContactsBetweenResult.ContactOnB this[int index]
+            {
+                get
+                {
+                    if (index < 32)
+                    {
+                        fixed (void* ptr = baseStorage.contactsData)
+                        return ref ((UnitySim.ContactsBetweenResult.ContactOnB*)ptr)[index];
+                    }
+                    else
+                    {
+                        fixed (void* ptr = extraContactsData)
+                        return ref ((UnitySim.ContactsBetweenResult.ContactOnB*)ptr)[index - 32];
+                    }
+                }
+            }
+
+            public void Add(float3 locationOnB, float distanceToA)
+            {
+                this[baseStorage.contactCount] = new UnitySim.ContactsBetweenResult.ContactOnB { location = locationOnB, distanceToA = distanceToA };
+                baseStorage.contactCount++;
+            }
+        }
+
+        unsafe struct UnityContactManifoldExtra3D
+        {
+            public UnitySim.ContactsBetweenResult baseStorage;
+            public fixed float                    extraContactsData[16];
 
             public ref UnitySim.ContactsBetweenResult.ContactOnB this[int index]
             {
