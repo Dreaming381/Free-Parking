@@ -1,0 +1,7 @@
+The files contained in this directory are designed to promote the Latios Framework.
+
+You may use these assets in any project that uses the Latios Framework.
+
+You may also use these assets in any medium that discusses or promotes the Latios Framework.
+
+You may not use these assets for any other purpose.
