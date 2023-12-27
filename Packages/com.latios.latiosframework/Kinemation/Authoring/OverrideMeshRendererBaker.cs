@@ -23,6 +23,7 @@ namespace Latios.Kinemation.Authoring
         /// <param name="renderer">The Renderer to base shadow mapping, visibility, and global illumination settings from</param>
         /// <param name="mesh">The mesh to use</param>
         /// <param name="materials">The materials to use, one for each submesh in the mesh</param>
+        /// <param name="firstUniqueSubmeshIndex">The index of the first submesh that should be split into a separate entity</param>
         public static void BakeMeshAndMaterial(this IBaker baker, Renderer renderer, Mesh mesh, List<Material> materials, int firstUniqueSubmeshIndex = int.MaxValue)
         {
             MeshRendererBakingUtility.Convert(baker, renderer, mesh, materials, out var additionalEntities, firstUniqueSubmeshIndex);
@@ -39,11 +40,13 @@ namespace Latios.Kinemation.Authoring
         }
 
         /// <summary>
-        /// Bake a Mesh Renderer using the provided mesh and materials
+        /// Bake a RenderMeshDescription using the provided mesh and materials
         /// </summary>
-        /// <param name="renderer">The Renderer to base shadow mapping, visibility, and global illumination settings from</param>
+        /// <param name="renderableEntity">The target primary entity which should receive the rendering components</param>
+        /// <param name="renderMeshDescription">The renderer settings to be used with this entity</param>
         /// <param name="mesh">The mesh to use</param>
         /// <param name="materials">The materials to use, one for each submesh in the mesh</param>
+        /// <param name="firstUniqueSubmeshIndex">The index of the first submesh that should be split into a separate entity</param>
         public static void BakeMeshAndMaterial(this IBaker baker,
                                                Entity renderableEntity,
                                                RenderMeshDescription renderMeshDescription,
@@ -72,6 +75,7 @@ namespace Latios.Kinemation.Authoring
         /// <param name="renderer">The Renderer to base shadow mapping, visibility, and global illumination settings from</param>
         /// <param name="mesh">The mesh to use</param>
         /// <param name="materials">The materials to use, one for each submesh in the mesh</param>
+        /// <param name="firstUniqueSubmeshIndex">The index of the first submesh that should be split into a separate entity</param>
         public static void BakeDeformMeshAndMaterial(this IBaker baker, Renderer renderer, Mesh mesh, List<Material> materials, int firstUniqueSubmeshIndex = int.MaxValue)
         {
             var sharedMesh = mesh;
@@ -135,6 +139,68 @@ namespace Latios.Kinemation.Authoring
                 {
                     baker.AddComponent(entity, new MeshRendererBakingData { MeshRenderer = renderer });
                 }
+            }
+        }
+
+        /// <summary>
+        /// Bake a Skinned Mesh Renderer using the provided mesh and materials.
+        /// This does not bake the MeshDeformDataBlob.
+        /// </summary>
+        /// <param name="renderer">The Renderer to base shadow mapping, visibility, and global illumination settings from</param>
+        /// <param name="mesh">The mesh to use</param>
+        /// <param name="materials">The materials to use, one for each submesh in the mesh</param>
+        /// <param name="firstUniqueSubmeshIndex">The index of the first submesh that should be split into a separate entity</param>
+        public static void BakeDeformMeshAndMaterial(this IBaker baker, Entity renderableEntity,
+                                               RenderMeshDescription renderMeshDescription, Mesh mesh, List<Material> materials, int firstUniqueSubmeshIndex = int.MaxValue)
+        {
+            var sharedMesh = mesh;
+            if (sharedMesh == null)
+            {
+                Debug.LogError($"Kinemation failed to bake Dynamic Mesh because no mesh was assigned.");
+                return;
+            }
+
+            if (materials.Count == 0)
+            {
+                Debug.LogError($"Kinemation failed to bake Dynamic Mesh because no materials were assigned.");
+                return;
+            }
+
+            int countValidMaterials = 0;
+            int knownValidMaterialIndex = -1;
+            bool needsWarning = false;
+            for (int i = 0; i < materials.Count; i++)
+            {
+                if (materials[i] == null)
+                {
+                    needsWarning = true;
+                }
+                else
+                {
+                    if (knownValidMaterialIndex < 0)
+                        knownValidMaterialIndex = i;
+                    countValidMaterials++;
+                }
+            }
+
+            if (countValidMaterials == 0)
+            {
+                Debug.LogError($"Kinemation failed to bake Dynamic Mesh because no materials were assigned.");
+                return;
+            }
+            if (needsWarning)
+            {
+                Debug.LogWarning($"Some materials for Dynamic Mesh were not assigned. Rendering results may be incorrect.");
+            }
+
+            var additionalEntities = new NativeList<Entity>(Allocator.Temp);
+            LatiosDeformMeshRendererBakingUtility.Convert(baker, renderableEntity, renderMeshDescription, mesh, materials, additionalEntities, knownValidMaterialIndex, firstUniqueSubmeshIndex);
+
+            baker.AddComponent(renderableEntity, new SkinnedMeshRendererBakingData { SkinnedMeshRenderer = null });
+
+            foreach (var entity in additionalEntities)
+            {
+                baker.AddComponent(entity, new SkinnedMeshRendererBakingData { SkinnedMeshRenderer = null });
             }
         }
     }

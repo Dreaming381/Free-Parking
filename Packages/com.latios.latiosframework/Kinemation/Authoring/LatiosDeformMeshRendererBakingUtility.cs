@@ -76,7 +76,7 @@ namespace Latios.Kinemation.Authoring
 
         private static int FindInLODs(LODGroup lodGroup, Renderer authoring)
         {
-            if (lodGroup != null)
+            if (lodGroup != null && authoring != null)
             {
                 var lodGroupLODs = lodGroup.GetLODs();
 
@@ -98,7 +98,6 @@ namespace Latios.Kinemation.Authoring
             return -1;
         }
 
-#pragma warning disable CS0162
         [BakingType] struct RequestPreviousTag : IRequestPreviousTransform { }
 
         private static void AddRendererComponents(Entity entity, IBaker baker, in RenderMeshDescription renderMeshDescription, RenderMesh renderMesh)
@@ -159,13 +158,16 @@ namespace Latios.Kinemation.Authoring
                     desc.FilterSettings.MotionMode = MotionVectorGenerationMode.Camera;
             }
 
+            var entity = baker.GetEntity(authoring, TransformUsageFlags.Renderable);
+
             if (sharedMaterials.Count == 1)
             {
                 ConvertSingleMaterial(
                     baker,
                     desc,
                     renderMesh,
-                    authoring);
+                    authoring,
+                    entity);
             }
             else
             {
@@ -174,6 +176,7 @@ namespace Latios.Kinemation.Authoring
                     desc,
                     renderMesh,
                     authoring,
+                    entity,
                     sharedMaterials,
                     additionalEntities,
                     firstValidMaterialIndex,
@@ -181,17 +184,72 @@ namespace Latios.Kinemation.Authoring
             }
         }
 
-#pragma warning restore CS0162
+        internal static void Convert(IBaker baker,
+            Entity entity,
+                                     RenderMeshDescription desc,
+                                     Mesh mesh,
+                                     List<Material> sharedMaterials,
+                                     NativeList<Entity> additionalEntities,
+                                     int firstValidMaterialIndex,
+                                     int firstUniqueSubmeshIndex = int.MaxValue)
+        {
+            firstUniqueSubmeshIndex = math.clamp(firstUniqueSubmeshIndex, 1, sharedMaterials.Count);
 
+            // Takes a dependency on the material
+            foreach (var material in sharedMaterials)
+                baker.DependsOn(material);
+
+            // Takes a dependency on the mesh
+            baker.DependsOn(mesh);
+
+            var batchedMaterials = new List<Material>(firstUniqueSubmeshIndex);
+            for (int i = 0; i < firstUniqueSubmeshIndex; i++)
+                batchedMaterials.Add(sharedMaterials[i]);
+            var renderMesh = new RenderMesh
+            {
+                materials = batchedMaterials,
+                mesh = mesh,
+                subMesh = firstValidMaterialIndex
+            };
+
+            // Always disable per-object motion vectors for static objects
+            if (baker.IsStatic())
+            {
+                if (desc.FilterSettings.MotionMode == MotionVectorGenerationMode.Object)
+                    desc.FilterSettings.MotionMode = MotionVectorGenerationMode.Camera;
+            }
+
+            if (sharedMaterials.Count == 1)
+            {
+                ConvertSingleMaterial(
+                    baker,
+                    desc,
+                    renderMesh,
+                    null,
+                    entity);
+            }
+            else
+            {
+                ConvertMultipleMaterials(
+                    baker,
+                    desc,
+                    renderMesh,
+                    null,
+                    entity,
+                    sharedMaterials,
+                    additionalEntities,
+                    firstValidMaterialIndex,
+                    firstUniqueSubmeshIndex);
+            }
+        }
         static void ConvertSingleMaterial(
             IBaker baker,
             RenderMeshDescription renderMeshDescription,
             RenderMesh renderMesh,
-            Renderer renderer)
+            Renderer renderer,
+            Entity entity)
         {
             CreateLODState(baker, renderer, out var lodState);
-
-            var entity = baker.GetEntity(renderer, TransformUsageFlags.Renderable);
 
             AddRendererComponents(entity, baker, renderMeshDescription, renderMesh);
 
@@ -231,6 +289,10 @@ namespace Latios.Kinemation.Authoring
 
             if (materialPropertyTypesToAdd.IsEmpty)
             {
+                if (renderer == null)
+                    Debug.LogWarning(
+                    $"Singular mesh for RenderMeshDescription on {baker.GetName()} uses shader {material.shader.name} which does not support deformations. Please see the Kinemation Getting Started Guide Part 2 to learn how to set up a proper shader graph shader for deformations.");
+                else
                 Debug.LogWarning(
                     $"Singular mesh for Skinned Mesh Renderer {renderer.gameObject.name} uses shader {material.shader.name} which does not support deformations. Please see the Kinemation Getting Started Guide Part 2 to learn how to set up a proper shader graph shader for deformations.");
             }
@@ -245,6 +307,7 @@ namespace Latios.Kinemation.Authoring
             RenderMeshDescription renderMeshDescription,
             RenderMesh renderMesh,
             Renderer renderer,
+            Entity referenceEntity,
             List<Material>        sharedMaterials,
             NativeList<Entity>    additionalEntities,
             int firstValidMaterialIndex,
@@ -254,7 +317,6 @@ namespace Latios.Kinemation.Authoring
 
             int materialCount                                   = sharedMaterials.Count;
             firstUniqueSubmeshIndex                             = math.clamp(firstUniqueSubmeshIndex, firstValidMaterialIndex, materialCount);
-            Entity               referenceEntity                = default;
             var                  materialsList                  = new List<Material>(materialCount);
             DeformClassification requiredPropertiesForReference = DeformClassification.None;
             for (var m = firstValidMaterialIndex; m < materialCount; m++)
@@ -295,9 +357,8 @@ namespace Latios.Kinemation.Authoring
                 Entity meshEntity;
                 if (m == firstValidMaterialIndex)
                 {
-                    meshEntity = baker.GetEntity(renderer, TransformUsageFlags.Renderable);
+                    meshEntity = referenceEntity;
 
-                    referenceEntity = meshEntity;
                     // Other transforms are handled in baking system once we know the animator wants the smr
 
                     materialsList.Add(material);
@@ -327,6 +388,10 @@ namespace Latios.Kinemation.Authoring
 
                 if (classification == DeformClassification.None)
                 {
+                    if (renderer == null)
+                        Debug.LogWarning(
+                            $"Submesh {m} for RenderMeshDescription on {baker.GetName()} uses shader {material.shader.name} which does not support deformations. Please see the Kinemation Getting Started Guide Part 2 to learn how to set up a proper shader graph shader for deformations.");
+                    else
                     Debug.LogWarning(
                         $"Submesh {m} for Skinned Mesh Renderer {renderer.gameObject.name} uses shader {material.shader.name} which does not support deformations. Please see the Kinemation Getting Started Guide Part 2 to learn how to set up a proper shader graph shader for deformations.");
                 }
