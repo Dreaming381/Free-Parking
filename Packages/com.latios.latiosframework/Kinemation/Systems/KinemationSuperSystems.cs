@@ -50,10 +50,11 @@ namespace Latios.Kinemation.Systems
         {
             EnableSystemSorting = false;
 
-            GetOrCreateAndAddManagedSystem<CullingRoundRobinEarlyExtensionsSuperSystems>();
+            GetOrCreateAndAddManagedSystem<CullingRoundRobinEarlyExtensionsSuperSystem>();
             GetOrCreateAndAddManagedSystem<UploadDynamicMeshesSystem>();
             GetOrCreateAndAddManagedSystem<BlendShapesDispatchSystem>();
             GetOrCreateAndAddManagedSystem<SkinningDispatchSystem>();
+            GetOrCreateAndAddManagedSystem<CullingRoundRobinLateExtensionsSuperSystem>();
             GetOrCreateAndAddManagedSystem<UploadMaterialPropertiesSystem>();
 
             worldBlackboardEntity.AddComponent<CullingComputeDispatchActiveState>();
@@ -75,7 +76,20 @@ namespace Latios.Kinemation.Systems
     /// This is the ideal location for round-robin systems that schedule single-threaded jobs updating material properties.
     /// </summary>
     [DisableAutoCreation]
-    public partial class CullingRoundRobinEarlyExtensionsSuperSystems : SuperSystem
+    public partial class CullingRoundRobinEarlyExtensionsSuperSystem : SuperSystem
+    {
+        protected override void CreateSystems()
+        {
+            EnableSystemSorting = true;
+        }
+    }
+
+    /// <summary>
+    /// This round-robin super system updates right before material properties and is intended for systems that require
+    /// valid graphics buffer contents from deforming meshes.
+    /// </summary>
+    [DisableAutoCreation]
+    public partial class CullingRoundRobinLateExtensionsSuperSystem : SuperSystem
     {
         protected override void CreateSystems()
         {
@@ -160,6 +174,7 @@ namespace Latios.Kinemation.Systems
         {
             EnableSystemSorting = false;
 
+            GetOrCreateAndAddUnmanagedSystem<LiveBakingCheckForReinitsSystem>();
             GetOrCreateAndAddUnmanagedSystem<LatiosUpdateEntitiesGraphicsChunkStructureSystem>();
             GetOrCreateAndAddUnmanagedSystem<LatiosAddWorldAndChunkRenderBoundsSystem>();
             GetOrCreateAndAddUnmanagedSystem<KinemationBindingReactiveSystem>();

@@ -26,7 +26,7 @@ namespace Systems
         }
 
         /// <summary>
-        /// Returns flase if the coroutine needs to restart from the beginning.
+        /// Returns false if the coroutine needs to restart from the beginning.
         /// Terminate is set to true if the system is being destroyed and resources
         /// should be cleaned up. If terminate is false and the method returns true,
         /// operation may continue as normal.

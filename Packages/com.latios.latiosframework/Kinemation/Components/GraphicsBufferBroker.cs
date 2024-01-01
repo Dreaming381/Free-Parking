@@ -5,10 +5,14 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-// Todo: XML Documentation
-
 namespace Latios.Kinemation
 {
+    /// <summary>
+    /// Provides access to the GraphicsBufferBroker.
+    /// Usage of the broker prior to UpdateGraphicsBufferBrokerSystem is undefined.
+    /// UpdateGraphicsBufferBrokerSystem updates in PresentationSystemGroup with OrderFirst = true.
+    /// It is up to you to manage job dependencies for jobs that write to locked graphics buffers.
+    /// </summary>
     public partial struct GraphicsBufferBrokerReference : IManagedStructComponent
     {
         public GraphicsBufferBroker graphicsBufferBroker { get; internal set; }
@@ -23,15 +27,41 @@ namespace Latios.Kinemation
     public static class DeformationGraphicsBufferBrokerExtensions
     {
         #region Public Access
+        /// <summary>
+        /// Acquires the graphics buffer which contains the skinning transforms for Latios Vertex Skinning.
+        /// The buffer may change with each culling pass, but contains the contents of previous culling passes within the frame.
+        /// It is valid during CullingRoundRobinLateExtensionsSuperSystem during the Dispatch phase.
+        /// </summary>
         public static GraphicsBuffer GetSkinningTransformsBuffer(this GraphicsBufferBroker broker) => broker.GetPersistentBufferNoResize(s_skinningTransformsID);
+        /// <summary>
+        /// Acquires the graphics buffer which contains the deformed vertices for Latios Deform.
+        /// The buffer may change with each culling pass, but contains the contents of previous culling passes within the frame.
+        /// It is valid during CullingRoundRobinLateExtensionsSuperSystem during the Dispatch phase.
+        /// </summary>
         public static GraphicsBuffer GetDeformedVerticesBuffer(this GraphicsBufferBroker broker) => broker.GetPersistentBufferNoResize(s_deformedVerticesID);
+        /// <summary>
+        /// Acquires the graphics buffer which contains the undeformed shared mesh vertices.
+        /// The buffer is constant for a given frame, and is valid after KinemationPostRenderSuperSystem.
+        /// </summary>
         public static GraphicsBuffer GetMeshVerticesBuffer(this GraphicsBufferBroker broker) => broker.GetPersistentBufferNoResize(s_meshVerticesID);
 
+        /// <summary>
+        /// Acquires a pooled ByteAddressBuffer designed for locked CPU writes of uint3 values.
+        /// These are often used to specify a list of copy operations to a compute shader.
+        /// </summary>
+        /// <param name="requiredNumUint3s">The number of uint3 values the buffer should have</param>
+        /// <returns>A buffer at least the size required to store the required number of uint3 values</returns>
         public static GraphicsBuffer GetMetaUint3UploadBuffer(this GraphicsBufferBroker broker, uint requiredNumUint3s)
         {
             requiredNumUint3s = math.max(requiredNumUint3s, kMinUploadMetaSize);
             return broker.GetUploadBuffer(s_metaUint3UploadID, requiredNumUint3s * 3);
         }
+        /// <summary>
+        /// Acquires a pooled ByteAddressBuffer designed for locked CPU writes of uint4 values.
+        /// These are often used to specify a list of custom operations to a compute shader.
+        /// </summary>
+        /// <param name="requiredNumUint4s">The number of uint4 values the buffer should have</param>
+        /// <returns>A buffer at least the size required to store the required number of uint4 values</returns>
         public static GraphicsBuffer GetMetaUint4UploadBuffer(this GraphicsBufferBroker broker, uint requiredNumUint4s)
         {
             requiredNumUint4s = math.max(requiredNumUint4s, kMinUploadMetaSize);
@@ -62,23 +92,50 @@ namespace Latios.Kinemation
         #endregion
     }
 
+    /// <summary>
+    /// A special object which manages the lifecycle of Graphics Buffers, automatically resizing them and pooling them.
+    /// An API is provided for users to obtain buffers that meet their use case.
+    /// </summary>
     public class GraphicsBufferBroker : IDisposable
     {
         #region API
+        /// <summary>
+        /// A runtime static handle to a particular persistent growable buffer or upload buffer pool.
+        /// </summary>
         public struct StaticID
         {
             internal int index;
         }
 
+        /// <summary>
+        /// Statically acquires a handle for a persistent GPU-resident graphics buffer that is allowed to grow.
+        /// </summary>
         public static StaticID ReservePersistentBuffer() => new StaticID
         {
             index = s_reservedPersistentBuffersCount++
         };
+        /// <summary>
+        /// Statically acquires a handle for a graphics buffer upload pool for buffers that are written to by the CPU using LockBufferForWrite.
+        /// Pooled buffers are automatically recycled every few frames safely for LockBufferForWrite usage.
+        /// </summary>
         public static StaticID ReserveUploadPool() => new StaticID
         {
             index = s_reservedUploadPoolsCount++
         };
 
+        /// <summary>
+        /// Initialize a persistent GPU-resident graphics buffer. This should be called in OnCreate() of a system.
+        /// </summary>
+        /// <param name="staticID">The reserved ID for the buffer</param>
+        /// <param name="initialNumElements">The initial number of elements stored in the buffer. The value is rounded up to a power of two.</param>
+        /// <param name="strideOfElement">The number of bytes of each element. Must be 4 for Raw binding targets.</param>
+        /// <param name="bindingTarget">Specifies the binding target type, typically Structured or Raw.</param>
+        /// <param name="copyShader">A compute shader used to grow the buffer while preserving contents.
+        /// If left null, the new buffer's contents will be undefined on resize, which may be suitable for buffers
+        /// whose contents are overwritten once every frame. Otherwise, the shader must define the properties _src as a buffer, _dst as a buffer,
+        /// and _start as an integer which is used as an offset in both the src and dst buffers if the copy operation requires multiple dispatches.
+        /// Kernel index 0 is always used. Each thread is responsible for copying one element.
+        /// For ByteAddressBuffers, you can use the built-in CopyBytes shader loaded from Resources.</param>
         public void InitializePersistentBuffer(StaticID staticID, uint initialNumElements, uint strideOfElement, GraphicsBuffer.Target bindingTarget, ComputeShader copyShader)
         {
             while (m_persistentBuffers.Count <= staticID.index)
@@ -86,6 +143,13 @@ namespace Latios.Kinemation
             m_persistentBuffers[staticID.index] = new PersistentBuffer(initialNumElements, strideOfElement, bindingTarget, copyShader, m_buffersToDelete);
         }
 
+        /// <summary>
+        /// Requests access to the persistent GPU-resident graphics buffer, possibly increasing the size of the buffer if necessary.
+        /// The buffer is valid until the next call to this method with the same StaticID.
+        /// </summary>
+        /// <param name="staticID">The reserved ID for the buffer</param>
+        /// <param name="requiredNumElements">The number of elements the buffer must be able to hold. The value is rounded up to a power of two.</param>
+        /// <returns>The persistent graphics buffer sized at least to the requested size</returns>
         public GraphicsBuffer GetPersistentBuffer(StaticID staticID, uint requiredNumElements)
         {
             var persistent                      = m_persistentBuffers[staticID.index];
@@ -94,8 +158,21 @@ namespace Latios.Kinemation
             return result;
         }
 
+        /// <summary>
+        /// Requests access to the persistent GPU-resident graphics buffer, preserving the buffer's existing size.
+        /// The buffer is valid until the next call to the GetPersistentBuffer() method with the same StaticID.
+        /// This method is typically used for when you want to read from the buffer in a shader.
+        /// </summary>
+        /// <param name="staticID">The reserved ID for the buffer</param>
+        /// <returns>The persistent graphics buffer at whatever size is was last resized to</returns>
         public GraphicsBuffer GetPersistentBufferNoResize(StaticID staticID) => m_persistentBuffers[staticID.index].GetBufferNoResize();
 
+        /// <summary>
+        /// Initializes a graphics buffer upload pool for buffers using LockBufferForWrite protocol.
+        /// </summary>
+        /// <param name="staticID">The ID of the pool</param>
+        /// <param name="strideOfElement">The number of bytes of each element. Must be 4 for Raw binding targets.</param>
+        /// <param name="bindingTarget">Specifies the binding target type, typically Structured or Raw.</param>
         public void InitializeUploadPool(StaticID staticID, uint strideOfElement, GraphicsBuffer.Target bindingTarget)
         {
             while (m_uploadPools.Count <= staticID.index)
@@ -103,6 +180,14 @@ namespace Latios.Kinemation
             m_uploadPools[staticID.index] = new UploadPool(strideOfElement, bindingTarget);
         }
 
+        /// <summary>
+        /// Retrieves a graphics buffer from the upload pool that is guaranteed to be the specified size of larger.
+        /// Each successive call within a frame provides a different GraphicsBuffer instance. The instance is only valid
+        /// for the same frame it is retrieved.
+        /// </summary>
+        /// <param name="staticID">The ID of the pool</param>
+        /// <param name="requiredNumElements">The number of elements the graphics buffer should be able to hold</param>
+        /// <returns></returns>
         public GraphicsBuffer GetUploadBuffer(StaticID staticID, uint requiredNumElements)
         {
             var upload                    = m_uploadPools[staticID.index];
@@ -170,7 +255,7 @@ namespace Latios.Kinemation
                     m_copyShader.GetKernelThreadGroupSizes(0, out var threadGroupSize, out _, out _);
                     m_copyShader.SetBuffer(0, "_dst", m_currentBuffer);
                     m_copyShader.SetBuffer(0, "_src", prevBuffer);
-                    uint copySize = m_bindingTarget == GraphicsBuffer.Target.Raw ? m_currentSize / 4 : m_currentSize;
+                    uint copySize = m_currentSize;
                     for (uint dispatchesRemaining = copySize / threadGroupSize, start = 0; dispatchesRemaining > 0;)
                     {
                         uint dispatchCount = math.min(dispatchesRemaining, 65535);

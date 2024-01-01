@@ -23,7 +23,7 @@ namespace FreeParking.Bootstrap
     {
         public World InitializeOrModify(World defaultEditorWorld)
         {
-            var world                        = new LatiosWorld(defaultEditorWorld.Name);
+            var world                        = new LatiosWorld(defaultEditorWorld.Name, defaultEditorWorld.Flags);
             world.zeroToleranceForExceptions = true;
 
             var systems = DefaultWorldInitialization.GetAllSystemTypeIndices(WorldSystemFilterFlags.Default, true);
