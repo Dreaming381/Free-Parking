@@ -27,7 +27,9 @@ namespace Latios.Mimic.Mecanim.Systems
         {
             var builder = new EntityQueryBuilder(Allocator.Temp)
                           .WithAllRW<MecanimController>()
+#if LATIOS_MECANIM_EXPERIMENTAL_BLENDSHAPES
                           .WithAll<BlendShapeClipSet>()
+#endif
                           .WithAll<MecanimLayerStateMachineStatus>()
                           .WithAllRW<TimedMecanimClipInfo>()
                           .WithAll<MecanimParameter>()
@@ -45,12 +47,14 @@ namespace Latios.Mimic.Mecanim.Systems
         public void OnUpdate(ref SystemState state)
         {
             m_blendShapesLookup.Update(ref state);
-            
+
             state.Dependency = new Job
             {
                 previousDeltaTime = m_previousDeltaTime,
-                deltaTime         = Time.DeltaTime,
-                blendShapesLookup = m_blendShapesLookup, 
+                deltaTime = Time.DeltaTime,
+#if LATIOS_MECANIM_EXPERIMENTAL_BLENDSHAPES
+                blendShapesLookup = m_blendShapesLookup,
+#endif
             }.ScheduleParallel(m_query, state.Dependency);
             state.Dependency = new ApplyRootMotionJob().ScheduleParallel(m_query, state.Dependency);
 
@@ -64,26 +68,32 @@ namespace Latios.Mimic.Mecanim.Systems
 
             public float deltaTime;
             public float previousDeltaTime;
+
+#if LATIOS_MECANIM_EXPERIMENTAL_BLENDSHAPES
             [NativeDisableParallelForRestriction] public BlendShapesAspect.Lookup blendShapesLookup;
+#endif
 
             [NativeDisableContainerSafetyRestriction] NativeList<TimedMecanimClipInfo> clipWeights;
-            [NativeDisableContainerSafetyRestriction] NativeList<float>                floatCache;
+            [NativeDisableContainerSafetyRestriction] NativeList<float> floatCache;
 
             public void Execute(ref MecanimController controller,
                                 OptimizedSkeletonAspect optimizedSkeleton,
                                 in DynamicBuffer<MecanimLayerStateMachineStatus> layerStatuses,
-                                in DynamicBuffer<MecanimParameter>               parametersBuffer,
-                                in DynamicBuffer<BlendShapeClipSet>              blendShapeClipSetBuffer,
-                                ref DynamicBuffer<MecanimActiveClipEvent>        clipEvents,
-                                ref DynamicBuffer<TimedMecanimClipInfo>          previousFrameClipInfo)
+                                in DynamicBuffer<MecanimParameter> parametersBuffer,
+#if LATIOS_MECANIM_EXPERIMENTAL_BLENDSHAPES
+                                in DynamicBuffer<BlendShapeClipSet> blendShapeClipSetBuffer,
+#endif
+
+                                ref DynamicBuffer<MecanimActiveClipEvent> clipEvents,
+                                ref DynamicBuffer<TimedMecanimClipInfo> previousFrameClipInfo)
             {
                 ref var controllerBlob = ref controller.controller.Value;
-                var     parameters     = parametersBuffer.AsNativeArray();
-                
+                var parameters = parametersBuffer.AsNativeArray();
+
                 if (!clipWeights.IsCreated)
                 {
                     clipWeights = new NativeList<TimedMecanimClipInfo>(Allocator.Temp);
-                    floatCache  = new NativeList<float>(Allocator.Temp);
+                    floatCache = new NativeList<float>(Allocator.Temp);
                 }
                 else
                 {
@@ -92,7 +102,7 @@ namespace Latios.Mimic.Mecanim.Systems
 
                 for (int i = 0; i < layerStatuses.Length; i++)
                 {
-                    var     layer     = layerStatuses[i];
+                    var layer = layerStatuses[i];
                     ref var layerBlob = ref controllerBlob.layers[i];
                     if (i == 0 || layerBlob.blendingMode == MecanimControllerLayerBlob.LayerBlendingMode.Override)
                     {
@@ -144,16 +154,16 @@ namespace Latios.Mimic.Mecanim.Systems
 
                 for (int i = 0; i < clipWeights.Length; i++)
                 {
-                    ref var clip        = ref clipSet.clips[clipWeights[i].mecanimClipIndex];
-                    var     clipWeight  = clipWeights[i];
-                    var     blendWeight = clipWeight.weight / totalWeight;
+                    ref var clip = ref clipSet.clips[clipWeights[i].mecanimClipIndex];
+                    var clipWeight = clipWeights[i];
+                    var blendWeight = clipWeight.weight / totalWeight;
 
                     //Cull clips with negligible weight
                     if (blendWeight < CLIP_WEIGHT_CULL_THRESHOLD)
                         continue;
 
                     ref var state = ref controllerBlob.layers[clipWeight.layerIndex].states[clipWeight.stateIndex];
-                    var     time  = state.isLooping ? clip.LoopToClipTime(clipWeight.motionTime) : math.min(clipWeight.motionTime, clip.duration);
+                    var time = state.isLooping ? clip.LoopToClipTime(clipWeight.motionTime) : math.min(clipWeight.motionTime, clip.duration);
                     clipSet.clips[clipWeights[i].mecanimClipIndex].SamplePose(ref optimizedSkeleton, time, blendWeight);
                 }
 
@@ -163,8 +173,8 @@ namespace Latios.Mimic.Mecanim.Systems
                     controller.newInertialBlendDuration += deltaTime;
                     optimizedSkeleton.StartNewInertialBlend(previousDeltaTime, controller.newInertialBlendDuration);
                     controller.timeSinceLastInertialBlendStart = 0f;
-                    controller.isInInertialBlend               = true;
-                    controller.triggerStartInertialBlend       = false;
+                    controller.isInInertialBlend = true;
+                    controller.triggerStartInertialBlend = false;
                 }
                 if (controller.isInInertialBlend)
                 {
@@ -185,12 +195,14 @@ namespace Latios.Mimic.Mecanim.Systems
                 {
                     var rootDelta = MecanimInternalUtilities.GetRootMotionDelta(ref controllerBlob, ref clipSet, parameters, deltaTime, clipWeights, previousFrameClipInfo, totalWeight, CLIP_WEIGHT_CULL_THRESHOLD);
 
-                    var rootBone            = optimizedSkeleton.bones[0];
+                    var rootBone = optimizedSkeleton.bones[0];
                     rootBone.localTransform = rootDelta;
                 }
 
+#if LATIOS_MECANIM_EXPERIMENTAL_BLENDSHAPES
                 //Blend shapes
-                MecanimInternalUtilities.ApplyBlendShapeBlends(blendShapeClipSetBuffer, ref blendShapesLookup, clipWeights, totalWeight, CLIP_WEIGHT_CULL_THRESHOLD);
+                MecanimInternalUtilities.ApplyBlendShapeBlends(ref controllerBlob, blendShapeClipSetBuffer, ref blendShapesLookup, clipWeights, totalWeight, CLIP_WEIGHT_CULL_THRESHOLD);
+#endif
 
                 //Store previous frame clip info
                 previousFrameClipInfo.Clear();
@@ -212,4 +224,3 @@ namespace Latios.Mimic.Mecanim.Systems
         }
     }
 }
-

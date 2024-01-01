@@ -51,7 +51,7 @@ namespace Latios.Mimic.Mecanim
         /// </summary>
         public bool triggerStartInertialBlend;
     }
-    
+
     /// <summary>
     /// Contains entity references to meshes that can be transformed by blend shapes.
     /// </summary>
@@ -144,8 +144,8 @@ namespace Latios.Mimic.Mecanim
     [InternalBufferCapacity(0)]
     public struct MecanimActiveClipEvent : IBufferElementData
     {
-        public int   nameHash;
-        public int   parameter;
+        public int nameHash;
+        public int parameter;
         public short clipIndex;
         public short eventIndex;
     }
@@ -153,8 +153,8 @@ namespace Latios.Mimic.Mecanim
     [InternalBufferCapacity(0)]
     public struct ExposedSkeletonInertialBlendState : IBufferElementData
     {
-        public TransformQvvs                  previous;
-        public TransformQvvs                  twoAgo;
+        public TransformQvvs previous;
+        public TransformQvvs twoAgo;
         public InertialBlendingTransformState blendState;
     }
 
@@ -167,8 +167,8 @@ namespace Latios.Mimic.Mecanim
     /// </summary>
     public partial struct MecanimConditionBlob
     {
-        public float         threshold;
-        public short         parameterIndex;
+        public float threshold;
+        public short parameterIndex;
         public ConditionType mode;
 
         public enum ConditionType : byte
@@ -186,7 +186,7 @@ namespace Latios.Mimic.Mecanim
     {
         // See UnityEngine.Animations.AnimatorTransition
         public BlobArray<MecanimConditionBlob> conditions;
-        public float                           duration;
+        public float duration;
         /// <summary>
         /// The time at which the destination state will start in the clip in seconds.
         /// </summary>
@@ -204,13 +204,13 @@ namespace Latios.Mimic.Mecanim
         /// after a fixed number of loops. For example, a transition with an exit time of 3.5 will be evaluated once, after three and
         /// a half loops.
         /// </remarks>
-        public float              exitTime;
-        public short              destinationStateIndex;
-        public short              originStateIndex;
+        public float exitTime;
+        public short destinationStateIndex;
+        public short originStateIndex;
         public InterruptionSource interruptionSource;
-        public bool               hasExitTime;
-        public bool               hasFixedDuration;
-        public bool               orderedInterruption;
+        public bool hasExitTime;
+        public bool hasFixedDuration;
+        public bool orderedInterruption;
 
         public enum InterruptionSource : byte
         {
@@ -226,12 +226,12 @@ namespace Latios.Mimic.Mecanim
     {
         // See UnityEditor.Animations.AnimatorState
         public FixedString64Bytes name;
-        public int                nameHash;  // name.GetHashCode()
-        public int                editorNameHash;  // nameHash from UnityEditor.Animations.AnimatorState
-        public float              speed;
-        public float              cycleOffset;
-        public bool               mirror;  // Todo: Unused
-        public bool               ikOnFeet;  // Todo: Unused
+        public int nameHash;  // name.GetHashCode()
+        public int editorNameHash;  // nameHash from UnityEditor.Animations.AnimatorState
+        public float speed;
+        public float cycleOffset;
+        public bool mirror;  // Todo: Unused
+        public bool ikOnFeet;  // Todo: Unused
 
         public short speedMultiplierParameterIndex;
         public short cycleOffsetParameterIndex;
@@ -241,13 +241,13 @@ namespace Latios.Mimic.Mecanim
         public BlobArray<MecanimStateTransitionBlob> transitions;
 
         // See UnityEngine.Motion (mostly undocumented)
-        public float  averageDuration;
+        public float averageDuration;
         public float3 averageSpeed;  // Todo: Unused
-        public float  averageAngularSpeed;  // Todo: Unused
-        public float  apparentSpeed;  // Todo: Unused
-        public bool   isHumanMotion;  // Todo: Unused
-        public bool   isLooping;  // Todo: Unused
-        public bool   legacy;  // Todo: Unused - Would this ever matter?
+        public float averageAngularSpeed;  // Todo: Unused
+        public float apparentSpeed;  // Todo: Unused
+        public bool isHumanMotion;  // Todo: Unused
+        public bool isLooping;  // Todo: Unused
+        public bool legacy;  // Todo: Unused - Would this ever matter?
 
         // A Motion can either be a single clip or a blend tree.
         public bool isBlendTree;
@@ -257,16 +257,16 @@ namespace Latios.Mimic.Mecanim
 
         // Only valid if a blend tree
         // See UnityEditor.Animations.BlendTree
-        public BlobArray<short>  childMotionIndices;
-        public BlobArray<short>  directBlendParameterIndices;
-        public BlobArray<float>  childMotionThresholds;
+        public BlobArray<short> childMotionIndices;
+        public BlobArray<short> directBlendParameterIndices;
+        public BlobArray<float> childMotionThresholds;
         public BlobArray<float2> childMotionPositions;
 
         public BlendTreeType blendTreeType;
-        public short         blendParameterIndex;
-        public short         blendParameterYIndex;
-        public float         minThreshold;
-        public float         maxThreshold;
+        public short blendParameterIndex;
+        public short blendParameterYIndex;
+        public float minThreshold;
+        public float maxThreshold;
 
         public enum BlendTreeType
         {
@@ -281,16 +281,16 @@ namespace Latios.Mimic.Mecanim
     public struct MecanimControllerLayerBlob
     {
         public FixedString64Bytes name;
-        public float              defaultWeight;
-        public short              defaultStateIndex;
-        public short              syncedLayerIndex;  // Todo: Unused
-        public bool               syncedLayerAffectsTiming;  // Todo: Unused
-        public bool               ikPass;  // todo: Unused
+        public float defaultWeight;
+        public short defaultStateIndex;
+        public short syncedLayerIndex;  // Todo: Unused
+        public bool syncedLayerAffectsTiming;  // Todo: Unused
+        public bool ikPass;  // todo: Unused
 
         public LayerBlendingMode blendingMode;
 
-        public BlobArray<MecanimStateBlob>           states;
-        public BlobArray<MecanimStateBlob>           childMotions;
+        public BlobArray<MecanimStateBlob> states;
+        public BlobArray<MecanimStateBlob> childMotions;
         public BlobArray<MecanimStateTransitionBlob> anyStateTransitions;
 
         public enum LayerBlendingMode : byte
@@ -303,15 +303,15 @@ namespace Latios.Mimic.Mecanim
     public struct MecanimParameterBlob
     {
         public AnimatorControllerParameterType parameterType;
-        public FixedString64Bytes              name;
-        public int                             nameHash;  // name.GetHashCode()
-        public int                             editorNameHash;  // nameHash from UnityEditor.Animations.AnimatorState
+        public FixedString64Bytes name;
+        public int nameHash;  // name.GetHashCode()
+        public int editorNameHash;  // nameHash from UnityEditor.Animations.AnimatorState
     }
 
     public struct MecanimControllerBlob
     {
-        public FixedString128Bytes                   name;
-        public BlobArray<MecanimParameterBlob>       parameters;
+        public FixedString128Bytes name;
+        public BlobArray<MecanimParameterBlob> parameters;
         public BlobArray<MecanimControllerLayerBlob> layers;
     }
 
@@ -351,8 +351,8 @@ namespace Latios.Mimic.Mecanim
         public TimedMecanimClipInfo(ref MecanimStateBlob state, NativeArray<MecanimParameter> parameters, float weightFactor, float timeInState, short layerIndex, short stateIndex)
         {
             mecanimClipIndex = state.clipIndex;
-            weight           = weightFactor;
-            var cycleOffset  = state.cycleOffsetParameterIndex != -1 ?
+            weight = weightFactor;
+            var cycleOffset = state.cycleOffsetParameterIndex != -1 ?
                                parameters[state.cycleOffsetParameterIndex].floatParam :
                                state.cycleOffset;
             var speed = state.speedMultiplierParameterIndex != -1 ?
@@ -364,8 +364,7 @@ namespace Latios.Mimic.Mecanim
 
             this.layerIndex = layerIndex;
             this.stateIndex = stateIndex;
-            timeFragment    = 0;
+            timeFragment = 0;
         }
     }
 }
-
