@@ -553,7 +553,7 @@ namespace Latios.Mimic.Mecanim
                     continue;
 
                 ref var clip = ref clipSet.clips[clipWeight.mecanimClipIndex];
-                var blendWeight = clipWeight.weight / totalWeight;
+                var blendWeight = clipWeight.weight / previousFrameTotalWeight;
                 //Cull clips with negligible weight
                 if (blendWeight < weightCullingThreshold)
                     continue;
