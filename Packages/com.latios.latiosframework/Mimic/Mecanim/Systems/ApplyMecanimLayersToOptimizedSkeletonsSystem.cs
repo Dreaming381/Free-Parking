@@ -193,10 +193,11 @@ namespace Latios.Mimic.Mecanim.Systems
                 //Root motion
                 if (controller.applyRootMotion)
                 {
-                    var rootDelta = MecanimInternalUtilities.GetRootMotionDelta(ref controllerBlob, ref clipSet, parameters, deltaTime, clipWeights, previousFrameClipInfo, totalWeight, CLIP_WEIGHT_CULL_THRESHOLD);
-
+                    //write the deltas to the root transform
                     var rootBone = optimizedSkeleton.bones[0];
-                    rootBone.localTransform = rootDelta;
+                    var rootDelta = MecanimInternalUtilities.GetRootMotionDelta(ref controllerBlob, ref clipSet, parameters, deltaTime, clipWeights, previousFrameClipInfo, totalWeight, CLIP_WEIGHT_CULL_THRESHOLD);
+                    
+                    rootBone.localTransform = qvvs.mul(rootBone.localTransform, rootDelta);
                 }
 
 #if LATIOS_MECANIM_EXPERIMENTAL_BLENDSHAPES
