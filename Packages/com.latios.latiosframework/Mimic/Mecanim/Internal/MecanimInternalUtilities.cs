@@ -469,10 +469,10 @@ namespace Latios.Mimic.Mecanim
                                              float weightCullingThreshold)
         {
             //Get the current clip deltas
-            var currentRoot = TransformQvvs.identity;
+            var currentDeltaTransform = TransformQvvs.identity;
             //initialize scale and stretch to zero so that we can apply each clipweight additively
-            currentRoot.scale = 0f;
-            currentRoot.stretch = float3.zero;
+            currentDeltaTransform.scale = 0f;
+            currentDeltaTransform.stretch = float3.zero;
             for (int i = 0; i < clipWeights.Length; i++)
             {
                 var clipWeight = clipWeights[i];
@@ -489,25 +489,26 @@ namespace Latios.Mimic.Mecanim
                                  parameters[state.speedMultiplierParameterIndex].floatParam * state.speed :
                                  state.speed;
                 var speedModifiedDeltaTime = deltaTime * stateSpeed;
-                var deltaTransform = TransformQvvs.identity;
+                var clipDeltaTransform = TransformQvvs.identity;
                 var hasLooped = state.isLooping && (time - speedModifiedDeltaTime < 0f || time + speedModifiedDeltaTime > clip.duration);
 
                 //If the clip has looped, get a sample of the end of the clip to incorporate it into the delta
                 if (hasLooped)
                 {
-                    deltaTransform = clip.SampleBone(0, time);
+                    clipDeltaTransform = clip.SampleBone(0, time);
 
                     //Change times to account for negative speed
                     var previousClipSampleTime = math.select(time - speedModifiedDeltaTime, clip.duration + time - speedModifiedDeltaTime, time - speedModifiedDeltaTime < 0f);
                     var previousClipSample = clip.SampleBone(0, previousClipSampleTime);
 
+                    //Get the end of the clip
                     var sampleEnd = math.select(clip.duration, 0, stateSpeed < 0f);
                     var endClipSample = clip.SampleBone(0, sampleEnd);
 
-                    deltaTransform.position += endClipSample.position - previousClipSample.position;
-                    deltaTransform.rotation = math.mul(deltaTransform.rotation, math.mul(endClipSample.rotation, math.inverse(previousClipSample.rotation)));
-                    deltaTransform.scale *= endClipSample.scale / previousClipSample.scale;
-                    deltaTransform.stretch *= endClipSample.stretch / previousClipSample.stretch;
+                    clipDeltaTransform.position += endClipSample.position - previousClipSample.position;
+                    clipDeltaTransform.rotation = math.mul(clipDeltaTransform.rotation, math.mul(endClipSample.rotation, math.inverse(previousClipSample.rotation)));
+                    clipDeltaTransform.scale *= endClipSample.scale / previousClipSample.scale;
+                    clipDeltaTransform.stretch *= endClipSample.stretch / previousClipSample.stretch;
                 }
                 else if (time < clip.duration)
                 {
@@ -516,16 +517,16 @@ namespace Latios.Mimic.Mecanim
                     var previousClipSampleTime = math.select(time - speedModifiedDeltaTime, clip.duration + time - speedModifiedDeltaTime, time - speedModifiedDeltaTime < 0f);
                     var previousClipSample = clip.SampleBone(0, time - previousClipSampleTime);
 
-                    deltaTransform.position += currentClipSample.position - previousClipSample.position;
-                    deltaTransform.rotation = math.mul(currentClipSample.rotation, math.inverse(previousClipSample.rotation));
-                    deltaTransform.scale *= currentClipSample.scale / previousClipSample.scale;
-                    deltaTransform.stretch *= currentClipSample.stretch / previousClipSample.stretch;
+                    clipDeltaTransform.position += currentClipSample.position - previousClipSample.position;
+                    clipDeltaTransform.rotation = math.mul(currentClipSample.rotation, math.inverse(previousClipSample.rotation));
+                    clipDeltaTransform.scale *= currentClipSample.scale / previousClipSample.scale;
+                    clipDeltaTransform.stretch *= currentClipSample.stretch / previousClipSample.stretch;
                 }
 
-                currentRoot.position += deltaTransform.position * blendWeight;
-                currentRoot.rotation = math.slerp(currentRoot.rotation, math.mul(currentRoot.rotation, deltaTransform.rotation), blendWeight);
-                currentRoot.scale += deltaTransform.scale * blendWeight;
-                currentRoot.stretch += deltaTransform.stretch * blendWeight;
+                currentDeltaTransform.position += clipDeltaTransform.position * blendWeight;
+                currentDeltaTransform.rotation = math.slerp(currentDeltaTransform.rotation, math.mul(currentDeltaTransform.rotation, clipDeltaTransform.rotation), blendWeight);
+                currentDeltaTransform.scale += clipDeltaTransform.scale * blendWeight;
+                currentDeltaTransform.stretch += clipDeltaTransform.stretch * blendWeight;
             }
 
             //Get the previous clip deltas
@@ -537,14 +538,15 @@ namespace Latios.Mimic.Mecanim
                     continue;
                 previousFrameTotalWeight += clipWeight;
             }
-            var previousRoot = TransformQvvs.identity;
+            var previousDeltaTransform = TransformQvvs.identity;
             //initialize scale and stretch to zero so that we can apply each clipweight additively
-            previousRoot.scale = 0f;
-            previousRoot.stretch = float3.zero;
+            previousDeltaTransform.scale = 0f;
+            previousDeltaTransform.stretch = float3.zero;
             for (int i = 0; i < previousFrameClipInfo.Length; i++)
             {
                 var clipWeight = previousFrameClipInfo[i];
                 //We can tell if the clip is playing still by comparing the timeFragment to deltaTime
+                //If the clip is still playing, we have captured its deltas as a current clip
                 //If the clip is no longer playing, we need to capture the fragmented delta by sampling at the motion time and at the motion time + time fragment
                 var isPlaying = clipWeight.timeFragment == deltaTime;
                 if (isPlaying)
@@ -559,7 +561,7 @@ namespace Latios.Mimic.Mecanim
                 ref var state = ref controllerBlob.layers[clipWeight.layerIndex].states[clipWeight.stateIndex];
                 var time = state.isLooping ? clip.LoopToClipTime(clipWeight.motionTime) : math.min(clipWeight.motionTime, clip.duration);
 
-                var sampleTransform = clip.SampleBone(0, time);
+                var clipDeltaTransform = clip.SampleBone(0, time);
 
                 //If the clip has looped, we need the previous sample to capture the delta of the clip end
                 var hasLooped = state.isLooping && time - deltaTime < 0f;
@@ -567,41 +569,42 @@ namespace Latios.Mimic.Mecanim
                 {
                     var endClipSample = clip.SampleBone(0, clip.duration);
 
-                    sampleTransform.position -= endClipSample.position;
-                    sampleTransform.rotation = math.mul(endClipSample.rotation, math.inverse(sampleTransform.rotation));
-                    sampleTransform.scale /= endClipSample.scale;
-                    sampleTransform.stretch /= endClipSample.stretch;
+                    clipDeltaTransform.position -= endClipSample.position;
+                    clipDeltaTransform.rotation = math.mul(endClipSample.rotation, math.inverse(clipDeltaTransform.rotation));
+                    clipDeltaTransform.scale /= endClipSample.scale;
+                    clipDeltaTransform.stretch /= endClipSample.stretch;
 
                     var remainderSample = clip.SampleBone(0, clipWeight.timeFragment - (clip.duration - time));
 
-                    sampleTransform.position -= remainderSample.position;
-                    sampleTransform.rotation = math.mul(sampleTransform.rotation, math.inverse(remainderSample.rotation));
-                    sampleTransform.scale /=  remainderSample.scale;
-                    sampleTransform.stretch /= remainderSample.stretch;
+                    clipDeltaTransform.position -= remainderSample.position;
+                    clipDeltaTransform.rotation = math.mul(clipDeltaTransform.rotation, math.inverse(remainderSample.rotation));
+                    clipDeltaTransform.scale /=  remainderSample.scale;
+                    clipDeltaTransform.stretch /= remainderSample.stretch;
                 }
                 else
                 {
                     //need to get the sample at the time fragment
                     var timeFragmentSample = clip.SampleBone(0, time + clipWeight.timeFragment);
 
-                    sampleTransform.position -= timeFragmentSample.position;
-                    sampleTransform.rotation = math.mul(sampleTransform.rotation, math.inverse(timeFragmentSample.rotation));
-                    sampleTransform.scale /= timeFragmentSample.scale;
-                    sampleTransform.stretch /= timeFragmentSample.stretch;
+                    clipDeltaTransform.position -= timeFragmentSample.position;
+                    clipDeltaTransform.rotation = math.mul(clipDeltaTransform.rotation, math.inverse(timeFragmentSample.rotation));
+                    clipDeltaTransform.scale /= timeFragmentSample.scale;
+                    clipDeltaTransform.stretch /= timeFragmentSample.stretch;
                 }
 
-                previousRoot.position += sampleTransform.position * blendWeight;
-                previousRoot.rotation = math.slerp(previousRoot.rotation, math.mul(previousRoot.rotation, sampleTransform.rotation), blendWeight);
-                previousRoot.scale += sampleTransform.scale * blendWeight;
-                previousRoot.stretch += sampleTransform.stretch * blendWeight;
+                previousDeltaTransform.position += clipDeltaTransform.position * blendWeight;
+                previousDeltaTransform.rotation = math.slerp(previousDeltaTransform.rotation, math.mul(previousDeltaTransform.rotation, clipDeltaTransform.rotation), blendWeight);
+                previousDeltaTransform.scale += clipDeltaTransform.scale * blendWeight;
+                previousDeltaTransform.stretch += clipDeltaTransform.stretch * blendWeight;
             }
 
+            //Add the two deltas together
             var rootDelta = TransformQvvs.identity;
 
-            rootDelta.position = currentRoot.position - previousRoot.position;
-            rootDelta.rotation = math.mul(currentRoot.rotation, math.inverse(previousRoot.rotation));
-            rootDelta.scale = currentRoot.scale / previousRoot.scale;
-            rootDelta.stretch = currentRoot.stretch / previousRoot.stretch;
+            rootDelta.position = currentDeltaTransform.position + previousDeltaTransform.position;
+            rootDelta.rotation = math.mul(currentDeltaTransform.rotation, previousDeltaTransform.rotation);
+            rootDelta.scale = currentDeltaTransform.scale * previousDeltaTransform.scale;
+            rootDelta.stretch = currentDeltaTransform.stretch * previousDeltaTransform.stretch;
 
             return rootDelta;
         }
