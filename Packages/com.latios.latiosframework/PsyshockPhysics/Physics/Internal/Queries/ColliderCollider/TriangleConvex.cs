@@ -774,7 +774,7 @@ namespace Latios.Psyshock
         unsafe struct UnityContactManifoldExtra2D
         {
             public UnitySim.ContactsBetweenResult baseStorage;
-            public fixed float                    extraContactsData[384];
+            public fixed float                    extraContactsData[672];
 
             public ref UnitySim.ContactsBetweenResult.ContactOnB this[int index]
             {

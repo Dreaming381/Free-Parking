@@ -304,6 +304,7 @@ namespace Latios.Psyshock
                 var bInATransform       = math.mul(math.inverse(convexTransform), boxTransform);
                 var bLocalContactNormal = math.InverseRotateFast(bInATransform.rot, -aLocalContactNormal);
                 PointRayBox.BestFacePlanesAndVertices(in box, bLocalContactNormal, out var bEdgePlaneNormals, out _, out var bPlane, out var bVertices);
+                bPlane                                 = mathex.TransformPlane(bInATransform, bPlane);
                 bVertices                              = simd.transform(bInATransform, bVertices);
                 bEdgePlaneNormals                      = simd.mul(bInATransform.rot, bEdgePlaneNormals);
                 var  bEdgePlaneDistances               = simd.dot(bEdgePlaneNormals, bVertices.bcda);
@@ -428,7 +429,7 @@ namespace Latios.Psyshock
         unsafe struct UnityContactManifoldExtra2D
         {
             public UnitySim.ContactsBetweenResult baseStorage;
-            public fixed float                    extraContactsData[384];
+            public fixed float                    extraContactsData[672];
 
             public ref UnitySim.ContactsBetweenResult.ContactOnB this[int index]
             {
