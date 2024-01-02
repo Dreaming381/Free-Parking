@@ -486,32 +486,42 @@ namespace Latios.Mimic.Mecanim
                                  state.speed;
                 var speedModifiedDeltaTime = deltaTime * stateSpeed;
                 var deltaTransform = TransformQvvs.identity;
-                var hasLooped = state.isLooping && time - deltaTime < 0f;
+                var hasLooped = state.isLooping && (time - speedModifiedDeltaTime < 0f || time + speedModifiedDeltaTime > clip.duration);
 
                 //If the clip has looped, get a sample of the end of the clip to incorporate it into the delta
                 if (hasLooped)
                 {
                     deltaTransform = clip.SampleBone(0, time);
-                    var previousClipSample = clip.SampleBone(0, time - speedModifiedDeltaTime);
 
-                    var sampleEnd = math.select(clip.duration, -clip.duration, stateSpeed < 0f);
+                    //Change times to account for negative speed
+                    var previousClipSampleTime = math.select(time - speedModifiedDeltaTime, clip.duration + time - speedModifiedDeltaTime, time - speedModifiedDeltaTime < 0f);
+                    var previousClipSample = clip.SampleBone(0, previousClipSampleTime);
+
+                    var sampleEnd = math.select(clip.duration, 0, stateSpeed < 0f);
                     var endClipSample = clip.SampleBone(0, sampleEnd);
 
                     deltaTransform.position += endClipSample.position - previousClipSample.position;
-                    deltaTransform.rotation = math.mul(deltaTransform.rotation, math.mul(math.inverse(endClipSample.rotation), previousClipSample.rotation));
+                    deltaTransform.rotation = math.mul(deltaTransform.rotation, math.mul(endClipSample.rotation, math.inverse(previousClipSample.rotation)));
+                    deltaTransform.scale *= endClipSample.scale / previousClipSample.scale;
+                    deltaTransform.stretch *= endClipSample.stretch / previousClipSample.stretch;
                 }
                 else if (time < clip.duration)
                 {
                     //Get the delta as normal
                     var currentClipSample = clip.SampleBone(0, time);
-                    var previousClipSample = clip.SampleBone(0, time - speedModifiedDeltaTime);
+                    var previousClipSampleTime = math.select(time - speedModifiedDeltaTime, clip.duration + time - speedModifiedDeltaTime, time - speedModifiedDeltaTime < 0f);
+                    var previousClipSample = clip.SampleBone(0, time - previousClipSampleTime);
 
                     deltaTransform.position += currentClipSample.position - previousClipSample.position;
                     deltaTransform.rotation = math.mul(currentClipSample.rotation, math.inverse(previousClipSample.rotation));
+                    deltaTransform.scale *= currentClipSample.scale / previousClipSample.scale;
+                    deltaTransform.stretch *= currentClipSample.stretch / previousClipSample.stretch;
                 }
 
                 currentRoot.position += deltaTransform.position * blendWeight;
                 currentRoot.rotation = math.slerp(currentRoot.rotation, math.mul(currentRoot.rotation, deltaTransform.rotation), blendWeight);
+                currentRoot.scale *= deltaTransform.scale * blendWeight;
+                currentRoot.stretch *= deltaTransform.stretch * blendWeight;
             }
 
             //Get the previous clip deltas
@@ -552,11 +562,15 @@ namespace Latios.Mimic.Mecanim
 
                     sampleTransform.position -= endClipSample.position;
                     sampleTransform.rotation = math.mul(endClipSample.rotation, math.inverse(sampleTransform.rotation));
+                    sampleTransform.scale /= endClipSample.scale;
+                    sampleTransform.stretch /= endClipSample.stretch;
 
                     var remainderSample = clip.SampleBone(0, clipWeight.timeFragment - (clip.duration - time));
 
                     sampleTransform.position -= remainderSample.position;
                     sampleTransform.rotation = math.mul(sampleTransform.rotation, math.inverse(remainderSample.rotation));
+                    sampleTransform.scale /=  remainderSample.scale;
+                    sampleTransform.stretch /= remainderSample.stretch;
                 }
                 else
                 {
@@ -565,16 +579,22 @@ namespace Latios.Mimic.Mecanim
 
                     sampleTransform.position -= timeFragmentSample.position;
                     sampleTransform.rotation = math.mul(sampleTransform.rotation, math.inverse(timeFragmentSample.rotation));
+                    sampleTransform.scale /= timeFragmentSample.scale;
+                    sampleTransform.stretch /= timeFragmentSample.stretch;
                 }
 
                 previousRoot.position += sampleTransform.position * blendWeight;
                 previousRoot.rotation = math.slerp(previousRoot.rotation, math.mul(previousRoot.rotation, sampleTransform.rotation), blendWeight);
+                previousRoot.scale *= sampleTransform.scale * blendWeight;
+                previousRoot.stretch *= sampleTransform.stretch * blendWeight;
             }
 
             var rootDelta = TransformQvvs.identity;
 
             rootDelta.position = currentRoot.position - previousRoot.position;
             rootDelta.rotation = math.mul(currentRoot.rotation, math.inverse(previousRoot.rotation));
+            rootDelta.scale = currentRoot.scale / previousRoot.scale;
+            rootDelta.stretch = currentRoot.stretch / previousRoot.stretch;
 
             return rootDelta;
         }
