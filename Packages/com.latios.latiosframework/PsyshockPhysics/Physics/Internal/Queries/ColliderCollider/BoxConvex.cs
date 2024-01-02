@@ -262,29 +262,20 @@ namespace Latios.Psyshock
             }
             else if (dimensions == 0)
             {
-                UnitySim.ContactsBetweenResult result = default;
-                result.contactNormal                  = contactNormal;
-                result.Add(distanceResult.hitpointB, distanceResult.distance);
-                return result;
+                return ContactManifoldHelpers.GetSingleContactManifold(in distanceResult);
             }
             else if (dimensions == 1)
             {
-                var convexCapsule                                                  = new CapsuleCollider(blob.localAabb.min * convex.scale, blob.localAabb.max * convex.scale, 0f);
-                var flippedDistanceResult                                          = distanceResult;
-                (flippedDistanceResult.hitpointA, flippedDistanceResult.hitpointB) = (flippedDistanceResult.hitpointB, flippedDistanceResult.hitpointA);
-                (flippedDistanceResult.normalA, flippedDistanceResult.normalB)     = (flippedDistanceResult.normalB, flippedDistanceResult.normalA);
-                (flippedDistanceResult.subColliderIndexA,
-                 flippedDistanceResult.subColliderIndexB)                                = (flippedDistanceResult.subColliderIndexB, flippedDistanceResult.subColliderIndexA);
-                (flippedDistanceResult.featureCodeA, flippedDistanceResult.featureCodeB) = (flippedDistanceResult.featureCodeB, flippedDistanceResult.featureCodeA);
-                var result                                                               = CapsuleBox.UnityContactsBetween(in box,
-                                                                                                                           in boxTransform,
-                                                                                                                           in convexCapsule,
-                                                                                                                           in convexTransform,
-                                                                                                                           in flippedDistanceResult);
+                var convexCapsule = new CapsuleCollider(blob.localAabb.min * convex.scale, blob.localAabb.max * convex.scale, 0f);
+                var result        = CapsuleBox.UnityContactsBetween(in box,
+                                                                    in boxTransform,
+                                                                    in convexCapsule,
+                                                                    in convexTransform,
+                                                                    distanceResult.ToFlipped());
                 result.FlipInPlace();
                 return result;
             }
-            else if (dimensions == 2)
+            else  //if (dimensions == 2)
             {
                 ref var indices2D = ref blob.yz2DVertexIndices;  // bitmask = 6
                 var     aPlane    = new Plane(new float3(1f, 0f, 0f), 0f);
@@ -418,11 +409,6 @@ namespace Latios.Psyshock
                 if (needsClosestPoint)
                     finalResult.Add(distanceResult.hitpointB, distanceResult.distance);
                 return finalResult;
-            }
-            else
-            {
-                // Can't happen
-                return default;
             }
         }
 

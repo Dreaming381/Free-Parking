@@ -53,6 +53,13 @@ namespace Latios.Psyshock
                 contactNormal = -contactNormal;
             }
 
+            public ContactsBetweenResult ToFlipped()
+            {
+                var result = this;
+                result.FlipInPlace();
+                return result;
+            }
+
             public struct ContactOnB
             {
                 public float4 contactData;

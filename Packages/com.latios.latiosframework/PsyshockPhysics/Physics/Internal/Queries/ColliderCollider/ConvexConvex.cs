@@ -532,10 +532,7 @@ namespace Latios.Psyshock
             }
             else if (dimensionsA == 0 || dimensionsB == 0)
             {
-                UnitySim.ContactsBetweenResult result = default;
-                result.contactNormal                  = contactNormal;
-                result.Add(distanceResult.hitpointB, distanceResult.distance);
-                return result;
+                return ContactManifoldHelpers.GetSingleContactManifold(in distanceResult);
             }
             else if (dimensionsB == 1)
             {
@@ -547,17 +544,11 @@ namespace Latios.Psyshock
                 var aAsCapsule = new CapsuleCollider(blobA.localAabb.min * convexA.scale,
                                                      blobA.localAabb.max * convexA.scale,
                                                      0f);
-                var flippedDistanceResult                                          = distanceResult;
-                (flippedDistanceResult.hitpointA, flippedDistanceResult.hitpointB) = (flippedDistanceResult.hitpointB, flippedDistanceResult.hitpointA);
-                (flippedDistanceResult.normalA, flippedDistanceResult.normalB)     = (flippedDistanceResult.normalB, flippedDistanceResult.normalA);
-                (flippedDistanceResult.subColliderIndexA,
-                 flippedDistanceResult.subColliderIndexB)                                = (flippedDistanceResult.subColliderIndexB, flippedDistanceResult.subColliderIndexA);
-                (flippedDistanceResult.featureCodeA, flippedDistanceResult.featureCodeB) = (flippedDistanceResult.featureCodeB, flippedDistanceResult.featureCodeA);
-                var result                                                               = CapsuleConvex.UnityContactsBetween(in convexB,
-                                                                                                                              in bTransform,
-                                                                                                                              in aAsCapsule,
-                                                                                                                              in aTransform,
-                                                                                                                              in flippedDistanceResult);
+                var result = CapsuleConvex.UnityContactsBetween(in convexB,
+                                                                in bTransform,
+                                                                in aAsCapsule,
+                                                                in aTransform,
+                                                                distanceResult.ToFlipped());
                 result.FlipInPlace();
                 return result;
             }
