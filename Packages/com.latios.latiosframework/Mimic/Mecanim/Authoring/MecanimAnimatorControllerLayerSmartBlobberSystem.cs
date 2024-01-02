@@ -188,7 +188,7 @@ namespace Latios.Mimic.Mecanim.Authoring.Systems
                                         AnimatorControllerParameter[] parameters,
                                         AnimationClip[]               clips)
         {
-            blobAnimatorState.name = new FixedString64Bytes("ChildMotion");
+            blobAnimatorState.name = new FixedString64Bytes(motion.name);
 
             blobAnimatorState.averageDuration     = motion.averageDuration;
             blobAnimatorState.averageSpeed        = motion.averageSpeed;
