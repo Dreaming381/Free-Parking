@@ -297,7 +297,6 @@ namespace Latios.Mimic.Mecanim.Authoring
         }
     }
 
-    [TemporaryBakingType]
     internal struct BlendShapeParameterConfig
     {
         public int clipIndex;

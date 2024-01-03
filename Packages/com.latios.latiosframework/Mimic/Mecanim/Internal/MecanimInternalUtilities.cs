@@ -502,8 +502,8 @@ namespace Latios.Mimic.Mecanim
                     var previousClipSample = clip.SampleBone(0, previousClipSampleTime);
 
                     //Get the end of the clip
-                    var sampleEnd = math.select(clip.duration, 0, stateSpeed < 0f);
-                    var endClipSample = clip.SampleBone(0, sampleEnd);
+                    var endClipSampleTime = math.select(clip.duration, 0, stateSpeed < 0f);
+                    var endClipSample = clip.SampleBone(0, endClipSampleTime);
 
                     clipDeltaTransform.position += endClipSample.position - previousClipSample.position;
                     clipDeltaTransform.rotation = math.mul(clipDeltaTransform.rotation, math.mul(endClipSample.rotation, math.inverse(previousClipSample.rotation)));
@@ -560,31 +560,33 @@ namespace Latios.Mimic.Mecanim
 
                 ref var state = ref controllerBlob.layers[clipWeight.layerIndex].states[clipWeight.stateIndex];
                 var time = state.isLooping ? clip.LoopToClipTime(clipWeight.motionTime) : math.min(clipWeight.motionTime, clip.duration);
+                var stateSpeed = state.speedMultiplierParameterIndex != -1 ?
+                    parameters[state.speedMultiplierParameterIndex].floatParam * state.speed :
+                    state.speed;
+                var speedModifiedTimeFragment = clipWeight.timeFragment * stateSpeed;
 
                 var clipDeltaTransform = clip.SampleBone(0, time);
 
                 //If the clip has looped, we need the previous sample to capture the delta of the clip end
-                var hasLooped = state.isLooping && time - deltaTime < 0f;
+                var hasLooped = state.isLooping && (time - speedModifiedTimeFragment < 0f || time + speedModifiedTimeFragment > clip.duration);
                 if (hasLooped)
                 {
-                    var endClipSample = clip.SampleBone(0, clip.duration);
+                    var remainderClipSampleTime = math.select(time - speedModifiedTimeFragment, clip.duration + time - speedModifiedTimeFragment, time - speedModifiedTimeFragment < 0f);
+                    var remainderClipSample = clip.SampleBone(0, remainderClipSampleTime);
 
-                    clipDeltaTransform.position -= endClipSample.position;
-                    clipDeltaTransform.rotation = math.mul(endClipSample.rotation, math.inverse(clipDeltaTransform.rotation));
-                    clipDeltaTransform.scale /= endClipSample.scale;
-                    clipDeltaTransform.stretch /= endClipSample.stretch;
+                    //Get the end of the clip
+                    var endClipSampleTime = math.select(clip.duration, 0, stateSpeed < 0f);
+                    var endClipSample = clip.SampleBone(0, endClipSampleTime);
 
-                    var remainderSample = clip.SampleBone(0, clipWeight.timeFragment - (clip.duration - time));
-
-                    clipDeltaTransform.position -= remainderSample.position;
-                    clipDeltaTransform.rotation = math.mul(clipDeltaTransform.rotation, math.inverse(remainderSample.rotation));
-                    clipDeltaTransform.scale /=  remainderSample.scale;
-                    clipDeltaTransform.stretch /= remainderSample.stretch;
+                    clipDeltaTransform.position += endClipSample.position - remainderClipSample.position;
+                    clipDeltaTransform.rotation = math.mul(clipDeltaTransform.rotation, math.mul(endClipSample.rotation, math.inverse(remainderClipSample.rotation)));
+                    clipDeltaTransform.scale *= endClipSample.scale / remainderClipSample.scale;
+                    clipDeltaTransform.stretch *= endClipSample.stretch / remainderClipSample.stretch;
                 }
                 else
                 {
                     //need to get the sample at the time fragment
-                    var timeFragmentSample = clip.SampleBone(0, time + clipWeight.timeFragment);
+                    var timeFragmentSample = clip.SampleBone(0, time + speedModifiedTimeFragment);
 
                     clipDeltaTransform.position -= timeFragmentSample.position;
                     clipDeltaTransform.rotation = math.mul(clipDeltaTransform.rotation, math.inverse(timeFragmentSample.rotation));
@@ -633,7 +635,7 @@ namespace Latios.Mimic.Mecanim
                     NativeArray<float> parameterValues = new NativeArray<float>(clip.parameterCount, Allocator.Temp);
 
                     //Get samples at normalized time
-                    clip.SampleAllParameters(parameterValues, time / state.averageDuration);
+                    clip.SampleAllParameters(parameterValues, time);
 
                     for (int k = 0; k < clip.parameterCount; k++)
                     {
