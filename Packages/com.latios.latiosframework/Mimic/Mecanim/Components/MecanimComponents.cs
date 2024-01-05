@@ -6,7 +6,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Latios.Mimic.Mecanim
+namespace Latios.Mimic.Addons.Mecanim
 {
     #region Components
     /// <summary>

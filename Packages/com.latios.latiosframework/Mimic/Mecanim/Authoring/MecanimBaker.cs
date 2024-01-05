@@ -8,7 +8,7 @@ using Unity.Entities;
 using UnityEditor.Animations;
 using UnityEngine;
 
-namespace Latios.Mimic.Mecanim.Authoring
+namespace Latios.Mimic.Addons.Mecanim.Authoring
 {
     [TemporaryBakingType]
     internal struct MecanimSmartBakeItem : ISmartBakeItem<Animator>
@@ -16,12 +16,11 @@ namespace Latios.Mimic.Mecanim.Authoring
         private SmartBlobberHandle<SkeletonClipSetBlob> m_clipSetBlobHandle;
         private SmartBlobberHandle<MecanimControllerBlob> m_controllerBlobHandle;
 #if LATIOS_MECANIM_EXPERIMENTAL_BLENDSHAPES
-        private NativeArray<SmartBlobberHandle<ParameterClipSetBlob>> m_blendShapesBlobHandles;
+        private NativeArray<SmartBlobberHandle<ParameterClipSetBlob> > m_blendShapesBlobHandles;
 #endif
 
         public bool Bake(Animator authoring, IBaker baker)
         {
-            const int CLIP_SAMPLE_RATE = 60;
             var entity = baker.GetEntity(TransformUsageFlags.Dynamic);
 
             var runtimeAnimatorController = authoring.runtimeAnimatorController;
@@ -31,15 +30,17 @@ namespace Latios.Mimic.Mecanim.Authoring
             }
 
 #if LATIOS_MECANIM_EXPERIMENTAL_BLENDSHAPES
+            const int CLIP_SAMPLE_RATE = 60;
+
             // Get a list of skinned mesh renderers for blend shape baking
             var skinnedMeshRenderersWithBlendShapes = authoring
-                .GetComponentsInChildren<SkinnedMeshRenderer>()
-                .Where(x => x.sharedMesh != null && x.sharedMesh.blendShapeCount > 0)
-                .ToArray();
+                                                      .GetComponentsInChildren<SkinnedMeshRenderer>()
+                                                      .Where(x => x.sharedMesh != null && x.sharedMesh.blendShapeCount > 0)
+                                                      .ToArray();
             var blendShapeEntities = new NativeList<Entity>(skinnedMeshRenderersWithBlendShapes.Length, Allocator.Temp);
             for (int i = 0; i < skinnedMeshRenderersWithBlendShapes.Length; i++)
             {
-                var renderer = skinnedMeshRenderersWithBlendShapes[i];
+                var renderer       = skinnedMeshRenderersWithBlendShapes[i];
                 var rendererEntity = baker.GetEntity(renderer, TransformUsageFlags.None);
                 if (rendererEntity != default)
                 {
@@ -49,10 +50,11 @@ namespace Latios.Mimic.Mecanim.Authoring
 #endif
 
             // Bake clips
-            var sourceClips = runtimeAnimatorController.animationClips;
+            var sourceClips         = runtimeAnimatorController.animationClips;
             var sleletonClipConfigs = new NativeArray<SkeletonClipConfig>(sourceClips.Length, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
 #if LATIOS_MECANIM_EXPERIMENTAL_BLENDSHAPES
-            var blendShapeEntityClipConfigs = new NativeParallelMultiHashMap<Entity, BlendShapeParameterConfig>(skinnedMeshRenderersWithBlendShapes.Length * sourceClips.Length, Allocator.Temp);
+            var blendShapeEntityClipConfigs = new NativeParallelMultiHashMap<Entity, BlendShapeParameterConfig>(skinnedMeshRenderersWithBlendShapes.Length * sourceClips.Length,
+                                                                                                                Allocator.Temp);
 #endif
             for (int i = 0; i < sourceClips.Length; i++)
             {
@@ -60,8 +62,8 @@ namespace Latios.Mimic.Mecanim.Authoring
 
                 sleletonClipConfigs[i] = new SkeletonClipConfig
                 {
-                    clip = sourceClip,
-                    events = sourceClip.ExtractKinemationClipEvents(Allocator.Temp),
+                    clip     = sourceClip,
+                    events   = sourceClip.ExtractKinemationClipEvents(Allocator.Temp),
                     settings = SkeletonClipCompressionSettings.kDefaultSettings
                 };
 
@@ -70,32 +72,31 @@ namespace Latios.Mimic.Mecanim.Authoring
                 var bindings = AnimationUtility.GetCurveBindings(sourceClip);
                 for (int j = 0; j < skinnedMeshRenderersWithBlendShapes.Length; j++)
                 {
-                    var renderer = skinnedMeshRenderersWithBlendShapes[j];
+                    var renderer       = skinnedMeshRenderersWithBlendShapes[j];
                     var rendererEntity = blendShapeEntities[j];
-
 
                     //Bake sample data for blend shapes
                     for (int k = 0; k < renderer.sharedMesh.blendShapeCount; k++)
                     {
                         const float MAX_BLEND_SHAPE_WEIGHT = 100f;
-                        var shapeName = renderer.sharedMesh.GetBlendShapeName(k);
-                        var samples = new NativeList<float>(Allocator.Temp);
-                        bool foundMatchingBinding = false;
+                        var shapeName              = renderer.sharedMesh.GetBlendShapeName(k);
+                        var samples                = new NativeList<float>(Allocator.Temp);
+                        bool foundMatchingBinding   = false;
                         foreach (var binding in bindings)
                         {
                             if (binding.type == typeof(SkinnedMeshRenderer))
                             {
                                 if (AnimationUtility.CalculateTransformPath(renderer.transform, authoring.avatarRoot) ==
-                                    binding.path
-                                    && $"blendShape.{shapeName}" == binding.propertyName)
+                                    binding.path &&
+                                    $"blendShape.{shapeName}" == binding.propertyName)
                                 {
                                     foundMatchingBinding = true;
                                     // Normally, we could use curve.keys[^ 1].time, but we need to have each curve have the same number of samples
-                                    var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
+                                    var curve     = AnimationUtility.GetEditorCurve(sourceClip, binding);
                                     var curveTime = sourceClip.averageDuration;
 
                                     var sampleInterval = curveTime / CLIP_SAMPLE_RATE;
-                                    float totalTime = 0f;
+                                    float totalTime      = 0f;
 
                                     while (totalTime <= curveTime)
                                     {
@@ -113,9 +114,9 @@ namespace Latios.Mimic.Mecanim.Authoring
                         //If we don't have a matching binding, add samples so that they won't affect the blend shape
                         if (!foundMatchingBinding)
                         {
-                            var curveTime = sourceClip.averageDuration;
+                            var curveTime      = sourceClip.averageDuration;
                             var sampleInterval = curveTime / CLIP_SAMPLE_RATE;
-                            float totalTime = 0f;
+                            float totalTime      = 0f;
                             samples = new NativeList<float>(Allocator.Temp);
                             while (totalTime <= curveTime)
                             {
@@ -126,10 +127,10 @@ namespace Latios.Mimic.Mecanim.Authoring
 
                         blendShapeEntityClipConfigs.Add(rendererEntity, new BlendShapeParameterConfig
                         {
-                            clipIndex = i,
-                            shapeIndex = k,
+                            clipIndex     = i,
+                            shapeIndex    = k,
                             parameterName = shapeName,
-                            Parameter = new ParameterClipConfig.Parameter
+                            Parameter     = new ParameterClipConfig.Parameter
                             {
                                 samples = samples.AsArray()
                             }
@@ -151,7 +152,7 @@ namespace Latios.Mimic.Mecanim.Authoring
             baker.AddBuffer<TimedMecanimClipInfo>(entity);
 
             // Bake parameters
-            var parameters = animatorController.parameters;
+            var parameters       = animatorController.parameters;
             var parametersBuffer = baker.AddBuffer<MecanimParameter>(entity);
             foreach (var parameter in parameters)
             {
@@ -160,27 +161,27 @@ namespace Latios.Mimic.Mecanim.Authoring
                 {
                     case AnimatorControllerParameterType.Bool:
                     case AnimatorControllerParameterType.Trigger:
-                        {
-                            parameterData.boolParam = parameter.defaultBool;
-                            break;
-                        }
+                    {
+                        parameterData.boolParam = parameter.defaultBool;
+                        break;
+                    }
                     case AnimatorControllerParameterType.Float:
-                        {
-                            parameterData.floatParam = parameter.defaultFloat;
-                            break;
-                        }
+                    {
+                        parameterData.floatParam = parameter.defaultFloat;
+                        break;
+                    }
                     case AnimatorControllerParameterType.Int:
-                        {
-                            parameterData.intParam = parameter.defaultInt;
-                            break;
-                        }
+                    {
+                        parameterData.intParam = parameter.defaultInt;
+                        break;
+                    }
                 }
                 parametersBuffer.Add(parameterData);
             }
 
             // Bake layers
             var maskCount = 0;
-            var layers = animatorController.layers;
+            var layers    = animatorController.layers;
 
             var layerStatusBuffer = baker.AddBuffer<MecanimLayerStateMachineStatus>(entity);
             for (int i = 0; i < layers.Length; i++)
@@ -213,8 +214,8 @@ namespace Latios.Mimic.Mecanim.Authoring
 
                 layerStatusBuffer.Add(new MecanimLayerStateMachineStatus
                 {
-                    currentStateIndex = (short)defaultStateIndex,
-                    previousStateIndex = -1,
+                    currentStateIndex      = (short)defaultStateIndex,
+                    previousStateIndex     = -1,
                     currentTransitionIndex = -1
                 });
             }
@@ -223,53 +224,52 @@ namespace Latios.Mimic.Mecanim.Authoring
             if (authoring.hasTransformHierarchy)
                 baker.AddBuffer<ExposedSkeletonInertialBlendState>(entity);
 
-            m_clipSetBlobHandle = baker.RequestCreateBlobAsset(authoring, sleletonClipConfigs);
+            m_clipSetBlobHandle    = baker.RequestCreateBlobAsset(authoring, sleletonClipConfigs);
             m_controllerBlobHandle = baker.RequestCreateBlobAsset(animatorController);
 
 #if LATIOS_MECANIM_EXPERIMENTAL_BLENDSHAPES
             //Bake blend shapes
             baker.AddBuffer<BlendShapeClipSet>(entity);
-            m_blendShapesBlobHandles = new NativeArray<SmartBlobberHandle<ParameterClipSetBlob>>(blendShapeEntities.Length, Allocator.TempJob);
+            m_blendShapesBlobHandles = new NativeArray<SmartBlobberHandle<ParameterClipSetBlob> >(blendShapeEntities.Length, Allocator.TempJob);
             for (int i = 0; i < blendShapeEntities.Length; i++)
             {
                 var blendShapeEntity = blendShapeEntities[i];
-                var parameterCount = skinnedMeshRenderersWithBlendShapes[i].sharedMesh.blendShapeCount;
+                var parameterCount   = skinnedMeshRenderersWithBlendShapes[i].sharedMesh.blendShapeCount;
                 baker.AppendToBuffer(entity, new BlendShapeClipSet
                 {
                     meshEntity = blendShapeEntity
                 });
 
                 // Create clipset config for this entity
-                var blendShapeClipConfigs = new NativeArray<ParameterClipConfig>(sourceClips.Length, Allocator.Temp);
+                var blendShapeClipConfigs    = new NativeArray<ParameterClipConfig>(sourceClips.Length, Allocator.Temp);
                 var blendShapeParameterNames = new NativeArray<FixedString128Bytes>(parameterCount, Allocator.Temp);
                 for (int j = 0; j < sourceClips.Length; j++)
                 {
-                    var enumerator = blendShapeEntityClipConfigs.GetEnumerator();
+                    var enumerator           = blendShapeEntityClipConfigs.GetEnumerator();
                     var blendShapeParameters = new NativeArray<ParameterClipConfig.Parameter>(parameterCount, Allocator.Temp);
                     while (enumerator.MoveNext())
                     {
                         var current = enumerator.Current.Value;
                         if (enumerator.Current.Key == blendShapeEntity && current.clipIndex == j)
                         {
-                            blendShapeParameters[current.shapeIndex] = current.Parameter;
+                            blendShapeParameters[current.shapeIndex]     = current.Parameter;
                             blendShapeParameterNames[current.shapeIndex] = current.parameterName;
                         }
                     }
 
                     blendShapeClipConfigs[j] = new ParameterClipConfig
                     {
-                        name = sourceClips[j].name,
-                        sampleRate = CLIP_SAMPLE_RATE,
+                        name             = sourceClips[j].name,
+                        sampleRate       = CLIP_SAMPLE_RATE,
                         parametersInClip = blendShapeParameters,
-                        events = new NativeArray<ClipEvent>(0, Allocator.Temp)
+                        events           = new NativeArray<ClipEvent>(0, Allocator.Temp)
                     };
-
                 }
 
                 var blendShapeClipSetConfig = new ParameterClipSetConfig
                 {
                     parameterNames = blendShapeParameterNames,
-                    clips = blendShapeClipConfigs,
+                    clips          = blendShapeClipConfigs,
                 };
 
                 m_blendShapesBlobHandles[i] = baker.RequestCreateBlobAsset(blendShapeClipSetConfig);
@@ -288,7 +288,7 @@ namespace Latios.Mimic.Mecanim.Authoring
             {
                 var blendShapeClipSet = blendShapeClipSets[i];
                 blendShapeClipSet.clips = m_blendShapesBlobHandles[i].Resolve(entityManager);
-                blendShapeClipSets[i] = blendShapeClipSet;
+                blendShapeClipSets[i]   = blendShapeClipSet;
             }
             m_blendShapesBlobHandles.Dispose();
 #endif
@@ -359,3 +359,4 @@ namespace Latios.Mimic.Mecanim.Authoring
     }
 }
 #endif
+

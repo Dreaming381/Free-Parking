@@ -5,7 +5,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 
-namespace Latios.Mimic.Mecanim
+namespace Latios.Mimic.Addons.Mecanim
 {
     internal static class MecanimInternalUtilities
     {
