@@ -13,8 +13,8 @@ namespace FreeParking.Bootstrap
         {
             Latios.Transforms.Authoring.TransformsBakingBootstrap.InstallLatiosTransformsBakers(ref context);
             Latios.Psyshock.Authoring.PsyshockBakingBootstrap.InstallUnityColliderBakers(ref context);
-            Latios.Kinemation.Authoring.KinemationBakingBootstrap.InstallKinemationBakersAndSystems(ref context);
-            Latios.Mimic.Authoring.MimicBakingBootstrap.InstallMecanimBakersAndSystems(ref context);
+            Latios.Kinemation.Authoring.KinemationBakingBootstrap.InstallKinemation(ref context);
+            Latios.Mimic.Authoring.MimicBakingBootstrap.InstallMecanimAddon(ref context);
         }
     }
 
@@ -57,7 +57,7 @@ namespace FreeParking.Bootstrap
             Latios.Transforms.TransformsBootstrap.InstallTransforms(world, world.simulationSystemGroup);
             Latios.Myri.MyriBootstrap.InstallMyri(world);
             Latios.Kinemation.KinemationBootstrap.InstallKinemation(world);
-            Latios.Mimic.MimicBootstrap.InstallMecanim(world);
+            Latios.Mimic.MimicBootstrap.InstallMecanimAddon(world);
             Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphics(world);
 
             BootstrapTools.InjectRootSuperSystems(systems, world, world.simulationSystemGroup);

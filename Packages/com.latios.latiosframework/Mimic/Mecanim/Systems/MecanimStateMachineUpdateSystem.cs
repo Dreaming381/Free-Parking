@@ -8,7 +8,7 @@ using AnimatorControllerParameterType = UnityEngine.AnimatorControllerParameterT
 
 using static Unity.Entities.SystemAPI;
 
-namespace Latios.Mimic.Mecanim.Systems
+namespace Latios.Mimic.Addons.Mecanim.Systems
 {
     [RequireMatchingQueriesForUpdate]
     [DisableAutoCreation]
