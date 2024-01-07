@@ -69,11 +69,11 @@ namespace Latios.Kinemation.Authoring
         public float sampleRate;
         /// <summary>
         /// Higher levels lead to longer compression time but more compressed clips.
-        /// Values range from 0 to 4. Typical default is 2.
+        /// Values range from 0 to 4 or 100 for automatic mode.
         /// </summary>
         public short compressionLevel;
 
-        public static readonly short defaultCompressionLevel = 2;
+        public static readonly short defaultCompressionLevel = 100;
         public static readonly float defaultMaxError         = 0.00001f;
 
         /// <summary>
