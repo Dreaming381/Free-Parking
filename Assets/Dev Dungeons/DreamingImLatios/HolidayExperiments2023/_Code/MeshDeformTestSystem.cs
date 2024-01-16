@@ -47,16 +47,15 @@ namespace DreamingImLatios.Holiday2023.Systems
                                 in MeshDeformDataBlobReference meshBlobRef)
             {
                 var deformVertices      = dynamicMesh.verticesRW;
-                dynamicMesh.previousVertices.CopyTo(deformVertices);
                 var uniqueVerticesCount = meshBlobRef.blob.Value.uniqueVertexPositionsCount;
                 var uniqueVertices      = new NativeArray<float3>(uniqueVerticesCount, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
-                SkinningAlgorithms.ExtractUniquePositions(ref uniqueVertices, ref deformVertices, ref meshBlobRef.blob.Value.normalizationData);
+                SkinningAlgorithms.ExtractUniquePositions(ref uniqueVertices, dynamicMesh.previousVertices, ref meshBlobRef.blob.Value.normalizationData);
                 for (int i = 0; i < uniqueVertices.Length; i++)
                 {
-                    var vertex  = uniqueVertices[i];
-                    var dist    = math.length(vertex.xz);
-                    vertex.y   += math.cos(testParams.frequency * time + dist * testParams.speed) * deltaTime * testParams.magnitude;
-                    uniqueVertices[i] = vertex;
+                    var vertex         = uniqueVertices[i];
+                    var dist           = math.length(vertex.xz);
+                    vertex.y          += math.cos(testParams.frequency * time + dist * testParams.speed) * deltaTime * testParams.magnitude;
+                    uniqueVertices[i]  = vertex;
                 }
                 SkinningAlgorithms.ApplyPositionsWithUniqueNormals(ref deformVertices, uniqueVertices.AsReadOnly(), ref meshBlobRef.blob.Value.normalizationData);
                 SkinningAlgorithms.NormalizeMesh(ref deformVertices, ref meshBlobRef.blob.Value.normalizationData, true);
