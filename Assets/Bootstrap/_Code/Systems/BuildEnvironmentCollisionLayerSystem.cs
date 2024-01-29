@@ -7,10 +7,10 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 
-namespace NetForce.Systems
+namespace FreeParking.Systems
 {
     [BurstCompile]
-    public partial struct BuildCollisionLayersSystem : ISystem, ISystemNewScene
+    public partial struct BuildEnvironmentCollisionLayerSystem : ISystem, ISystemNewScene
     {
         LatiosWorldUnmanaged           latiosWorld;
         BuildCollisionLayerTypeHandles m_handles;
@@ -42,7 +42,7 @@ namespace NetForce.Systems
 
             state.Dependency = Physics.BuildCollisionLayer(m_environmentQuery, in m_handles)
                                .ScheduleParallel(out var environmentLayer, Allocator.Persistent, state.Dependency);
-            latiosWorld.sceneBlackboardEntity.AddOrSetCollectionComponentAndDisposeOld(new EnvironmentCollisionLayer { layer = environmentLayer });
+            latiosWorld.sceneBlackboardEntity.SetCollectionComponentAndDisposeOld(new EnvironmentCollisionLayer { layer = environmentLayer });
         }
     }
 }

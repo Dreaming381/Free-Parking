@@ -60,7 +60,7 @@ Inside the subscene, create an empty Game Object.
 ![](media/0312387937f7d2037fb55dced8054cb7.png)
 
 On this Game Object, attach a *Latios* *Core* *Blackboard Entity Data* component
-and set the *Blackboard Scope* to *Scene*. Then attach a *Free Parking  Dev
+and set the *Blackboard Scope* to *Scene*. Then attach a *Free Parking Dev
 Dungeon Scene Data* component. Drag your *Dev Dungeon Description* into the *Dev
 Dungeon Description* field. For the *Pause Menu Prefab*, you can use the prefab
 found in *Assets/Bootstrap* named *Dev Dungeon Default Pause Menu*.
@@ -121,8 +121,12 @@ namespace DreamingImLatios.Welcome.Systems
     // RootSuperSystem is a derived class of ComponentSystemGroup.
     public partial class WelcomeSuperSystem : RootSuperSystem
     {
-        bool m_isActive           = false;
-        bool m_requiresEvaluation = true;
+        // This is a utility to help set up root systems to only run when they are supposed to.
+        // Pass in the path to your dev dungeon.
+        // Note that this is a "starts with" filter.
+        // If I were to only pass in "DreamingImLatios" as the path,
+        // then this group would update for all my dev dungeons.
+        DevDungeonSystemFilter m_filter = new DevDungeonSystemFilter("DreamingImLatios/WelcomeToDevDungeons");
 
         protected override void CreateSystems()
         {
@@ -131,36 +135,10 @@ namespace DreamingImLatios.Welcome.Systems
             GetOrCreateAndAddUnmanagedSystem<AnimateWelcomeTextSystem>();
         }
 
-        public override void OnNewScene()
-        {
-            m_requiresEvaluation = true;
-        }
+        // These are both optional overrides for RootSuperSystem, but are required in Free Parking for the filter to function correctly.
+        public override void OnNewScene() => m_filter.OnNewScene();
 
-        public override bool ShouldUpdateSystem()
-        {
-            if (sceneBlackboardEntity.HasComponent<PausedTag>())
-                return false;
-
-            if (m_requiresEvaluation)
-            {
-                m_requiresEvaluation = false;
-                if (!sceneBlackboardEntity.HasComponent<CurrentDevDungeonDescription>())
-                {
-                    m_isActive = false;
-                    return false;
-                }
-
-                var description = sceneBlackboardEntity.GetComponentData<CurrentDevDungeonDescription>();
-
-                // Pass in the path to your dev dungeon.
-                // Note that this is a "starts with" filter.
-                // If I were to only pass in "DreamingImLatios" as the path,
-                // then this group would update for all my dev dungeons.
-                m_isActive = description.CurrentDevDungeonPathStartsWith("DreamingImLatios/WelcomeToDevDungeons");
-            }
-
-            return m_isActive;
-        }
+        public override bool ShouldUpdateSystem() => m_filter.ShouldUpdateSystem(sceneBlackboardEntity);
     }
 }
 ```
@@ -173,6 +151,12 @@ in play mode.
 
 If you need input, create an Input Actions for either your dev dungeon or in
 your username folder to be shared across all your dev dungeons.
+
+Free Parking contains some universal types and utilities which you can leverage
+in your own Dev Dungeon. For example, you can add the
+`BuildEnvironmentCollisionLayerSystem` to one of your `SuperSystems` to populate
+the `sceneBlackboardEntity` with the `EnvironmentCollisionLayer` which captures
+all entities with the `EnvironmentTag`.
 
 ## Adding a Thumbnail
 

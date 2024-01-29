@@ -1,3 +1,4 @@
+using FreeParking;
 using Latios;
 using Latios.Psyshock;
 using Latios.Transforms;

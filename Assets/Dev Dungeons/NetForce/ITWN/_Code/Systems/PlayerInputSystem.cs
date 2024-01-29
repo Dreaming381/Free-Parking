@@ -23,6 +23,7 @@ namespace NetForce.Systems
 
         protected override void OnStartRunning() => m_input.Enable();
         protected override void OnStopRunning() => m_input.Disable();
+        protected override void OnDestroy() => m_input.Dispose();
 
         protected override void OnUpdate()
         {

@@ -78,4 +78,6 @@ contribute:
 -   [Importing Assets](Importing%20Assets.md)
 -   [Decorating the Main World](Decorating%20the%20Main%20World.md)
 -   [Creating a Dev Dungeon](Creating%20a%20Dev%20Dungeon%20Manually.md)
+-   [Collaborating in Character
+    Adventures](Collaborating%20in%20Character%20Adventures.md)
 -   Creating Activities - Todo

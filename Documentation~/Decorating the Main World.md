@@ -31,6 +31,10 @@ The Latios Framework benefits from simpler collider shapes such as spheres,
 capsules, and boxes. But all collider types except for terrain colliders are
 supported. Marking mesh colliders as convex is also an optimization.
 
+To make the player collide with the environment, the root of the hierarchy
+requires the Environment component to be added. The component is located
+directly within the Free Parking category of the Add Component menu.
+
 ## Character Notes
 
 Characters in the world should be set up with Animators and Animator

@@ -53,8 +53,6 @@ namespace FreeParking.MainWorld.MainGameplay
         public bool interacting;
     }
 
-    public struct EnvironmentTag : IComponentData { }
-
     public struct NpcCollisionTag : IComponentData { }
 
     public struct InteractableTargetTag : IComponentData { }

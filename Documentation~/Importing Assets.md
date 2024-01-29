@@ -48,6 +48,7 @@ GitHub project. Examples of such licenses include:
 
 -   The Unity Asset Store EULA
 -   TurboSquid Standard License
+-   Mixamo Adobe Terms of Use
 
 However, such assets may additionally be authored under an additional license,
 such as a Creative Commons license. In such cases, it is up to the licensee

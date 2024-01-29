@@ -48,39 +48,16 @@ namespace DreamingImLatios.MyriWatch.Systems
 
     public partial class MyriWatchSuperSystem : RootSuperSystem
     {
-        bool m_isActive           = false;
-        bool m_requiresEvaluation = true;
+        DevDungeonSystemFilter m_filter = new DevDungeonSystemFilter("DreamingImLatios/MyriWatch");
 
         protected override void CreateSystems()
         {
             GetOrCreateAndAddUnmanagedSystem<MyriWatchSystem>();
         }
 
-        public override void OnNewScene()
-        {
-            m_requiresEvaluation = true;
-        }
+        public override void OnNewScene() => m_filter.OnNewScene();
 
-        public override bool ShouldUpdateSystem()
-        {
-            if (sceneBlackboardEntity.HasComponent<PausedTag>())
-                return false;
-
-            if (m_requiresEvaluation)
-            {
-                m_requiresEvaluation = false;
-                if (!sceneBlackboardEntity.HasComponent<CurrentDevDungeonDescription>())
-                {
-                    m_isActive = false;
-                    return false;
-                }
-
-                var description = sceneBlackboardEntity.GetComponentData<CurrentDevDungeonDescription>();
-                m_isActive      = description.CurrentDevDungeonPathStartsWith("DreamingImLatios/MyriWatch");
-            }
-
-            return m_isActive;
-        }
+        public override bool ShouldUpdateSystem() => m_filter.ShouldUpdateSystem(sceneBlackboardEntity);
     }
 }
 

@@ -1,4 +1,5 @@
 using FreeParking;
+using FreeParking.Systems;
 using Latios;
 using Latios.Transforms;
 using Unity.Burst;
@@ -15,7 +16,7 @@ namespace NetForce.Systems
     {
         protected override void CreateSystems()
         {
-            GetOrCreateAndAddUnmanagedSystem<BuildCollisionLayersSystem>();
+            GetOrCreateAndAddUnmanagedSystem<BuildEnvironmentCollisionLayerSystem>();
             GetOrCreateAndAddManagedSystem<PlayerInputSystem>();
             GetOrCreateAndAddUnmanagedSystem<ForwardCharacterControllerV1System>();
             GetOrCreateAndAddUnmanagedSystem<SpinSystem>();
@@ -24,35 +25,11 @@ namespace NetForce.Systems
 
     public abstract partial class BaseInjectSuperSystem : RootSuperSystem
     {
-        bool m_isActive           = false;
-        bool m_requiresEvaluation = true;
+        DevDungeonSystemFilter m_filter = new DevDungeonSystemFilter("NetForce/ITWN");
 
-        public override void OnNewScene()
-        {
-            m_requiresEvaluation = true;
-        }
+        public override void OnNewScene() => m_filter.OnNewScene();
 
-        public override bool ShouldUpdateSystem()
-        {
-            if (sceneBlackboardEntity.HasComponent<PausedTag>())
-                return false;
-
-            if (m_requiresEvaluation)
-            {
-                m_requiresEvaluation = false;
-                if (!sceneBlackboardEntity.HasComponent<CurrentDevDungeonDescription>())
-                {
-                    m_isActive = false;
-                    return false;
-                }
-
-                var description = sceneBlackboardEntity.GetComponentData<CurrentDevDungeonDescription>();
-
-                m_isActive = description.CurrentDevDungeonPathStartsWith("NetForce/ITWN");
-            }
-
-            return m_isActive;
-        }
+        public override bool ShouldUpdateSystem() => m_filter.ShouldUpdateSystem(sceneBlackboardEntity);
     }
 }
 

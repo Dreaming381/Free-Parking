@@ -10,8 +10,12 @@ namespace DreamingImLatios.Welcome.Systems
     // RootSuperSystem is a derived class of ComponentSystemGroup.
     public partial class WelcomeSuperSystem : RootSuperSystem
     {
-        bool m_isActive           = false;
-        bool m_requiresEvaluation = true;
+        // This is a utility to help set up root systems to only run when they are supposed to.
+        // Pass in the path to your dev dungeon.
+        // Note that this is a "starts with" filter.
+        // If I were to only pass in "DreamingImLatios" as the path,
+        // then this group would update for all my dev dungeons.
+        DevDungeonSystemFilter m_filter = new DevDungeonSystemFilter("DreamingImLatios/WelcomeToDevDungeons");
 
         protected override void CreateSystems()
         {
@@ -20,36 +24,10 @@ namespace DreamingImLatios.Welcome.Systems
             GetOrCreateAndAddUnmanagedSystem<AnimateWelcomeTextSystem>();
         }
 
-        public override void OnNewScene()
-        {
-            m_requiresEvaluation = true;
-        }
+        // These are both optional overrides for RootSuperSystem, but are required in Free Parking for the filter to function correctly.
+        public override void OnNewScene() => m_filter.OnNewScene();
 
-        public override bool ShouldUpdateSystem()
-        {
-            if (sceneBlackboardEntity.HasComponent<PausedTag>())
-                return false;
-
-            if (m_requiresEvaluation)
-            {
-                m_requiresEvaluation = false;
-                if (!sceneBlackboardEntity.HasComponent<CurrentDevDungeonDescription>())
-                {
-                    m_isActive = false;
-                    return false;
-                }
-
-                var description = sceneBlackboardEntity.GetComponentData<CurrentDevDungeonDescription>();
-
-                // Pass in the path to your dev dungeon.
-                // Note that this is a "starts with" filter.
-                // If I were to only pass in "DreamingImLatios" as the path,
-                // then this group would update for all my dev dungeons.
-                m_isActive = description.CurrentDevDungeonPathStartsWith("DreamingImLatios/WelcomeToDevDungeons");
-            }
-
-            return m_isActive;
-        }
+        public override bool ShouldUpdateSystem() => m_filter.ShouldUpdateSystem(sceneBlackboardEntity);
     }
 }
 
