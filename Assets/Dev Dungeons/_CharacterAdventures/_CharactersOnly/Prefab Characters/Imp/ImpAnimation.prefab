@@ -90,6 +90,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ef88d042d48539f449352928ac858835, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxInertialBlendDuration: 5
   walkStepLength: 1
   runStepLength: 1
   runThreshold: 0.5

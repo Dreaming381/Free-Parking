@@ -15,6 +15,8 @@ namespace CharacterAdventures.Authoring
     [DisallowMultipleComponent]
     public class ImpAnimationAuthoring : MonoBehaviour
     {   
+        [Tooltip("Maximum duration of an inertial blend, in seconds.")]
+        public float maxInertialBlendDuration;
         [Tooltip("Adjust to make sure footsteps don't drift when walking.")]
         public float walkStepLength;
         [Tooltip("Adjust to make sure footsteps don't drift when running.")]
@@ -43,6 +45,7 @@ namespace CharacterAdventures.Authoring
             baker.AddComponent<ImpAnimationState>(entity);
 
             baker.AddComponent(entity, new ImpAnimationSettings {
+                maxInertialBlendDuration = authoring.maxInertialBlendDuration,
                 walkStepLength = authoring.walkStepLength,
                 runStepLength = authoring.runStepLength,
                 runThreshold = authoring.runThreshold,
