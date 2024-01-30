@@ -70,7 +70,7 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5628556091851753561, guid: e73aeecea13c32f4cbb921c5a6e0e6b2,
         type: 3}
       insertIndex: -1
-      addedObject: {fileID: -6854970084203526113}
+      addedObject: {fileID: 3875795360391915305}
   m_SourcePrefab: {fileID: 100100000, guid: e73aeecea13c32f4cbb921c5a6e0e6b2, type: 3}
 --- !u!1 &8110235018558710142 stripped
 GameObject:
@@ -78,7 +78,7 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 4508651016707598631}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &-6854970084203526113
+--- !u!114 &3875795360391915305
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -90,15 +90,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ef88d042d48539f449352928ac858835, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkStepLength: 0.92
+  walkStepLength: 1
   runStepLength: 1
+  runThreshold: 0.5
   maxAimRotation: 0.5235988
-  aimElevationRange:
-    x: -0.7853982
-    y: 0.7853982
   twoHands: 0
   animations:
-  - {fileID: -7939422232465117443, guid: a0248a5805ce148488d5c858011f2967, type: 3}
+  - {fileID: 1384750235900718475, guid: a0248a5805ce148488d5c858011f2967, type: 3}
+  - {fileID: 2667949614841947897, guid: 659396d8cc66f084c9c4219147f680ac, type: 3}
   - {fileID: 2488106030737985379, guid: a0248a5805ce148488d5c858011f2967, type: 3}
   - {fileID: 7456336487327675879, guid: a0248a5805ce148488d5c858011f2967, type: 3}
   - {fileID: -2636943330114532298, guid: a0248a5805ce148488d5c858011f2967, type: 3}
