@@ -186,6 +186,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4801686086269216524, guid: a3942c3d3218c1741add85095a015c25,
+        type: 3}
+      propertyPath: animations.Array.data[1]
+      value: 
+      objectReference: {fileID: -7939422232465117443, guid: a0248a5805ce148488d5c858011f2967,
+        type: 3}
+    - target: {fileID: 4801686086269216524, guid: a3942c3d3218c1741add85095a015c25,
+        type: 3}
+      propertyPath: maxInertialBlendDuration
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
