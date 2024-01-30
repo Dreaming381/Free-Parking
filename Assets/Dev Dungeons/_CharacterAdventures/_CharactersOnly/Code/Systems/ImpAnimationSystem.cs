@@ -5,6 +5,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace CharacterAdventures.Systems
 {
@@ -15,6 +16,7 @@ namespace CharacterAdventures.Systems
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
+            Debug.Log("Running imp animation system.");
             state.CompleteDependency();
             new Job {
                 dt = SystemAPI.Time.DeltaTime,
@@ -30,6 +32,7 @@ namespace CharacterAdventures.Systems
 
             public void Execute(ref ImpAnimationState animationState, in ImpAnimationSettings animationSettings, in ImpAnimations animations, in ImpAnimationMovementOutput movement, OptimizedSkeletonAspect skeletonAspect)
             {
+                Debug.Log("Animating the imp.");
                 EImpAnimation clipIndex;
                 //replace this with more complex logic if we end up with more clips
                 if ((movement.flags | EImpMovementFlags.Aiming) != 0) {
