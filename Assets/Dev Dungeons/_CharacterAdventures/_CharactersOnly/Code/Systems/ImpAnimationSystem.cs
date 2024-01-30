@@ -32,10 +32,9 @@ namespace CharacterAdventures.Systems
 
             public void Execute(ref ImpAnimationState animationState, in ImpAnimationSettings animationSettings, in ImpAnimations animations, in ImpAnimationMovementOutput movement, OptimizedSkeletonAspect skeletonAspect)
             {
-                Debug.Log("Animating the imp.");
                 EImpAnimation clipIndex;
                 //replace this with more complex logic if we end up with more clips
-                if ((movement.flags | EImpMovementFlags.Aiming) != 0) {
+                if ((movement.flags & EImpMovementFlags.Aiming) != 0) {
                     clipIndex = animationSettings.twoHands ? EImpAnimation.AimTwoHands : EImpAnimation.AimOneHand;
                 } else {
                     if (movement.speed == 0)
