@@ -41,7 +41,7 @@ namespace CharacterAdventures
         public float maxInertialBlendDuration; //max time for inertial blends
     }
 
-    public enum EImpAnimation : byte
+    public enum EImpAnimation
     {
         Idle,
         Walk,
