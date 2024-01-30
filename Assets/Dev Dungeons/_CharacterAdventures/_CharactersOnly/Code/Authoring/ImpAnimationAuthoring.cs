@@ -12,26 +12,26 @@ using System;
 
 namespace CharacterAdventures.Authoring
 {
+    [DisallowMultipleComponent]
     public class ImpAnimationAuthoring : MonoBehaviour
     {   
         [Tooltip("Adjust to make sure footsteps don't drift when walking.")]
         public float walkStepLength;
         [Tooltip("Adjust to make sure footsteps don't drift when running.")]
         public float runStepLength;
+        [Tooltip("Fraction of max speed to transition to running.")]
+        public float runThreshold;
         [Tooltip("Maximum horizontal angle to twist before the character moves their feet when aiming (radians)")]
         public float maxAimRotation;
-        [Tooltip("Max and min angles for vertical aim (radians). 0 is horizontal, negative is below the horizon.")]
-        public float2 aimElevationRange;
         [Tooltip("Use the two-handed aim animation variant.")]
         public bool twoHands;
 
-        [Header("Animations")]
         [HideInInspector]
         public AnimationClip[] animations = new AnimationClip[Enum.GetValues(typeof(EImpAnimation)).Length];
     }
 
     [TemporaryBakingType]
-    public struct AnimationClipsSmartBakeItem : ISmartBakeItem<ImpAnimationAuthoring>
+    public struct ImpAnimationsSmartBakeItem : ISmartBakeItem<ImpAnimationAuthoring>
     {
         public SmartBlobberHandle<SkeletonClipSetBlob> animationBlob;
 
@@ -45,8 +45,8 @@ namespace CharacterAdventures.Authoring
             baker.AddComponent(entity, new ImpAnimationSettings {
                 walkStepLength = authoring.walkStepLength,
                 runStepLength = authoring.runStepLength,
+                runThreshold = authoring.runThreshold,
                 maxAimRotation = authoring.maxAimRotation,
-                aimElevationRange = authoring.aimElevationRange,
                 twoHands = authoring.twoHands
             });
 
@@ -56,10 +56,10 @@ namespace CharacterAdventures.Authoring
 
             foreach (var i in Enum.GetValues(typeof(EImpAnimation)))
             {
-                animationClips[(int) i] = new SkeletonClipConfig
-                    { clip = authoring.animations[(int) i]
-                    , settings = SkeletonClipCompressionSettings.kDefaultSettings
-                    };
+                animationClips[(int) i] = new SkeletonClipConfig {
+                    clip = authoring.animations[(int) i],
+                    settings = SkeletonClipCompressionSettings.kDefaultSettings
+                };
             }
 
             animationBlob = baker.RequestCreateBlobAsset(baker.GetComponent<Animator>(), animationClips);
@@ -75,6 +75,10 @@ namespace CharacterAdventures.Authoring
                 }
             );
         }
+    }
+
+    class ImpAnimationsBaker: SmartBaker<ImpAnimationAuthoring, ImpAnimationsSmartBakeItem>
+    {
     }
 
     [CustomEditor(typeof(ImpAnimationAuthoring))]

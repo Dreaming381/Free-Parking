@@ -37,10 +37,13 @@ namespace CharacterAdventures
         public float walkStepLength; //adjust to make sure footsteps don't drift when walking
         public float runStepLength; //adjust to make sure footsteps don't drift when running
         public bool twoHands; //use the two-handed aiming animation
+        public float runThreshold; //fractional speed at which to transition from the walk to the run animation
+        public float maxInertialBlendDuration; //max time for inertial blends
     }
 
     public enum EImpAnimation : byte
     {
+        Idle,
         Walk,
         Run,
         AimOneHand,
@@ -54,7 +57,10 @@ namespace CharacterAdventures
 
     public struct ImpAnimationState : IComponentData
     {
-
+        public EImpAnimation currentAnimation;
+        public float startTime;
+        public float previousDt;
+        public bool inInertialBlend;
     }
     #endregion
 
@@ -69,6 +75,7 @@ namespace CharacterAdventures
     public struct ImpMovementState : IComponentData
     {
         public float2 velocity;
+        public float3 aimDirection;
     }
     #endregion
 }
