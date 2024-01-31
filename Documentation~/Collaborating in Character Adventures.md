@@ -96,10 +96,10 @@ allows the cube to move around. There’s the animation layer which causes the
 cube to spin when it decelerates. And there’s the IK layer which is what
 provides the tilting behavior of the cube.
 
-In the Prefab Characters folder, you will find four prefabs containing each of
-these four layers as prefab variants. Each layer adds additional authoring
-components associated with its responsibility. You will want to mimic these four
-layers for your own character.
+In the Prefab Characters folder, there’s an Example folder, and in it you will
+find four prefabs containing each of these four layers as prefab variants. Each
+layer adds additional authoring components associated with its responsibility.
+You will want to mimic these four layers for your own character.
 
 *Q: Why is everything separated like this?*
 
@@ -116,24 +116,27 @@ folder.
 
 Second, create a subscene in the scene. Feel free to give it any name you want.
 
-Third, create your input-layer character prefab in the subscene, minus the
+Third, drag the CharactersOnly_DevDungeon prefab into the subscene in the
+hierarchy.
+
+Fourth, create your input-layer character prefab in the subscene, minus the
 dedicated authoring component. Name this prefab YourCharacterInput. Drag this
 into the Prefab Characters folder and delete the instance from the scene.
 
-Fourth, create a prefab variant from YourCharacterInput and name it
+Fifth, create a prefab variant from YourCharacterInput and name it
 YourCharacterMovement. Then create a prefab variant from YourCharacterMovement
 and name it YourCharacterAnimation. And from YourCharacterAnimation, create a
 variant named YourCharacterIK.
 
-Fifth, add YourCharacterIK into the subscene.
+Sixth, add YourCharacterIK into the subscene.
 
 Changes made to the character in the scene may be discarded during git merges,
 so you always want to modify the prefabs when iterating on parameters.
 
-Sixth, create an Input Actions Map for your character in the Input directory.
+Seventh, create an Input Actions Map for your character in the Input directory.
 Name it YourNameInputActions.
 
-Seventh, add any custom environments into the Prefab Environments directory.
+Eighth, add any custom environments into the Prefab Environments directory.
 
 If you are not a programmer, you are done at this point. And you should make a
 pull request.
