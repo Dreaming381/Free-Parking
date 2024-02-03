@@ -23,6 +23,7 @@ namespace CharacterAdventures.Systems
             GetOrCreateAndAddUnmanagedSystem<ExampleAnimationSystem>();
 
             // Add your input and animation systems here.
+            GetOrCreateAndAddUnmanagedSystem<ImpMovementSystem>();
             GetOrCreateAndAddUnmanagedSystem<ImpAnimationSystem>();
         }
 

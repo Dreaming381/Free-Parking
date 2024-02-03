@@ -19,7 +19,7 @@ namespace CharacterAdventures.Systems
             Debug.Log("Running imp animation system.");
             state.CompleteDependency();
             new Job {
-                dt = SystemAPI.Time.DeltaTime,
+                dt   = SystemAPI.Time.DeltaTime,
                 time = (float) SystemAPI.Time.ElapsedTime,
             }.Run();
         }
@@ -30,17 +30,26 @@ namespace CharacterAdventures.Systems
             public float dt;
             public float time;
 
-            public void Execute(ref ImpAnimationState animationState, in ImpAnimationSettings animationSettings, in ImpAnimations animations, in ImpAnimationMovementOutput movement, OptimizedSkeletonAspect skeletonAspect)
+            public void Execute(ref ImpAnimationState animationState,
+                                in ImpAnimationSettings animationSettings,
+                                in ImpAnimations animations,
+                                in ImpAnimationMovementOutput movement,
+                                OptimizedSkeletonAspect skeletonAspect)
             {
                 EImpAnimation clipIndex;
                 //replace this with more complex logic if we end up with more clips
-                if ((movement.flags & EImpMovementFlags.Aiming) != 0) {
+                if ((movement.flags & EImpMovementFlags.Aiming) != 0)
+                {
                     clipIndex = animationSettings.twoHands ? EImpAnimation.AimTwoHands : EImpAnimation.AimOneHand;
-                } else {
+                }
+                else
+                {
                     if (movement.speed == 0)
                     {
                         clipIndex = EImpAnimation.Idle;
-                    } else {
+                    }
+                    else
+                    {
                         clipIndex = movement.speed > animationSettings.runThreshold ? EImpAnimation.Run : EImpAnimation.Walk;
                     }
                 }
@@ -49,13 +58,18 @@ namespace CharacterAdventures.Systems
 
                 if (clipIndex != animationState.currentAnimation)
                 {
-                    animationState.startTime = time;
+                    animationState.startTime        = time;
                     animationState.currentAnimation = clipIndex;
-                    animationState.inInertialBlend = true;
+                    animationState.inInertialBlend  = true;
                     clip.SamplePose(ref skeletonAspect, 0.0f, 1f);
-                    skeletonAspect.SyncHistory();
                     skeletonAspect.StartNewInertialBlend(animationState.previousDt, animationSettings.maxInertialBlendDuration + dt);
-                } else {
+                    var twoAgoLocal   = skeletonAspect.bones[2].twoAgoLocalTransform.position;
+                    var previousLocal = skeletonAspect.bones[2].previousLocalTransform.position;
+                    var current       = skeletonAspect.rawLocalTransformsRO[2].position;
+                    UnityEngine.Debug.Log($"twoAgo: {twoAgoLocal}  previous: {previousLocal}  current: {current}");
+                }
+                else
+                {
                     float evaluationTime = clip.LoopToClipTime(time - animationState.startTime);
                     clip.SamplePose(ref skeletonAspect, evaluationTime, 1f);
                 }
@@ -65,8 +79,10 @@ namespace CharacterAdventures.Systems
                     float inertialBlendTimeElapsed = time - animationState.startTime;
                     if (inertialBlendTimeElapsed > animationSettings.maxInertialBlendDuration)
                     {
-                        animationState.inInertialBlend = false;                        
-                    } else {
+                        animationState.inInertialBlend = false;
+                    }
+                    else
+                    {
                         skeletonAspect.InertialBlend(inertialBlendTimeElapsed);
                     }
                 }
