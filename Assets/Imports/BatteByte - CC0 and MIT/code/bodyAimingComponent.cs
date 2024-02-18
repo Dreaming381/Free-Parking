@@ -5,6 +5,7 @@ using Unity.Entities;
 
 public struct bodyAimingComponent : IComponentData
 {
-    public quaternion rotationExtraAiming; //start with quaternion.identity note only used for inf and tanks but always present
+    //some units types can rotate thier whole body to face the target. 
+    public quaternion rotationExtraAiming; //start with quaternion.identity
     public float rotationExtraYAiming;
 }
