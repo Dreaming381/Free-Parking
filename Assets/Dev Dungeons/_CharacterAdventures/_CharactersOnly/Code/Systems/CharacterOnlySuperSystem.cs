@@ -41,6 +41,7 @@ namespace CharacterAdventures.Systems
         protected override void CreateSystems()
         {
             GetOrCreateAndAddUnmanagedSystem<ExampleIKSystem>();
+            GetOrCreateAndAddUnmanagedSystem<TacticalGuyIKSystem>();
         }
 
         DevDungeonSystemFilter m_filter = new DevDungeonSystemFilter("CharacterAdventures/CharactersOnly");
