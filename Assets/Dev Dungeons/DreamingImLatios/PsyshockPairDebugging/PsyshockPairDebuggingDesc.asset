@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5af374ba47d300e4887aa7f1408c5778, type: 3}
+  m_Name: PsyshockPairDebuggingDesc
+  m_EditorClassIdentifier: 
+  groupNameOrPath: DreamingImLatios
+  devDungeonName: PsyshockPairDebugging
+  devDungeonDisplayName: Psyshock Pair Debugging
+  initialScene: DreamingImLatios_PsyshockPairDebugging_Capture
+  creators:
+  - Dreaming I'm Latios
+  thumbnail: {fileID: 0}
+  description: 'This dungeon is intended to be experimented with to help capture
+    scenarios that produce incorrect Psyshock results and replay them for debugging.
+
+
+    When
+    drawing Distance Between operations, the drawer draws hatches at the closest
+    points and unit normal vectors from the closest points. Red is for collider A,
+    while blue is for collider B.
+
+
+    When drawing Contact operations, the drawer
+    draws lines between the contact points on each collider''s surface. The lines
+    should all be parallel for each subcollider pair. Each subcollider pair is drawn
+    with a different hue. Darker variants of the same hue specify the contact points
+    are penetrating.
+
+
+    If any result does not look right, capture the hex string
+    from the Playbacker inspector and share it over Discord!'
