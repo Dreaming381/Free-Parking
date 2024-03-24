@@ -1,14 +1,12 @@
 ﻿using System;
 using System.Diagnostics;
 using Latios.Transforms;
-using Latios.Unsafe;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 
-//Todo: FilteredCache playback and inflations
 namespace Latios.Psyshock
 {
     /// <summary>
@@ -24,8 +22,11 @@ namespace Latios.Psyshock
         /// An optional callback prior to processing a bucket (single layer) or bucket combination (two layers).
         /// Each invocation of this callback will have a different jobIndex.
         /// </summary>
-        void BeginBucket(in FindPairsBucketContext context)
+        /// <returns>Returns true if the Execute() and EndBucket() methods should be called. Otherwise, further
+        /// processing of the bucket is skipped.</returns>
+        bool BeginBucket(in FindPairsBucketContext context)
         {
+            return true;
         }
         /// <summary>
         /// An optional callback following processing a bucket (single layer) or bucket combination (two layers).
@@ -102,55 +103,16 @@ namespace Latios.Psyshock
         /// </summary>
         public int jobIndex => m_jobIndex;
 
-        private CollisionLayer m_layerA;
-        private CollisionLayer m_layerB;
-        private int            m_bucketStartA;
-        private int            m_bucketStartB;
-        private int            m_bodyAIndex;
-        private int            m_bodyBIndex;
-        private int            m_jobIndex;
-        private bool           m_isAThreadSafe;
-        private bool           m_isBThreadSafe;
-
-#if ENABLE_UNITY_COLLECTIONS_CHECKS
-        /// <summary>
-        /// A safe entity handle that can be used inside of PhysicsComponentLookup or PhysicsBufferLookup and corresponds to the
-        /// owning entity of the first collider in the pair. It can also be implicitly casted and used as a normal entity reference.
-        /// </summary>
-        public SafeEntity entityA => new SafeEntity
-        {
-            entity = new Entity
-            {
-                Index   = math.select(-bodyA.entity.Index - 1, bodyA.entity.Index, m_isAThreadSafe),
-                Version = bodyA.entity.Version
-            }
-        };
-        /// <summary>
-        /// A safe entity handle that can be used inside of PhysicsComponentLookup or PhysicsBufferLookup and corresponds to the
-        /// owning entity of the second collider in the pair. It can also be implicitly casted and used as a normal entity reference.
-        /// </summary>
-        public SafeEntity entityB => new SafeEntity
-        {
-            entity = new Entity
-            {
-                Index   = math.select(-bodyB.entity.Index - 1, bodyB.entity.Index, m_isBThreadSafe),
-                Version = bodyB.entity.Version
-            }
-        };
-#else
-        public SafeEntity entityA => new SafeEntity { entity = bodyA.entity };
-        public SafeEntity entityB => new SafeEntity { entity = bodyB.entity };
-#endif
-
         /// <summary>
         /// The Aabb of the first collider in the pair
         /// </summary>
         public Aabb aabbA
         {
-            get {
+            get
+            {
                 var yzminmax = m_layerA.yzminmaxs[m_bodyAIndex];
-                var xmin     = m_layerA.xmins[    m_bodyAIndex];
-                var xmax     = m_layerA.xmaxs[    m_bodyAIndex];
+                var xmin     = m_layerA.xmins[m_bodyAIndex];
+                var xmax     = m_layerA.xmaxs[m_bodyAIndex];
                 return new Aabb(new float3(xmin, yzminmax.xy), new float3(xmax, -yzminmax.zw));
             }
         }
@@ -163,11 +125,78 @@ namespace Latios.Psyshock
             get
             {
                 var yzminmax = m_layerB.yzminmaxs[m_bodyBIndex];
-                var xmin     = m_layerB.xmins[    m_bodyBIndex];
-                var xmax     = m_layerB.xmaxs[    m_bodyBIndex];
+                var xmin     = m_layerB.xmins[m_bodyBIndex];
+                var xmax     = m_layerB.xmaxs[m_bodyBIndex];
                 return new Aabb(new float3(xmin, yzminmax.xy), new float3(xmax, -yzminmax.zw));
             }
         }
+
+        /// <summary>
+        /// A key that can be used in a PairStream.ParallelWriter
+        /// </summary>
+        public PairStream.ParallelWriteKey pairStreamKey
+        {
+            get
+            {
+                int factor = 1;
+                if (jobIndex >= layerA.bucketCount)
+                    factor++;
+                if (jobIndex >= 2 * layerA.bucketCount - 1)
+                    factor++;
+                return new PairStream.ParallelWriteKey
+                {
+                    entityA             = bodyA.entity,
+                    entityB             = bodyB.entity,
+                    streamIndexA        = m_bucketIndexA * factor,
+                    streamIndexB        = m_bucketIndexB * factor,
+                    streamIndexCombined = 2 * layerA.bucketCount + jobIndex,
+                    expectedBucketCount = layerA.bucketCount
+                };
+            }
+        }
+
+#if ENABLE_UNITY_COLLECTIONS_CHECKS
+        /// <summary>
+        /// A safe entity handle that can be used inside of PhysicsComponentLookup or PhysicsBufferLookup and corresponds to the
+        /// owning entity of the first collider in the pair. It can also be implicitly casted and used as a normal entity reference.
+        /// </summary>
+        public SafeEntity entityA => new SafeEntity
+        {
+            m_entity = new Entity
+            {
+                Index   = math.select(-bodyA.entity.Index - 1, bodyA.entity.Index, m_isAThreadSafe),
+                Version = bodyA.entity.Version
+            }
+        };
+        /// <summary>
+        /// A safe entity handle that can be used inside of PhysicsComponentLookup or PhysicsBufferLookup and corresponds to the
+        /// owning entity of the second collider in the pair. It can also be implicitly casted and used as a normal entity reference.
+        /// </summary>
+        public SafeEntity entityB => new SafeEntity
+        {
+            m_entity = new Entity
+            {
+                Index   = math.select(-bodyB.entity.Index - 1, bodyB.entity.Index, m_isBThreadSafe),
+                Version = bodyB.entity.Version
+            }
+        };
+#else
+        public SafeEntity entityA => new SafeEntity { m_entity = bodyA.entity };
+        public SafeEntity entityB => new SafeEntity { m_entity = bodyB.entity };
+#endif
+
+        private CollisionLayer m_layerA;
+        private CollisionLayer m_layerB;
+        private int            m_bucketStartA;
+        private int            m_bucketStartB;
+        private int            m_bodyAIndex;
+        private int            m_bodyBIndex;
+        private int            m_bucketIndexA;
+        private int            m_bucketIndexB;
+        private int            m_jobIndex;
+        private bool           m_isAThreadSafe;
+        private bool           m_isBThreadSafe;
+        private bool           m_isImmediateContext;
 
         internal FindPairsResult(in CollisionLayer layerA,
                                  in CollisionLayer layerB,
@@ -175,32 +204,46 @@ namespace Latios.Psyshock
                                  in BucketSlices bucketB,
                                  int jobIndex,
                                  bool isAThreadSafe,
-                                 bool isBThreadSafe)
+                                 bool isBThreadSafe,
+                                 bool isImmediateContext = false)
         {
-            m_layerA        = layerA;
-            m_layerB        = layerB;
-            m_bucketStartA  = bucketA.bucketGlobalStart;
-            m_bucketStartB  = bucketB.bucketGlobalStart;
-            m_jobIndex      = jobIndex;
-            m_isAThreadSafe = isAThreadSafe;
-            m_isBThreadSafe = isBThreadSafe;
-            m_bodyAIndex    = 0;
-            m_bodyBIndex    = 0;
+            m_layerA             = layerA;
+            m_layerB             = layerB;
+            m_bucketStartA       = bucketA.bucketGlobalStart;
+            m_bucketStartB       = bucketB.bucketGlobalStart;
+            m_bucketIndexA       = bucketA.bucketIndex;
+            m_bucketIndexB       = bucketB.bucketIndex;
+            m_jobIndex           = jobIndex;
+            m_isAThreadSafe      = isAThreadSafe;
+            m_isBThreadSafe      = isBThreadSafe;
+            m_isImmediateContext = isImmediateContext;
+            m_bodyAIndex         = 0;
+            m_bodyBIndex         = 0;
         }
 
-        internal static FindPairsResult CreateGlobalResult(in CollisionLayer layerA, in CollisionLayer layerB, int jobIndex, bool isAThreadSafe, bool isBThreadSafe)
+        internal static FindPairsResult CreateGlobalResult(in CollisionLayer layerA,
+                                                           in CollisionLayer layerB,
+                                                           int bucketIndexA,
+                                                           int bucketIndexB,
+                                                           int jobIndex,
+                                                           bool isAThreadSafe,
+                                                           bool isBThreadSafe,
+                                                           bool isImmediateContext = false)
         {
             return new FindPairsResult
             {
-                m_layerA        = layerA,
-                m_layerB        = layerB,
-                m_bucketStartA  = 0,
-                m_bucketStartB  = 0,
-                m_jobIndex      = jobIndex,
-                m_isAThreadSafe = isAThreadSafe,
-                m_isBThreadSafe = isBThreadSafe,
-                m_bodyAIndex    = 0,
-                m_bodyBIndex    = 0,
+                m_layerA             = layerA,
+                m_layerB             = layerB,
+                m_bucketStartA       = 0,
+                m_bucketStartB       = 0,
+                m_bucketIndexA       = bucketIndexA,
+                m_bucketIndexB       = bucketIndexB,
+                m_jobIndex           = jobIndex,
+                m_isAThreadSafe      = isAThreadSafe,
+                m_isBThreadSafe      = isBThreadSafe,
+                m_isImmediateContext = isImmediateContext,
+                m_bodyAIndex         = 0,
+                m_bodyBIndex         = 0,
             };
         }
 
@@ -210,6 +253,13 @@ namespace Latios.Psyshock
             m_bodyBIndex = bIndex + m_bucketStartB;
         }
         //Todo: Shorthands for calling narrow phase distance and manifold queries
+
+        [Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS")]
+        void CheckCanGenerateParallelPairKey()
+        {
+            if (m_isImmediateContext)
+                throw new InvalidOperationException($"Cannot generate a ParallelWriteKey in a FindPairs.RunImmediate() context.");
+        }
     }
 
     /// <summary>
@@ -253,6 +303,31 @@ namespace Latios.Psyshock
         public int jobIndex => m_jobIndex;
 
         /// <summary>
+        /// A key that can be used in a PairStream.ParallelWriter
+        /// </summary>
+        public PairStream.ParallelWriteKey CreatePairStreamKey(int aIndex, int bIndex)
+        {
+            CheckSafeEntityInRange(aIndex, bucketStartA, bucketCountA);
+            CheckSafeEntityInRange(bIndex, bucketStartB, bucketCountB);
+            CheckCanGenerateParallelPairKey();
+
+            int factor = 1;
+            if (jobIndex >= layerA.bucketCount)
+                factor++;
+            if (jobIndex >= 2 * layerA.bucketCount - 1)
+                factor++;
+            return new PairStream.ParallelWriteKey
+            {
+                entityA             = layerA.bodies[aIndex].entity,
+                entityB             = layerB.bodies[bIndex].entity,
+                streamIndexA        = m_bucketIndexA * factor,
+                streamIndexB        = m_bucketIndexB * factor,
+                streamIndexCombined = 2 * layerA.bucketCount + jobIndex,
+                expectedBucketCount = layerA.bucketCount
+            };
+        }
+
+        /// <summary>
         /// Obtains a safe entity handle that can be used inside of PhysicsComponentLookup or PhysicsBufferLookup and corresponds to the
         /// owning entity of the first collider in any pair in this bucket for layerA. It can also be implicitly casted and used as a normal
         /// entity reference.
@@ -264,15 +339,16 @@ namespace Latios.Psyshock
             var entity = layerA.bodies[aIndex].entity;
             return new SafeEntity
             {
-                entity = new Entity
+                m_entity = new Entity
                 {
                     Index   = math.select(-entity.Index - 1, entity.Index, m_isAThreadSafe),
                     Version = entity.Version
                 }
             };
 #else
-            return new SafeEntity {
-                entity = layerA.bodies[aIndex].entity
+            return new SafeEntity
+            {
+                m_entity = layerA.bodies[aIndex].entity
             };
 #endif
         }
@@ -289,15 +365,16 @@ namespace Latios.Psyshock
             var entity = layerB.bodies[bIndex].entity;
             return new SafeEntity
             {
-                entity = new Entity
+                m_entity = new Entity
                 {
-                    Index   = math.select(-entity.Index - 1, entity.Index, m_isAThreadSafe),
+                    Index   = math.select(-entity.Index - 1, entity.Index, m_isBThreadSafe),
                     Version = entity.Version
                 }
             };
 #else
-            return new SafeEntity {
-                entity = layerB.bodies[bIndex].entity
+            return new SafeEntity
+            {
+                m_entity = layerB.bodies[bIndex].entity
             };
 #endif
         }
@@ -308,29 +385,34 @@ namespace Latios.Psyshock
         private int            m_bucketStartB;
         private int            m_bucketCountA;
         private int            m_bucketCountB;
+        private int            m_bucketIndexA;
+        private int            m_bucketIndexB;
         private int            m_jobIndex;
         private bool           m_isAThreadSafe;
         private bool           m_isBThreadSafe;
+        private bool           m_isImmediateContext;
 
         internal FindPairsBucketContext(in CollisionLayer layerA,
                                         in CollisionLayer layerB,
-                                        int startA,
-                                        int countA,
-                                        int startB,
-                                        int countB,
+                                        in BucketSlices bucketA,
+                                        in BucketSlices bucketB,
                                         int jobIndex,
                                         bool isAThreadSafe,
-                                        bool isBThreadSafe)
+                                        bool isBThreadSafe,
+                                        bool isImmediateContext = false)
         {
-            m_layerA        = layerA;
-            m_layerB        = layerB;
-            m_bucketStartA  = startA;
-            m_bucketCountA  = countA;
-            m_bucketStartB  = startB;
-            m_bucketCountB  = countB;
-            m_jobIndex      = jobIndex;
-            m_isAThreadSafe = isAThreadSafe;
-            m_isBThreadSafe = isBThreadSafe;
+            m_layerA             = layerA;
+            m_layerB             = layerB;
+            m_bucketStartA       = bucketA.bucketGlobalStart;
+            m_bucketCountA       = bucketA.count;
+            m_bucketIndexA       = bucketA.bucketIndex;
+            m_bucketStartB       = bucketB.bucketGlobalStart;
+            m_bucketCountB       = bucketB.count;
+            m_bucketIndexB       = bucketB.bucketIndex;
+            m_jobIndex           = jobIndex;
+            m_isAThreadSafe      = isAThreadSafe;
+            m_isBThreadSafe      = isBThreadSafe;
+            m_isImmediateContext = isImmediateContext;
         }
 
         [Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS")]
@@ -339,6 +421,13 @@ namespace Latios.Psyshock
             var clampedIndex = math.clamp(index, start, start + count);
             if (clampedIndex != index)
                 throw new ArgumentOutOfRangeException($"Index {index} is outside the bucket range of [{start}, {start + count - 1}].");
+        }
+
+        [Conditional("ENABLE_UNITY_COLLECTIONS_CHECKS")]
+        void CheckCanGenerateParallelPairKey()
+        {
+            if (m_isImmediateContext)
+                throw new InvalidOperationException($"Cannot generate a ParallelWriteKey in a FindPairs.RunImmediate() context.");
         }
     }
 

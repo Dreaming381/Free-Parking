@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using Latios.Transforms;
 using Unity.Collections;
@@ -107,6 +108,12 @@ namespace Latios.Psyshock
                 var result = this;
                 result.FlipInPlace();
                 return result;
+            }
+
+            public Span<ContactOnB> AsSpan()
+            {
+                fixed (ContactOnB* ptr = &this[0])
+                return new Span<ContactOnB>(ptr, contactCount);
             }
 
             public struct ContactOnB

@@ -144,7 +144,8 @@ namespace Latios.Psyshock
         /// <param name="transformB">The transform of the second of the two colliders</param>
         /// <param name="maxDistance">The signed distance the surface points must be less than in order for a "hit" to be registered. A value less than 0 requires that
         /// the colliders be overlapping.</param>
-        /// <param name="processor">The processor that will receive a ColliderDistanceResult for each found pair of subcolliders.</param>
+        /// <param name="processor">The processor that will receive a ColliderDistanceResult for each found pair of subcolliders.
+        /// Use DistanceBetweenAllCache if you need a simple collector.</param>
         public static void DistanceBetweenAll<T>(in Collider colliderA,
                                                  in TransformQvvs transformA,
                                                  in Collider colliderB,
