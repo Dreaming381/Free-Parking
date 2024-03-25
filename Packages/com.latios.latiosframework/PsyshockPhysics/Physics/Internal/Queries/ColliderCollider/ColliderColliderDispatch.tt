@@ -230,7 +230,7 @@ foreach (var colliderTypeNameA in colliderTypeNames)
 		{
 #>
 				{
-					var result = <#= colliderTypeNameA #><#= colliderTypeNameB #>.UnityContactsBetween(in colliderB.m_<#= colliderNameB #>, in bTransform, in colliderA.m_<#= colliderNameA #>, in aTransform, in distanceResult);
+					var result = <#= colliderTypeNameA #><#= colliderTypeNameB #>.UnityContactsBetween(in colliderB.m_<#= colliderNameB #>, in bTransform, in colliderA.m_<#= colliderNameA #>, in aTransform, distanceResult.ToFlipped());
 					result.FlipInPlace();
 					return result;
 				}

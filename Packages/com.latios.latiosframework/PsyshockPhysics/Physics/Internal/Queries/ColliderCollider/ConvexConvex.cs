@@ -442,7 +442,7 @@ namespace Latios.Psyshock
                             for (int i = 0; i < bStackCount; i++)
                             {
                                 var edgePlane  = edgePlanesA[i];
-                                projectsOnA   &= simd.dot(edgePlane.normals, vertex) + edgePlane.distancesFromOrigin <= 0f;
+                                projectsOnA   &= simd.dot(edgePlane.normals, vertex) < edgePlane.distancesFromOrigin;
                             }
                             if (math.all(projectsOnA))
                             {

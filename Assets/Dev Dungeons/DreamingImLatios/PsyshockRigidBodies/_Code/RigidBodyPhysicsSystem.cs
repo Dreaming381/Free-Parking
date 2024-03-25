@@ -49,7 +49,7 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
                 deltaTime        = Time.DeltaTime,
                 inverseDeltaTime = math.rcp(Time.DeltaTime)
             };
-            state.Dependency = Physics.FindPairs(in rigidBodyLayer, in findBodyBodyProcessor).ScheduleParallelUnsafe();
+            state.Dependency = Physics.FindPairs(in rigidBodyLayer, in findBodyBodyProcessor).ScheduleParallelUnsafe(state.Dependency);
 
             var environmentLayer             = latiosWorld.sceneBlackboardEntity.GetCollectionComponent<EnvironmentCollisionLayer>(true);
             var findBodyEnvironmentProcessor = new FindBodyVsEnvironmentProcessor
@@ -59,7 +59,20 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
                 deltaTime        = Time.DeltaTime,
                 inverseDeltaTime = math.rcp(Time.DeltaTime)
             };
-            state.Dependency = Physics.FindPairs(in rigidBodyLayer, in environmentLayer.layer, in findBodyEnvironmentProcessor).ScheduleParallelUnsafe();
+            state.Dependency = Physics.FindPairs(in rigidBodyLayer, in environmentLayer.layer, in findBodyEnvironmentProcessor).ScheduleParallelUnsafe(state.Dependency);
+
+            int numIterations  = 4;
+            var solveProcessor = new SolveBodiesProcessor
+            {
+                rigidBodyLookup        = GetComponentLookup<RigidBody>(false),
+                invNumSolverIterations = math.rcp(numIterations)
+            };
+            for (int i = 0; i < numIterations; i++)
+            {
+                state.Dependency = Physics.ForEachPair(in pairStream, in solveProcessor).ScheduleParallel(state.Dependency);
+            }
+
+            new IntegrateRigidBodiesJob { deltaTime = Time.DeltaTime }.ScheduleParallel();
         }
 
         [BurstCompile]
@@ -166,7 +179,7 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
                 {
                     var contacts = UnitySim.ContactsBetween(result.colliderA, result.transformA, result.colliderB, result.transformB, in distanceResult);
 
-                    ref var streamData           = ref pairStream.AddPairAndGetRef<ContactStreamData>(result.pairStreamKey, true, true, out var pair);
+                    ref var streamData           = ref pairStream.AddPairAndGetRef<ContactStreamData>(result.pairStreamKey, true, false, out var pair);
                     streamData.contactParameters = pair.Allocate<UnitySim.ContactJacobianContactParameters>(contacts.contactCount, NativeArrayOptions.UninitializedMemory);
                     streamData.contactImpulses   = pair.Allocate<float>(contacts.contactCount, NativeArrayOptions.ClearMemory);
 
@@ -182,7 +195,7 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
                                            contacts.AsSpan(),
                                            rigidBodyA.coefficientOfRestitution,
                                            rigidBodyA.coefficientOfFriction,
-                                           UnitySim.kMaxDepenetrationVelocityDynamicDynamic,
+                                           UnitySim.kMaxDepenetrationVelocityDynamicStatic,
                                            9.81f,
                                            deltaTime,
                                            inverseDeltaTime);
@@ -195,6 +208,67 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
             public UnitySim.ContactJacobianBodyParameters                bodyParameters;
             public StreamSpan<UnitySim.ContactJacobianContactParameters> contactParameters;
             public StreamSpan<float>                                     contactImpulses;
+        }
+
+        struct SolveBodiesProcessor : IForEachPairProcessor
+        {
+            public PhysicsComponentLookup<RigidBody> rigidBodyLookup;
+            public float                             invNumSolverIterations;
+
+            public void Execute(ref PairStream.Pair pair)
+            {
+                ref var streamData = ref pair.GetRef<ContactStreamData>();
+
+                ref var rigidBodyA = ref rigidBodyLookup.GetRW(pair.entityA).ValueRW;
+
+                if (pair.bIsRW)
+                {
+                    ref var rigidBodyB = ref rigidBodyLookup.GetRW(pair.entityB).ValueRW;
+                    UnitySim.SolveJacobian(ref rigidBodyA.velocity,
+                                           in rigidBodyA.mass,
+                                           UnitySim.MotionStabilizationInput.kDefault,
+                                           ref rigidBodyB.velocity,
+                                           in rigidBodyB.mass,
+                                           UnitySim.MotionStabilizationInput.kDefault,
+                                           streamData.contactParameters.AsSpan(),
+                                           streamData.contactImpulses.AsSpan(),
+                                           in streamData.bodyParameters,
+                                           false,
+                                           invNumSolverIterations,
+                                           out _);
+                }
+                else
+                {
+                    UnitySim.Velocity environmentVelocity = default;
+                    UnitySim.SolveJacobian(ref rigidBodyA.velocity,
+                                           in rigidBodyA.mass,
+                                           UnitySim.MotionStabilizationInput.kDefault,
+                                           ref environmentVelocity,
+                                           default,
+                                           UnitySim.MotionStabilizationInput.kDefault,
+                                           streamData.contactParameters.AsSpan(),
+                                           streamData.contactImpulses.AsSpan(),
+                                           in streamData.bodyParameters,
+                                           false,
+                                           invNumSolverIterations,
+                                           out _);
+                }
+            }
+        }
+
+        [BurstCompile]
+        partial struct IntegrateRigidBodiesJob : IJobEntity
+        {
+            public float deltaTime;
+
+            public void Execute(TransformAspect transform, ref RigidBody rigidBody)
+            {
+                var previousInertialPose = rigidBody.inertialPoseWorldTransform;
+                UnitySim.Integrate(ref rigidBody.inertialPoseWorldTransform, ref rigidBody.velocity, rigidBody.linearDamping, rigidBody.angularDamping, deltaTime);
+                transform.worldTransform = UnitySim.ApplyInertialPoseWorldTransformDeltaToWorldTransform(transform.worldTransform,
+                                                                                                         in previousInertialPose,
+                                                                                                         in rigidBody.inertialPoseWorldTransform);
+            }
         }
     }
 

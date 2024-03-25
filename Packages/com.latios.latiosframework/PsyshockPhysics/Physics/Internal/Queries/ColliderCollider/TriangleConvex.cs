@@ -220,9 +220,9 @@ namespace Latios.Psyshock
                         {
                             var aEdgePlaneNormal   = math.cross(rayDisplacement, aLocalContactNormal);
                             var edgePlaneDistance  = math.dot(aEdgePlaneNormal, rayStart);
-                            var projection         = simd.dot(bVertices, aEdgePlaneNormal) + edgePlaneDistance;
-                            positiveSideCounts    += math.select(int4.zero, 1, projection > 0f);
-                            negativeSideCounts    += math.select(int4.zero, 1, projection < 0f);
+                            var projection         = simd.dot(bVertices, aEdgePlaneNormal);
+                            positiveSideCounts    += math.select(int4.zero, 1, projection > edgePlaneDistance);
+                            negativeSideCounts    += math.select(int4.zero, 1, projection < edgePlaneDistance);
                         }
                     }
                     if (projectBOnA)
@@ -530,9 +530,9 @@ namespace Latios.Psyshock
                         {
                             var aEdgePlaneNormal   = math.cross(rayDisplacement, aLocalContactNormal);
                             var edgePlaneDistance  = math.dot(aEdgePlaneNormal, rayStart);
-                            var projection         = simd.dot(bVertices, aEdgePlaneNormal) + edgePlaneDistance;
-                            positiveSideCounts    += math.select(int4.zero, 1, projection > 0f);
-                            negativeSideCounts    += math.select(int4.zero, 1, projection < 0f);
+                            var projection         = simd.dot(bVertices, aEdgePlaneNormal);
+                            positiveSideCounts    += math.select(int4.zero, 1, projection > edgePlaneDistance);
+                            negativeSideCounts    += math.select(int4.zero, 1, projection < edgePlaneDistance);
                         }
                     }
                     if (projectBOnA)

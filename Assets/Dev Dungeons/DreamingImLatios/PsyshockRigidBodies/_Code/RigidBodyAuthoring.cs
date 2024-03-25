@@ -12,6 +12,8 @@ namespace DreamingImLatios.PsyshockRigidBodies.Authoring
 
         [Range(0, 1)] public float coefficientOfFriction    = 0.5f;
         [Range(0, 1)] public float coefficientOfRestitution = 0.5f;
+        [Range(0, 1)] public float linearDamping            = 0.05f;
+        [Range(0, 1)] public float angularDamping           = 0.05f;
     }
 
     public class RigidBodyAuthoringBaker : Baker<RigidBodyAuthoring>
@@ -27,6 +29,8 @@ namespace DreamingImLatios.PsyshockRigidBodies.Authoring
                 },
                 coefficientOfFriction    = authoring.coefficientOfFriction,
                 coefficientOfRestitution = authoring.coefficientOfRestitution,
+                linearDamping            = authoring.linearDamping,
+                angularDamping           = authoring.angularDamping
             });
         }
     }

@@ -265,7 +265,7 @@ namespace Latios.Psyshock
                                          ref Velocity velocityB, in Mass massB, in MotionStabilizationInput motionStabilizationSolverInputB,
                                          ReadOnlySpan<ContactJacobianContactParameters> perContactParameters, Span<float> perContactImpulses,
                                          in ContactJacobianBodyParameters bodyParameters,
-                                         bool enableFrictionVelocitiesHeuristic, float InvNumSolverIterations,
+                                         bool enableFrictionVelocitiesHeuristic, float invNumSolverIterations,
                                          out ContactJacobianImpulses outputImpulses)
         {
             // Copy velocity data
@@ -361,7 +361,7 @@ namespace Latios.Psyshock
                 }
 
                 // Clip TODO.ma calculate some contact radius and use it to influence balance between linear and angular friction
-                float maxImpulse              = sumImpulses * bodyParameters.coefficientOfFriction * InvNumSolverIterations;
+                float maxImpulse              = sumImpulses * bodyParameters.coefficientOfFriction * invNumSolverIterations;
                 float frictionImpulseSquared  = math.lengthsq(imp);
                 imp                          *= math.min(1.0f, maxImpulse * math.rsqrt(frictionImpulseSquared));
 
@@ -469,7 +469,7 @@ namespace Latios.Psyshock
         }
 
         // Inverts a symmetric 3x3 matrix with diag = (0, 0), (1, 1), (2, 2), offDiag = (0, 1), (0, 2), (1, 2) = (1, 0), (2, 0), (2, 1)
-        public static bool InvertSymmetricMatrix(float3 diag, float3 offDiag, out float3 invDiag, out float3 invOffDiag)
+        static bool InvertSymmetricMatrix(float3 diag, float3 offDiag, out float3 invDiag, out float3 invOffDiag)
         {
             float3 offDiagSq      = offDiag.zyx * offDiag.zyx;
             float  determinant    = (mathex.cproduct(diag) + 2.0f * mathex.cproduct(offDiag) - math.csum(offDiagSq * diag));

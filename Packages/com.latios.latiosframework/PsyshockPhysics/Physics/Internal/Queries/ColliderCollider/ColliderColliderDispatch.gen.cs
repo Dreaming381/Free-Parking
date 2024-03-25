@@ -585,37 +585,37 @@ namespace Latios.Psyshock
                     return SphereSphere.UnityContactsBetween(in colliderA.m_sphere, in aTransform, in colliderB.m_sphere, in bTransform, in distanceResult);
                 case (ColliderType.Sphere, ColliderType.Capsule):
                 {
-                    var result = SphereCapsule.UnityContactsBetween(in colliderB.m_capsule, in bTransform, in colliderA.m_sphere, in aTransform, in distanceResult);
+                    var result = SphereCapsule.UnityContactsBetween(in colliderB.m_capsule, in bTransform, in colliderA.m_sphere, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Sphere, ColliderType.Box):
                 {
-                    var result = SphereBox.UnityContactsBetween(in colliderB.m_box, in bTransform, in colliderA.m_sphere, in aTransform, in distanceResult);
+                    var result = SphereBox.UnityContactsBetween(in colliderB.m_box, in bTransform, in colliderA.m_sphere, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Sphere, ColliderType.Triangle):
                 {
-                    var result = SphereTriangle.UnityContactsBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_sphere, in aTransform, in distanceResult);
+                    var result = SphereTriangle.UnityContactsBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_sphere, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Sphere, ColliderType.Convex):
                 {
-                    var result = SphereConvex.UnityContactsBetween(in colliderB.m_convex, in bTransform, in colliderA.m_sphere, in aTransform, in distanceResult);
+                    var result = SphereConvex.UnityContactsBetween(in colliderB.m_convex, in bTransform, in colliderA.m_sphere, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Sphere, ColliderType.TriMesh):
                 {
-                    var result = SphereTriMesh.UnityContactsBetween(in colliderB.m_triMesh, in bTransform, in colliderA.m_sphere, in aTransform, in distanceResult);
+                    var result = SphereTriMesh.UnityContactsBetween(in colliderB.m_triMesh, in bTransform, in colliderA.m_sphere, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Sphere, ColliderType.Compound):
                 {
-                    var result = SphereCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_sphere, in aTransform, in distanceResult);
+                    var result = SphereCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_sphere, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
@@ -625,31 +625,31 @@ namespace Latios.Psyshock
                     return CapsuleCapsule.UnityContactsBetween(in colliderA.m_capsule, in aTransform, in colliderB.m_capsule, in bTransform, in distanceResult);
                 case (ColliderType.Capsule, ColliderType.Box):
                 {
-                    var result = CapsuleBox.UnityContactsBetween(in colliderB.m_box, in bTransform, in colliderA.m_capsule, in aTransform, in distanceResult);
+                    var result = CapsuleBox.UnityContactsBetween(in colliderB.m_box, in bTransform, in colliderA.m_capsule, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Capsule, ColliderType.Triangle):
                 {
-                    var result = CapsuleTriangle.UnityContactsBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_capsule, in aTransform, in distanceResult);
+                    var result = CapsuleTriangle.UnityContactsBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_capsule, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Capsule, ColliderType.Convex):
                 {
-                    var result = CapsuleConvex.UnityContactsBetween(in colliderB.m_convex, in bTransform, in colliderA.m_capsule, in aTransform, in distanceResult);
+                    var result = CapsuleConvex.UnityContactsBetween(in colliderB.m_convex, in bTransform, in colliderA.m_capsule, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Capsule, ColliderType.TriMesh):
                 {
-                    var result = CapsuleTriMesh.UnityContactsBetween(in colliderB.m_triMesh, in bTransform, in colliderA.m_capsule, in aTransform, in distanceResult);
+                    var result = CapsuleTriMesh.UnityContactsBetween(in colliderB.m_triMesh, in bTransform, in colliderA.m_capsule, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Capsule, ColliderType.Compound):
                 {
-                    var result = CapsuleCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_capsule, in aTransform, in distanceResult);
+                    var result = CapsuleCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_capsule, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
@@ -661,25 +661,25 @@ namespace Latios.Psyshock
                     return BoxBox.UnityContactsBetween(in colliderA.m_box, in aTransform, in colliderB.m_box, in bTransform, in distanceResult);
                 case (ColliderType.Box, ColliderType.Triangle):
                 {
-                    var result = BoxTriangle.UnityContactsBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_box, in aTransform, in distanceResult);
+                    var result = BoxTriangle.UnityContactsBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_box, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Box, ColliderType.Convex):
                 {
-                    var result = BoxConvex.UnityContactsBetween(in colliderB.m_convex, in bTransform, in colliderA.m_box, in aTransform, in distanceResult);
+                    var result = BoxConvex.UnityContactsBetween(in colliderB.m_convex, in bTransform, in colliderA.m_box, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Box, ColliderType.TriMesh):
                 {
-                    var result = BoxTriMesh.UnityContactsBetween(in colliderB.m_triMesh, in bTransform, in colliderA.m_box, in aTransform, in distanceResult);
+                    var result = BoxTriMesh.UnityContactsBetween(in colliderB.m_triMesh, in bTransform, in colliderA.m_box, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Box, ColliderType.Compound):
                 {
-                    var result = BoxCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_box, in aTransform, in distanceResult);
+                    var result = BoxCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_box, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
@@ -693,19 +693,19 @@ namespace Latios.Psyshock
                     return TriangleTriangle.UnityContactsBetween(in colliderA.m_triangle, in aTransform, in colliderB.m_triangle, in bTransform, in distanceResult);
                 case (ColliderType.Triangle, ColliderType.Convex):
                 {
-                    var result = TriangleConvex.UnityContactsBetween(in colliderB.m_convex, in bTransform, in colliderA.m_triangle, in aTransform, in distanceResult);
+                    var result = TriangleConvex.UnityContactsBetween(in colliderB.m_convex, in bTransform, in colliderA.m_triangle, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Triangle, ColliderType.TriMesh):
                 {
-                    var result = TriangleTriMesh.UnityContactsBetween(in colliderB.m_triMesh, in bTransform, in colliderA.m_triangle, in aTransform, in distanceResult);
+                    var result = TriangleTriMesh.UnityContactsBetween(in colliderB.m_triMesh, in bTransform, in colliderA.m_triangle, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Triangle, ColliderType.Compound):
                 {
-                    var result = TriangleCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_triangle, in aTransform, in distanceResult);
+                    var result = TriangleCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_triangle, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
@@ -721,13 +721,13 @@ namespace Latios.Psyshock
                     return ConvexConvex.UnityContactsBetween(in colliderA.m_convex, in aTransform, in colliderB.m_convex, in bTransform, in distanceResult);
                 case (ColliderType.Convex, ColliderType.TriMesh):
                 {
-                    var result = ConvexTriMesh.UnityContactsBetween(in colliderB.m_triMesh, in bTransform, in colliderA.m_convex, in aTransform, in distanceResult);
+                    var result = ConvexTriMesh.UnityContactsBetween(in colliderB.m_triMesh, in bTransform, in colliderA.m_convex, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
                 case (ColliderType.Convex, ColliderType.Compound):
                 {
-                    var result = ConvexCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_convex, in aTransform, in distanceResult);
+                    var result = ConvexCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_convex, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }
@@ -745,7 +745,7 @@ namespace Latios.Psyshock
                     return TriMeshTriMesh.UnityContactsBetween(in colliderA.m_triMesh, in aTransform, in colliderB.m_triMesh, in bTransform, in distanceResult);
                 case (ColliderType.TriMesh, ColliderType.Compound):
                 {
-                    var result = TriMeshCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_triMesh, in aTransform, in distanceResult);
+                    var result = TriMeshCompound.UnityContactsBetween(in colliderB.m_compound, in bTransform, in colliderA.m_triMesh, in aTransform, distanceResult.ToFlipped());
                     result.FlipInPlace();
                     return result;
                 }

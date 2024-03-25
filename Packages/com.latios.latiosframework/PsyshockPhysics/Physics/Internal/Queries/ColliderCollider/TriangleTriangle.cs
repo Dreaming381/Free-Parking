@@ -202,7 +202,7 @@ namespace Latios.Psyshock
                     for (int i = 0; i < 3; i++)
                     {
                         var vertex = bVertices[i];
-                        if (math.all(simd.dot(aEdgePlaneNormals, vertex) + aEdgePlaneDistances <= 0f))
+                        if (math.all(simd.dot(aEdgePlaneNormals, vertex) < aEdgePlaneDistances))
                         {
                             var distance = mathex.SignedDistance(aPlane, vertex) * distanceScalarAlongContactNormalA;
                             result.Add(math.transform(aTransform, vertex), distance);

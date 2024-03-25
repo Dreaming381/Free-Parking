@@ -13,6 +13,8 @@ namespace DreamingImLatios.PsyshockRigidBodies
         public UnitySim.Mass            mass;
         public float                    coefficientOfFriction;
         public float                    coefficientOfRestitution;
+        public float                    linearDamping;
+        public float                    angularDamping;
     }
 }
 
