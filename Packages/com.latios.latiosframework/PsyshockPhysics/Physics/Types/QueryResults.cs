@@ -192,6 +192,8 @@ namespace Latios.Psyshock
     {
         UnsafeList<ColliderDistanceResult> results;
 
+        public void Begin(in DistanceBetweenAllContext context) => results.Length = 0;
+
         public void Execute(in ColliderDistanceResult result)
         {
             if (!results.IsCreated)

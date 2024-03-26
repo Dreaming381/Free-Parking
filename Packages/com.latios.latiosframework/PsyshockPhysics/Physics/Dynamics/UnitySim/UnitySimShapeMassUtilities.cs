@@ -7,11 +7,23 @@ namespace Latios.Psyshock
 {
     public static partial class UnitySim
     {
+        /// <summary>
+        /// A local-space inertia tensor diagonal matrix and orientation.
+        /// The diagonal should have any stretch already applied to the collider
+        /// it was derived from. The diagonal is used to compute the inverse inertia
+        /// in a Mass instance while the orientation is transformed into the
+        /// inertialPoseWorldTransform. The inertia tensor diagonal is normalized to
+        /// be independent of the object's mass.
+        /// </summary>
         public struct LocalInertiaTensorDiagonal
         {
             public quaternion tensorOrientation;
             public float3     inertiaDiagonal;
 
+            /// <summary>
+            /// Converts the inertia diagonal and orientation back into a singular matrix.
+            /// This can be useful when combining inertia tensors.
+            /// </summary>
             public float3x3 ToMatrix()
             {
                 var r  = new float3x3(tensorOrientation);
@@ -20,6 +32,17 @@ namespace Latios.Psyshock
             }
         }
 
+        /// <summary>
+        /// Computes the Mass properties and inertialPoseWorldTransform from the results
+        /// of calls to LocalCenterOfMassFrom() and LocalInertiaTensorFrom() transformed
+        /// by the worldTransform.
+        /// </summary>
+        /// <param name="worldTransform">The world transform of the body entity</param>
+        /// <param name="localInertiaTensorDiagonal">The local inertia tensor diagonal, already stretched by the worldTransform stretch value</param>
+        /// <param name="localCenterOfMassUnscaled">The center of mass relative to the body entity in the body entity's local space</param>
+        /// <param name="inverseMass">The reciprocal of the mass, where 0 makes the object immovable</param>
+        /// <param name="massOut">The Mass containing the inverse mass and inverse inertia</param>
+        /// <param name="inertialPoseWorldTransform">A world transform centered around the body's center of mass and oriented relative to the inertia tensor diagonal</param>
         public static void ConvertToWorldMassInertia(in TransformQvvs worldTransform,
                                                      in LocalInertiaTensorDiagonal localInertiaTensorDiagonal,
                                                      float3 localCenterOfMassUnscaled,
@@ -36,6 +59,9 @@ namespace Latios.Psyshock
             };
         }
 
+        /// <summary>
+        /// Gets the default center of mass computed for the type of collider, in the collider's local space
+        /// </summary>
         public static float3 LocalCenterOfMassFrom(in Collider collider)
         {
             switch (collider.type)
@@ -58,6 +84,14 @@ namespace Latios.Psyshock
             }
         }
 
+        /// <summary>
+        /// Gets the default local center-of-mass-relative-space inertia tensor diagonal from the collider,
+        /// after stretching the collider. This method can be somewhat expensive, especially for blob-based
+        /// collider types when scaled, though this cost is independent of the blob size.
+        /// </summary>
+        /// <param name="collider">The collider to compute the local inertia tensor from</param>
+        /// <param name="stretch">How much the collider should be stretched by. Use 1f for no stretching.</param>
+        /// <returns>A local space inertia tensor matrix diagonal and orientation</returns>
         public static LocalInertiaTensorDiagonal LocalInertiaTensorFrom(in Collider collider, float3 stretch)
         {
             if (stretch.Equals(new float3(1f)))
@@ -66,6 +100,9 @@ namespace Latios.Psyshock
             return LocalInertiaTensorFrom(in scaled);
         }
 
+        /// <summary>
+        /// Gets the default angular expansion factor of the collider, used in MotionExpansion
+        /// </summary>
         public static float AngularExpansionFactorFrom(in Collider collider)
         {
             switch (collider.type)
