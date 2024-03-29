@@ -11,7 +11,7 @@ PrefabInstance:
     - target: {fileID: 8110235018558710142, guid: 8525a8f49dba5fc4eb7371c187ac5f98,
         type: 3}
       propertyPath: m_Name
-      value: ImpAnimation
+      value: ImpIK
       objectReference: {fileID: 0}
     - target: {fileID: 8918965006030109636, guid: 8525a8f49dba5fc4eb7371c187ac5f98,
         type: 3}

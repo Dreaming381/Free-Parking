@@ -9,7 +9,7 @@ namespace CharacterAdventures.Authoring
     public class ImpMovementAuthoring : MonoBehaviour
     {
         [Tooltip("Maximum speed the character can move.")]
-        public float maxSpeed     = 5f;
+        public float maxSpeed = 5f;
         [Tooltip("Acceleration rate when increasing speed over ground.")]
         public float acceleration = 25f;
         [Tooltip("Acceleration rate when slowing to a halt.")]
