@@ -27,6 +27,17 @@ Dictionary<string, string> colliderLowerNames = new Dictionary<string, string>()
 	{"Compound" , "compound" }
 };
 
+Dictionary<string, string> colliderPropertyNames = new Dictionary<string, string>()
+{
+	{"Sphere"   , "sphere" },
+	{"Capsule"  , "capsule" },
+	{"Box"      , "box" },
+	{"Triangle" , "triangle" },
+	{"Convex"   , "convex" },
+	{"TriMesh"  , "triMesh()" },
+	{"Compound" , "compound()" }
+};
+
 int firstComposite = 5;
 #>
 using Unity.Burst;
@@ -50,11 +61,11 @@ namespace Latios.Psyshock
 int i = 0;
 foreach (var colliderTypeNameA in colliderTypeNames)
 {
-	var colliderNameA = colliderLowerNames[colliderTypeNameA];
+	var colliderNameA = colliderPropertyNames[colliderTypeNameA];
 	int j = 0;
 	foreach (var colliderTypeNameB in colliderTypeNames)
 	{
-		var colliderNameB = colliderLowerNames[colliderTypeNameB];
+		var colliderNameB = colliderPropertyNames[colliderTypeNameB];
 #>
 				case (ColliderType.<#= colliderTypeNameA #>, ColliderType.<#= colliderTypeNameB #>):
 <#
@@ -111,11 +122,11 @@ foreach (var colliderTypeNameA in colliderTypeNames)
 i = 0;
 foreach (var colliderTypeNameA in colliderTypeNames)
 {
-	var colliderNameA = colliderLowerNames[colliderTypeNameA];
+	var colliderNameA = colliderPropertyNames[colliderTypeNameA];
 	int j = 0;
 	foreach (var colliderTypeNameB in colliderTypeNames)
 	{
-		var colliderNameB = colliderLowerNames[colliderTypeNameB];
+		var colliderNameB = colliderPropertyNames[colliderTypeNameB];
 #>
 				case (ColliderType.<#= colliderTypeNameA #>, ColliderType.<#= colliderTypeNameB #>):
 <#
@@ -177,11 +188,11 @@ foreach (var colliderTypeNameA in colliderTypeNames)
 i = 0;
 foreach (var colliderTypeNameA in colliderTypeNames)
 {
-	var colliderNameA = colliderLowerNames[colliderTypeNameA];
+	var colliderNameA = colliderPropertyNames[colliderTypeNameA];
 	int j = 0;
 	foreach (var colliderTypeNameB in colliderTypeNames)
 	{
-		var colliderNameB = colliderLowerNames[colliderTypeNameB];
+		var colliderNameB = colliderPropertyNames[colliderTypeNameB];
 #>
 				case (ColliderType.<#= colliderTypeNameA #>, ColliderType.<#= colliderTypeNameB #>):
 <#
@@ -220,11 +231,11 @@ foreach (var colliderTypeNameA in colliderTypeNames)
 i = 0;
 foreach (var colliderTypeNameA in colliderTypeNames)
 {
-	var colliderNameA = colliderLowerNames[colliderTypeNameA];
+	var colliderNameA = colliderPropertyNames[colliderTypeNameA];
 	int j = 0;
 	foreach (var colliderTypeNameB in colliderTypeNames)
 	{
-		var colliderNameB = colliderLowerNames[colliderTypeNameB];
+		var colliderNameB = colliderPropertyNames[colliderTypeNameB];
 #>
 				case (ColliderType.<#= colliderTypeNameA #>, ColliderType.<#= colliderTypeNameB #>):
 <#

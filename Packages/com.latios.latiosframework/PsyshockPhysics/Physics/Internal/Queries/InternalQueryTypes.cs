@@ -53,8 +53,8 @@ namespace Latios.Psyshock
         {
             switch(collider.type)
             {
-                case ColliderType.TriMesh: return collider.m_triMesh.triMeshColliderBlob.Value.triangles.Length;
-                case ColliderType.Compound: return collider.m_compound.compoundColliderBlob.Value.blobColliders.Length;
+                case ColliderType.TriMesh: return collider.m_triMesh().triMeshColliderBlob.Value.triangles.Length;
+                case ColliderType.Compound: return collider.m_compound().compoundColliderBlob.Value.blobColliders.Length;
                 default: return 1;
             }
         }

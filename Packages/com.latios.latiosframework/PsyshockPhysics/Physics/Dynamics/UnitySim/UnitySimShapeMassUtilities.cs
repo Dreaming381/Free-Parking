@@ -77,9 +77,9 @@ namespace Latios.Psyshock
                 case ColliderType.Convex:
                     return collider.m_convex.scale * collider.m_convex.convexColliderBlob.Value.centerOfMass;
                 case ColliderType.TriMesh:
-                    return (collider.m_triMesh.triMeshColliderBlob.Value.localAabb.min + collider.m_triMesh.triMeshColliderBlob.Value.localAabb.max) / 2f;
+                    return (collider.m_triMesh().triMeshColliderBlob.Value.localAabb.min + collider.m_triMesh().triMeshColliderBlob.Value.localAabb.max) / 2f;
                 case ColliderType.Compound:
-                    return collider.m_compound.scale * collider.m_compound.compoundColliderBlob.Value.centerOfMass;
+                    return collider.m_compound().scale * collider.m_compound().compoundColliderBlob.Value.centerOfMass;
                 default: return default;
             }
         }
@@ -133,18 +133,18 @@ namespace Latios.Psyshock
                 }
                 case ColliderType.TriMesh:
                 {
-                    var aabb  = collider.m_triMesh.triMeshColliderBlob.Value.localAabb;
-                    aabb.min *= collider.m_triMesh.scale;
-                    aabb.max *= collider.m_triMesh.scale;
+                    var aabb  = collider.m_triMesh().triMeshColliderBlob.Value.localAabb;
+                    aabb.min *= collider.m_triMesh().scale;
+                    aabb.max *= collider.m_triMesh().scale;
                     Physics.GetCenterExtents(aabb, out _, out var extents);
                     return math.length(extents);
                 }
                 case ColliderType.Compound:
                 {
-                    ref var blob      = ref collider.m_compound.compoundColliderBlob.Value;
+                    ref var blob      = ref collider.m_compound().compoundColliderBlob.Value;
                     var     aabb      = blob.localAabb;
-                    aabb.min         *= collider.m_compound.scale;
-                    aabb.max         *= collider.m_compound.scale;
+                    aabb.min         *= collider.m_compound().scale;
+                    aabb.max         *= collider.m_compound().scale;
                     var centerOfMass  = blob.centerOfMass;
                     Physics.GetCenterExtents(aabb, out var aabbCenter, out var aabbExtents);
                     var delta        = centerOfMass - aabbCenter;
@@ -246,9 +246,9 @@ namespace Latios.Psyshock
                 }
                 case ColliderType.TriMesh:
                 {
-                    var aabb  = collider.m_triMesh.triMeshColliderBlob.Value.localAabb;
-                    aabb.min *= collider.m_triMesh.scale;
-                    aabb.max *= collider.m_triMesh.scale;
+                    var aabb  = collider.m_triMesh().triMeshColliderBlob.Value.localAabb;
+                    aabb.min *= collider.m_triMesh().scale;
+                    aabb.max *= collider.m_triMesh().scale;
                     Physics.GetCenterExtents(aabb, out _, out var extents);
                     var    halfSq    = extents * extents;
                     float3 tensorNum = new float3(halfSq.y + halfSq.z, halfSq.x + halfSq.z, halfSq.x + halfSq.y);
@@ -260,8 +260,8 @@ namespace Latios.Psyshock
                 }
                 case ColliderType.Compound:
                 {
-                    ref var blob  = ref collider.m_compound.compoundColliderBlob.Value;
-                    var     scale = collider.m_compound.scale * collider.m_compound.stretch;
+                    ref var blob  = ref collider.m_compound().compoundColliderBlob.Value;
+                    var     scale = collider.m_compound().scale * collider.m_compound().stretch;
                     if (scale.Equals(new float3(1f, 1f, 1f)))
                     {
                         // Fast path

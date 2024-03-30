@@ -42,6 +42,26 @@ namespace DreamingImLatios.PsyshockPairDebugging.Systems
                 var colliderB  = GetComponent<Collider>(pair.colliderB);
                 var transformB = GetComponent<WorldTransform>(pair.colliderB).worldTransform;
 
+                var aabbA = Physics.AabbFrom(colliderA, transformA);
+                PhysicsDebug.DrawAabb(aabbA, UnityEngine.Color.red);
+                PhysicsDebug.DrawCollider(colliderA, transformA, UnityEngine.Color.green);
+                //if (colliderA.type == ColliderType.Compound)
+                //{
+                //    CompoundCollider compound = colliderA;
+                //    if (compound.compoundColliderBlob.Value.colliders[1].type == ColliderType.Sphere)
+                //    {
+                //        compound                      = Physics.ScaleStretchCollider(compound, transformA.scale, transformA.stretch);
+                //        SphereCollider localSphere    = compound.compoundColliderBlob.Value.colliders[1];
+                //        var            localTransform = compound.compoundColliderBlob.Value.transforms[1];
+                //        compound.GetScaledStretchedSubCollider(1, out var scaledCollider, out var scaledTransform);
+                //        SphereCollider scaledSphere   = scaledCollider;
+                //        var            worldTransform = math.mul(new RigidTransform(transformA.rotation, transformA.position), scaledTransform);
+                //        var            worldCenter    = math.transform(worldTransform, scaledSphere.center);
+                //        UnityEngine.Debug.Log(
+                //            $"localSphere: {localSphere.center}, scaledSphere: {scaledSphere.center}, worldSphere: {worldCenter}, localTransform: {localTransform.rot}, {localTransform.pos}, scaledTransform: {scaledTransform.rot}, {scaledTransform.pos}, worldTransform: {worldTransform.rot}, {worldTransform.pos}");
+                //    }
+                //}
+
                 allDistanceResultsCache.Clear();
                 allContactsResultsCache.Clear();
                 if (playbacker != null)
