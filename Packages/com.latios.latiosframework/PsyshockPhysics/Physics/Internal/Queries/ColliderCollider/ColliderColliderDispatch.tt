@@ -123,9 +123,11 @@ foreach (var colliderTypeNameA in colliderTypeNames)
 		{
 #>
 				{
-					<#= colliderTypeNameA #><#= colliderTypeNameB #>.DistanceBetween(in colliderB.m_<#= colliderNameB #>, in bTransform, in colliderA.m_<#= colliderNameA #>, in aTransform, maxDistance, out result);
-					result.FlipInPlace();
-					processor.Execute(in result);
+					if (<#= colliderTypeNameA #><#= colliderTypeNameB #>.DistanceBetween(in colliderB.m_<#= colliderNameB #>, in bTransform, in colliderA.m_<#= colliderNameA #>, in aTransform, maxDistance, out result))
+					{
+					    result.FlipInPlace();
+					    processor.Execute(in result);
+					}
 					break;
 				}
 <#
@@ -134,8 +136,8 @@ foreach (var colliderTypeNameA in colliderTypeNames)
 		{
 #>
 				{
-					<#= colliderTypeNameB #><#= colliderTypeNameA #>.DistanceBetween(in colliderA.m_<#= colliderNameA #>, in aTransform, in colliderB.m_<#= colliderNameB #>, in bTransform, maxDistance, out result);
-					processor.Execute(in result);
+					if (<#= colliderTypeNameB #><#= colliderTypeNameA #>.DistanceBetween(in colliderA.m_<#= colliderNameA #>, in aTransform, in colliderB.m_<#= colliderNameB #>, in bTransform, maxDistance, out result))
+					    processor.Execute(in result);
 					break;
 				}
 <#

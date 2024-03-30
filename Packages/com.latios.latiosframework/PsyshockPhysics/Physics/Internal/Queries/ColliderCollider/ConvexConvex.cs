@@ -16,7 +16,7 @@ namespace Latios.Psyshock
         {
             var bInATransform = math.mul(math.inverse(aTransform), bTransform);
             var gjkResult     = GjkEpa.DoGjkEpa(convexA, convexB, in bInATransform);
-            var epsilon       = gjkResult.normalizedOriginToClosestCsoPoint * math.select(1e-4f, -1e-4f, gjkResult.distance < 0f);
+            var epsilon       = gjkResult.normalizedOriginToClosestCsoPoint * math.select(-1e-4f, 1e-4f, gjkResult.distance < 0f);
             SphereConvex.DistanceBetween(in convexA,
                                          in RigidTransform.identity,
                                          new SphereCollider(gjkResult.hitpointOnAInASpace + epsilon, 0f),
@@ -384,6 +384,7 @@ namespace Latios.Psyshock
 
                 bool                      needsClosestPoint = true;
                 UnityContactManifoldExtra result            = default;
+                result.baseStorage.contactNormal            = contactNormal;
                 if (math.abs(math.dot(facePlaneB.normal, aLocalContactNormal)) > 0.05f)
                 {
                     var distanceScalarAlongContactNormalB = math.rcp(math.dot(aLocalContactNormal, facePlaneB.normal));

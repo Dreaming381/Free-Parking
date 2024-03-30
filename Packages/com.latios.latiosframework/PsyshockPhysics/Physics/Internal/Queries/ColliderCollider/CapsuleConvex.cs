@@ -15,7 +15,7 @@ namespace Latios.Psyshock
         {
             var bInATransform = math.mul(math.inverse(convexTransform), capsuleTransform);
             var gjkResult     = GjkEpa.DoGjkEpa(convex, capsule, in bInATransform);
-            var epsilon       = gjkResult.normalizedOriginToClosestCsoPoint * math.select(1e-4f, -1e-4f, gjkResult.distance < 0f);
+            var epsilon       = gjkResult.normalizedOriginToClosestCsoPoint * math.select(-1e-4f, 1e-4f, gjkResult.distance < 0f);
             SphereConvex.DistanceBetween(in convex,
                                          in RigidTransform.identity,
                                          new SphereCollider(gjkResult.hitpointOnAInASpace + epsilon, 0f),

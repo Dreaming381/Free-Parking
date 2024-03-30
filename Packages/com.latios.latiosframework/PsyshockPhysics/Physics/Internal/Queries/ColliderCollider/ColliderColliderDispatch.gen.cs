@@ -221,42 +221,49 @@ namespace Latios.Psyshock
                                                         ref T processor) where T : unmanaged, IDistanceBetweenAllProcessor
         {
             var                    flipper = new DistanceAllResultFlipper<T> { processor = (T*)UnsafeUtility.AddressOf(ref processor) };
-            ColliderDistanceResult result                                                = default;
-
+            ColliderDistanceResult result;
             switch ((colliderA.type, colliderB.type))
             {
                 case (ColliderType.Sphere, ColliderType.Sphere):
                 {
-                    SphereSphere.DistanceBetween(in colliderA.m_sphere, in aTransform, in colliderB.m_sphere, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (SphereSphere.DistanceBetween(in colliderA.m_sphere, in aTransform, in colliderB.m_sphere, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Sphere, ColliderType.Capsule):
                 {
-                    SphereCapsule.DistanceBetween(in colliderB.m_capsule, in bTransform, in colliderA.m_sphere, in aTransform, maxDistance, out result);
-                    result.FlipInPlace();
-                    processor.Execute(in result);
+                    if (SphereCapsule.DistanceBetween(in colliderB.m_capsule, in bTransform, in colliderA.m_sphere, in aTransform, maxDistance, out result))
+                    {
+                        result.FlipInPlace();
+                        processor.Execute(in result);
+                    }
                     break;
                 }
                 case (ColliderType.Sphere, ColliderType.Box):
                 {
-                    SphereBox.DistanceBetween(in colliderB.m_box, in bTransform, in colliderA.m_sphere, in aTransform, maxDistance, out result);
-                    result.FlipInPlace();
-                    processor.Execute(in result);
+                    if (SphereBox.DistanceBetween(in colliderB.m_box, in bTransform, in colliderA.m_sphere, in aTransform, maxDistance, out result))
+                    {
+                        result.FlipInPlace();
+                        processor.Execute(in result);
+                    }
                     break;
                 }
                 case (ColliderType.Sphere, ColliderType.Triangle):
                 {
-                    SphereTriangle.DistanceBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_sphere, in aTransform, maxDistance, out result);
-                    result.FlipInPlace();
-                    processor.Execute(in result);
+                    if (SphereTriangle.DistanceBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_sphere, in aTransform, maxDistance, out result))
+                    {
+                        result.FlipInPlace();
+                        processor.Execute(in result);
+                    }
                     break;
                 }
                 case (ColliderType.Sphere, ColliderType.Convex):
                 {
-                    SphereConvex.DistanceBetween(in colliderB.m_convex, in bTransform, in colliderA.m_sphere, in aTransform, maxDistance, out result);
-                    result.FlipInPlace();
-                    processor.Execute(in result);
+                    if (SphereConvex.DistanceBetween(in colliderB.m_convex, in bTransform, in colliderA.m_sphere, in aTransform, maxDistance, out result))
+                    {
+                        result.FlipInPlace();
+                        processor.Execute(in result);
+                    }
                     break;
                 }
                 case (ColliderType.Sphere, ColliderType.TriMesh):
@@ -267,35 +274,41 @@ namespace Latios.Psyshock
                     break;
                 case (ColliderType.Capsule, ColliderType.Sphere):
                 {
-                    SphereCapsule.DistanceBetween(in colliderA.m_capsule, in aTransform, in colliderB.m_sphere, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (SphereCapsule.DistanceBetween(in colliderA.m_capsule, in aTransform, in colliderB.m_sphere, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Capsule, ColliderType.Capsule):
                 {
-                    CapsuleCapsule.DistanceBetween(in colliderA.m_capsule, in aTransform, in colliderB.m_capsule, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (CapsuleCapsule.DistanceBetween(in colliderA.m_capsule, in aTransform, in colliderB.m_capsule, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Capsule, ColliderType.Box):
                 {
-                    CapsuleBox.DistanceBetween(in colliderB.m_box, in bTransform, in colliderA.m_capsule, in aTransform, maxDistance, out result);
-                    result.FlipInPlace();
-                    processor.Execute(in result);
+                    if (CapsuleBox.DistanceBetween(in colliderB.m_box, in bTransform, in colliderA.m_capsule, in aTransform, maxDistance, out result))
+                    {
+                        result.FlipInPlace();
+                        processor.Execute(in result);
+                    }
                     break;
                 }
                 case (ColliderType.Capsule, ColliderType.Triangle):
                 {
-                    CapsuleTriangle.DistanceBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_capsule, in aTransform, maxDistance, out result);
-                    result.FlipInPlace();
-                    processor.Execute(in result);
+                    if (CapsuleTriangle.DistanceBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_capsule, in aTransform, maxDistance, out result))
+                    {
+                        result.FlipInPlace();
+                        processor.Execute(in result);
+                    }
                     break;
                 }
                 case (ColliderType.Capsule, ColliderType.Convex):
                 {
-                    CapsuleConvex.DistanceBetween(in colliderB.m_convex, in bTransform, in colliderA.m_capsule, in aTransform, maxDistance, out result);
-                    result.FlipInPlace();
-                    processor.Execute(in result);
+                    if (CapsuleConvex.DistanceBetween(in colliderB.m_convex, in bTransform, in colliderA.m_capsule, in aTransform, maxDistance, out result))
+                    {
+                        result.FlipInPlace();
+                        processor.Execute(in result);
+                    }
                     break;
                 }
                 case (ColliderType.Capsule, ColliderType.TriMesh):
@@ -306,34 +319,38 @@ namespace Latios.Psyshock
                     break;
                 case (ColliderType.Box, ColliderType.Sphere):
                 {
-                    SphereBox.DistanceBetween(in colliderA.m_box, in aTransform, in colliderB.m_sphere, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (SphereBox.DistanceBetween(in colliderA.m_box, in aTransform, in colliderB.m_sphere, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Box, ColliderType.Capsule):
                 {
-                    CapsuleBox.DistanceBetween(in colliderA.m_box, in aTransform, in colliderB.m_capsule, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (CapsuleBox.DistanceBetween(in colliderA.m_box, in aTransform, in colliderB.m_capsule, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Box, ColliderType.Box):
                 {
-                    BoxBox.DistanceBetween(in colliderA.m_box, in aTransform, in colliderB.m_box, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (BoxBox.DistanceBetween(in colliderA.m_box, in aTransform, in colliderB.m_box, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Box, ColliderType.Triangle):
                 {
-                    BoxTriangle.DistanceBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_box, in aTransform, maxDistance, out result);
-                    result.FlipInPlace();
-                    processor.Execute(in result);
+                    if (BoxTriangle.DistanceBetween(in colliderB.m_triangle, in bTransform, in colliderA.m_box, in aTransform, maxDistance, out result))
+                    {
+                        result.FlipInPlace();
+                        processor.Execute(in result);
+                    }
                     break;
                 }
                 case (ColliderType.Box, ColliderType.Convex):
                 {
-                    BoxConvex.DistanceBetween(in colliderB.m_convex, in bTransform, in colliderA.m_box, in aTransform, maxDistance, out result);
-                    result.FlipInPlace();
-                    processor.Execute(in result);
+                    if (BoxConvex.DistanceBetween(in colliderB.m_convex, in bTransform, in colliderA.m_box, in aTransform, maxDistance, out result))
+                    {
+                        result.FlipInPlace();
+                        processor.Execute(in result);
+                    }
                     break;
                 }
                 case (ColliderType.Box, ColliderType.TriMesh):
@@ -344,33 +361,35 @@ namespace Latios.Psyshock
                     break;
                 case (ColliderType.Triangle, ColliderType.Sphere):
                 {
-                    SphereTriangle.DistanceBetween(in colliderA.m_triangle, in aTransform, in colliderB.m_sphere, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (SphereTriangle.DistanceBetween(in colliderA.m_triangle, in aTransform, in colliderB.m_sphere, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Triangle, ColliderType.Capsule):
                 {
-                    CapsuleTriangle.DistanceBetween(in colliderA.m_triangle, in aTransform, in colliderB.m_capsule, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (CapsuleTriangle.DistanceBetween(in colliderA.m_triangle, in aTransform, in colliderB.m_capsule, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Triangle, ColliderType.Box):
                 {
-                    BoxTriangle.DistanceBetween(in colliderA.m_triangle, in aTransform, in colliderB.m_box, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (BoxTriangle.DistanceBetween(in colliderA.m_triangle, in aTransform, in colliderB.m_box, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Triangle, ColliderType.Triangle):
                 {
-                    TriangleTriangle.DistanceBetween(in colliderA.m_triangle, in aTransform, in colliderB.m_triangle, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (TriangleTriangle.DistanceBetween(in colliderA.m_triangle, in aTransform, in colliderB.m_triangle, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Triangle, ColliderType.Convex):
                 {
-                    TriangleConvex.DistanceBetween(in colliderB.m_convex, in bTransform, in colliderA.m_triangle, in aTransform, maxDistance, out result);
-                    result.FlipInPlace();
-                    processor.Execute(in result);
+                    if (TriangleConvex.DistanceBetween(in colliderB.m_convex, in bTransform, in colliderA.m_triangle, in aTransform, maxDistance, out result))
+                    {
+                        result.FlipInPlace();
+                        processor.Execute(in result);
+                    }
                     break;
                 }
                 case (ColliderType.Triangle, ColliderType.TriMesh):
@@ -381,32 +400,32 @@ namespace Latios.Psyshock
                     break;
                 case (ColliderType.Convex, ColliderType.Sphere):
                 {
-                    SphereConvex.DistanceBetween(in colliderA.m_convex, in aTransform, in colliderB.m_sphere, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (SphereConvex.DistanceBetween(in colliderA.m_convex, in aTransform, in colliderB.m_sphere, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Convex, ColliderType.Capsule):
                 {
-                    CapsuleConvex.DistanceBetween(in colliderA.m_convex, in aTransform, in colliderB.m_capsule, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (CapsuleConvex.DistanceBetween(in colliderA.m_convex, in aTransform, in colliderB.m_capsule, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Convex, ColliderType.Box):
                 {
-                    BoxConvex.DistanceBetween(in colliderA.m_convex, in aTransform, in colliderB.m_box, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (BoxConvex.DistanceBetween(in colliderA.m_convex, in aTransform, in colliderB.m_box, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Convex, ColliderType.Triangle):
                 {
-                    TriangleConvex.DistanceBetween(in colliderA.m_convex, in aTransform, in colliderB.m_triangle, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (TriangleConvex.DistanceBetween(in colliderA.m_convex, in aTransform, in colliderB.m_triangle, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Convex, ColliderType.Convex):
                 {
-                    ConvexConvex.DistanceBetween(in colliderA.m_convex, in aTransform, in colliderB.m_convex, in bTransform, maxDistance, out result);
-                    processor.Execute(in result);
+                    if (ConvexConvex.DistanceBetween(in colliderA.m_convex, in aTransform, in colliderB.m_convex, in bTransform, maxDistance, out result))
+                        processor.Execute(in result);
                     break;
                 }
                 case (ColliderType.Convex, ColliderType.TriMesh):
