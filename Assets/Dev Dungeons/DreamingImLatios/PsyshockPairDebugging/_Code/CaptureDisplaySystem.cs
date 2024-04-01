@@ -61,6 +61,13 @@ namespace DreamingImLatios.PsyshockPairDebugging.Systems
                 //            $"localSphere: {localSphere.center}, scaledSphere: {scaledSphere.center}, worldSphere: {worldCenter}, localTransform: {localTransform.rot}, {localTransform.pos}, scaledTransform: {scaledTransform.rot}, {scaledTransform.pos}, worldTransform: {worldTransform.rot}, {worldTransform.pos}");
                 //    }
                 //}
+                if (colliderA.type == ColliderType.Compound && colliderB.type == ColliderType.Compound)
+                {
+                    CompoundCollider compoundA = colliderA;
+                    CompoundCollider compoundB = colliderB;
+                    UnityEngine.Debug.Log(
+                        $"tensorA: {compoundA.compoundColliderBlob.Value.inertiaTensor}, tensorB: {compoundB.compoundColliderBlob.Value.inertiaTensor * transformB.scale * transformB.scale}");
+                }
 
                 allDistanceResultsCache.Clear();
                 allContactsResultsCache.Clear();
