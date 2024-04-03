@@ -163,7 +163,10 @@ MonoBehaviour:
   wordWrap: 1
   maxLineWidth: 18
   horizontalAlignment: 3
-  verticalAlignment: 4
+  verticalAlignment: 1
+  isOrthographic: 0
+  fontStyle: 0
+  fontWeight: 0
   color:
     serializedVersion: 2
     rgba: 4294967295
