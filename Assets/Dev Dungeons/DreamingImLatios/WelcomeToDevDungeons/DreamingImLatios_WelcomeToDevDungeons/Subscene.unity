@@ -165,6 +165,7 @@ MonoBehaviour:
   horizontalAlignment: 3
   verticalAlignment: 1
   isOrthographic: 0
+  enableKerning: 1
   fontStyle: 0
   fontWeight: 0
   color:
