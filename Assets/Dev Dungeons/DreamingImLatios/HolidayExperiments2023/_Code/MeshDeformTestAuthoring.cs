@@ -48,7 +48,7 @@ namespace DreamingImLatios.Holiday2023.Authoring
             RenderingBakingTools.ExtractMeshMaterialSubmeshes(mms, filter.sharedMesh, materials);
             var opaqueMaterialCount = RenderingBakingTools.GroupByDepthSorting(mms);
 
-            RenderingBakingTools.GetLOD(baker, renderer, out var lodGroupEntity, out var lodMask);
+            RenderingBakingTools.GetLOD(baker, renderer, out var lodSettings);
 
             var rendererSettings = new MeshRendererBakeSettings
             {
@@ -59,8 +59,7 @@ namespace DreamingImLatios.Holiday2023.Authoring
                 useLightmapsIfPossible      = true,
                 lightmapIndex               = renderer.lightmapIndex,
                 lightmapScaleOffset         = renderer.lightmapScaleOffset,
-                lodGroupEntity              = lodGroupEntity,
-                lodGroupMask                = lodMask,
+                lodSettings                 = lodSettings,
                 isStatic                    = baker.IsStatic(),
                 localBounds                 = filter.sharedMesh != null ? filter.sharedMesh.bounds : default,
             };
