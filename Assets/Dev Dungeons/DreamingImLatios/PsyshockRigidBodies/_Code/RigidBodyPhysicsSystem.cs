@@ -16,12 +16,16 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
     [BurstCompile]
     public partial struct RigidBodyPhysicsSystem : ISystem
     {
-        LatiosWorldUnmanaged latiosWorld;
+        LatiosWorldUnmanaged           latiosWorld;
+        Unity.Profiling.ProfilerMarker m_markerA;
+        Unity.Profiling.ProfilerMarker m_markerB;
 
         [BurstCompile]
         public void OnCreate(ref SystemState state)
         {
             latiosWorld = state.GetLatiosWorldUnmanaged();
+            m_markerA   = new Unity.Profiling.ProfilerMarker("MarkerA");
+            m_markerB   = new Unity.Profiling.ProfilerMarker("MarkerB");
         }
 
         [BurstCompile]
@@ -57,7 +61,9 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
                 bodyLookup       = GetComponentLookup<RigidBody>(true),
                 pairStream       = pairStream.AsParallelWriter(),
                 deltaTime        = Time.DeltaTime,
-                inverseDeltaTime = math.rcp(Time.DeltaTime)
+                inverseDeltaTime = math.rcp(Time.DeltaTime),
+                markerA          = m_markerA,
+                markerB          = m_markerB,
             };
             state.Dependency = Physics.FindPairs(in rigidBodyLayer, in environmentLayer.layer, in findBodyEnvironmentProcessor).ScheduleParallelUnsafe(state.Dependency);
 
@@ -166,6 +172,8 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
             public PairStream.ParallelWriter             pairStream;
             public float                                 deltaTime;
             public float                                 inverseDeltaTime;
+            public Unity.Profiling.ProfilerMarker        markerA;
+            public Unity.Profiling.ProfilerMarker        markerB;
 
             DistanceBetweenAllCache distanceBetweenAllCache;
 
@@ -174,7 +182,10 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
                 ref readonly var rigidBodyA = ref bodyLookup.GetRefRO(result.entityA).ValueRO;
 
                 var maxDistance = UnitySim.MotionExpansion.GetMaxDistance(in rigidBodyA.motionExpansion);
+                markerA.Begin();
                 Physics.DistanceBetweenAll(result.colliderA, result.transformA, result.colliderB, result.transformB, maxDistance, ref distanceBetweenAllCache);
+                markerA.End();
+                markerB.Begin();
                 foreach (var distanceResult in distanceBetweenAllCache)
                 {
                     var contacts = UnitySim.ContactsBetween(result.colliderA, result.transformA, result.colliderB, result.transformB, in distanceResult);
@@ -200,6 +211,7 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
                                            deltaTime,
                                            inverseDeltaTime);
                 }
+                markerB.End();
             }
         }
 
