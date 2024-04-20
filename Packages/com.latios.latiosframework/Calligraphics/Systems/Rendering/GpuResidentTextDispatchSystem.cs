@@ -251,11 +251,11 @@ namespace Latios.Calligraphics.Rendering.Systems
                     textMaterialMaskShaderIndexHandle = SystemAPI.GetComponentTypeHandle<TextMaterialMaskShaderIndex>(false),
                     worldBlackboardEntity             = worldBlackboardEntity,
                 };
-                var collectMasksJh = JobHandle.CombineDependencies(maskStreamConstructJh, findChangedMasksJh, deadMasksJh);
+                var collectMasksJh = CollectionsExtensions.CombineDependencies(stackalloc JobHandle[] { maskStreamConstructJh, findChangedMasksJh, deadMasksJh, materialMasksJh });
                 if (isSingle)
                     collectMasksJh = collectMasksJob.Schedule(collectMasksJh);
                 else
-                    collectMasksJh = collectMasksJob.Schedule(m_newMasksQuery, JobHandle.CombineDependencies(maskStreamConstructJh, materialMasksJh));
+                    collectMasksJh = collectMasksJob.Schedule(m_newMasksQuery, collectMasksJh);
 
                 var batchMasksJh = new MapPayloadsToUploadBufferJob
                 {
@@ -351,9 +351,8 @@ namespace Latios.Calligraphics.Rendering.Systems
                 if (terminate)
                     break;
 
-                var frameGlyphCount       = worldBlackboardEntity.GetComponentData<GlyphCountThisFrame>().glyphCount;
                 var gpuResidentGlyphCount = worldBlackboardEntity.GetComponentData<GpuResidentGlyphCount>().glyphCount;
-                var persistentGlyphBuffer = graphicsBroker.GetPersistentBuffer(kGlyphsBufferID, math.max(frameGlyphCount + gpuResidentGlyphCount, 128) * 24);
+                var persistentGlyphBuffer = graphicsBroker.GetPersistentBuffer(kGlyphsBufferID, math.max(gpuResidentGlyphCount, 128) * 24);
                 m_uploadGlyphsShader.SetBuffer(0, _dst,  persistentGlyphBuffer);
                 m_uploadGlyphsShader.SetBuffer(0, _src,  glyphUploadBuffer);
                 m_uploadGlyphsShader.SetBuffer(0, _meta, glyphMetaBuffer);
@@ -369,9 +368,8 @@ namespace Latios.Calligraphics.Rendering.Systems
 
                 Shader.SetGlobalBuffer(_latiosTextBuffer, persistentGlyphBuffer);
 
-                var frameMaskCount       = worldBlackboardEntity.GetComponentData<MaskCountThisFrame>().maskCount;
                 var gpuResidentMaskCount = worldBlackboardEntity.GetComponentData<GpuResidentMaskCount>().maskCount;
-                var persistentMaskBuffer = graphicsBroker.GetPersistentBuffer(kGlyphMasksBufferID, math.max(frameMaskCount + gpuResidentMaskCount, 128));
+                var persistentMaskBuffer = graphicsBroker.GetPersistentBuffer(kGlyphMasksBufferID, math.max(gpuResidentMaskCount, 128));
 
                 m_uploadMasksShader.SetBuffer(0, _dst,  persistentMaskBuffer);
                 m_uploadMasksShader.SetBuffer(0, _src,  maskUploadBuffer);

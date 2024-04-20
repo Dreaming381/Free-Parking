@@ -47,15 +47,15 @@ namespace Latios.Calligraphics.Rendering.Systems
         protected override void OnCreate()
         {
             m_glyphsQuery = Fluent.With<RenderGlyph, TextRenderControl, RenderBounds>(true).With<TextShaderIndex>(false)
-                            .With<ChunkPerCameraCullingMask, ChunkPerFrameCullingMask>(true,  true).Without<GpuResidentAllocation>().Build();
+                            .With<ChunkPerCameraCullingMask, ChunkPerFrameCullingMask>(true,  true).Without<GpuResidentTextTag>().Build();
             m_masksQuery = Fluent.With<TextMaterialMaskShaderIndex>(false).With<RenderBounds, RenderGlyphMask>(true)
-                           .With<ChunkPerCameraCullingMask, ChunkPerFrameCullingMask>(true,  true).Without<GpuResidentAllocation>().Build();
+                           .With<ChunkPerCameraCullingMask, ChunkPerFrameCullingMask>(true,  true).Without<GpuResidentTextTag>().Build();
             m_allQuery = Fluent.WithAnyEnabled<TextShaderIndex, TextMaterialMaskShaderIndex>(true).With<RenderBounds>(true)
                          .With<ChunkPerCameraCullingMask>(                          false, true).With<ChunkPerFrameCullingMask>(true, true)
-                         .Without<GpuResidentAllocation>().Build();
+                         .Without<GpuResidentTextTag>().Build();
             m_glyphsAndMasksQuery = Fluent.With<RenderGlyph, TextRenderControl, RenderBounds>(true)
                                     .With<TextShaderIndex, TextMaterialMaskShaderIndex, RenderGlyphMask>(true)
-                                    .With<ChunkPerCameraCullingMask, ChunkPerFrameCullingMask>(          true, true).Without<GpuResidentAllocation>().Build();
+                                    .With<ChunkPerCameraCullingMask, ChunkPerFrameCullingMask>(          true, true).Without<GpuResidentTextTag>().Build();
 
             var copyByteAddressShader = Resources.Load<ComputeShader>("CopyBytes");
             m_uploadGlyphsShader      = Resources.Load<ComputeShader>("UploadGlyphs");
