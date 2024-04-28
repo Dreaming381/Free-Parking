@@ -61,16 +61,20 @@ namespace Latios.Calligraphics.Authoring
 
             // Fonts and rendering
             AddFontRendering(entity, authoring.fontsAndMaterials[0]);
+            AddBuffer<RenderGlyph>(entity);
             if (authoring.gpuResident)
                 AddComponent<GpuResidentTextTag>(entity);
 
             if (authoring.fontsAndMaterials.Count > 1)
             {
                 AddComponent<TextMaterialMaskShaderIndex>(entity);
-                AddBuffer<RenderGlyphMask>(entity);
+                AddBuffer<FontMaterialSelectorForGlyph>(entity);
+                AddBuffer<RenderGlyphMask>(             entity);
                 var additionalEntities = AddBuffer<Rendering.AdditionalFontMaterialEntity>(entity).Reinterpret<Entity>();
                 for (int i = 1; i < authoring.fontsAndMaterials.Count; i++)
                 {
+                    if (authoring.fontsAndMaterials[i].font == null)
+                        continue;
                     var newEntity = CreateAdditionalEntity(TransformUsageFlags.Renderable);
                     AddFontRendering(newEntity, authoring.fontsAndMaterials[i]);
                     AddComponent<TextMaterialMaskShaderIndex>(newEntity);
