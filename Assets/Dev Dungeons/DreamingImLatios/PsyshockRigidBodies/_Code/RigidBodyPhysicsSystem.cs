@@ -71,11 +71,20 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
             var solveProcessor = new SolveBodiesProcessor
             {
                 rigidBodyLookup        = GetComponentLookup<RigidBody>(false),
-                invNumSolverIterations = math.rcp(numIterations)
+                invNumSolverIterations = math.rcp(numIterations),
+                firstIteration         = true
+            };
+            var stabilizerJob = new StabilizeRigidBodiesJob
+            {
+                firstIteration    = true,
+                timeScaledGravity = Time.DeltaTime * -9.81f
             };
             for (int i = 0; i < numIterations; i++)
             {
                 state.Dependency = Physics.ForEachPair(in pairStream, in solveProcessor).ScheduleParallel(state.Dependency);
+                stabilizerJob.ScheduleParallel();
+                solveProcessor.firstIteration = false;
+                stabilizerJob.firstIteration  = false;
             }
 
             new IntegrateRigidBodiesJob { deltaTime = Time.DeltaTime }.ScheduleParallel();
@@ -94,11 +103,14 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
             {
                 rigidBody.velocity.linear.y += timeScaledGravity;
 
-                var aabb                  = Physics.AabbFrom(in collider, in transform.worldTransform);
-                var angularExpansion      = UnitySim.AngularExpansionFactorFrom(in collider);
-                var motionExpansion       = new UnitySim.MotionExpansion(in rigidBody.velocity, deltaTime, angularExpansion);
-                aabb                      = motionExpansion.ExpandAabb(aabb);
-                rigidBody.motionExpansion = motionExpansion;
+                var aabb                   = Physics.AabbFrom(in collider, in transform.worldTransform);
+                rigidBody.angularExpansion = UnitySim.AngularExpansionFactorFrom(in collider);
+                var motionExpansion        = new UnitySim.MotionExpansion(in rigidBody.velocity, deltaTime, rigidBody.angularExpansion);
+                aabb                       = motionExpansion.ExpandAabb(aabb);
+                rigidBody.motionExpansion  = motionExpansion;
+
+                rigidBody.motionStabilizer                   = UnitySim.MotionStabilizer.kDefault;
+                rigidBody.numOtherSignificantBodiesInContact = 0;
 
                 colliderArray[index] = new ColliderBody
                 {
@@ -226,6 +238,7 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
         {
             public PhysicsComponentLookup<RigidBody> rigidBodyLookup;
             public float                             invNumSolverIterations;
+            public bool                              firstIteration;
 
             public void Execute(ref PairStream.Pair pair)
             {
@@ -238,33 +251,66 @@ namespace DreamingImLatios.PsyshockRigidBodies.Systems
                     ref var rigidBodyB = ref rigidBodyLookup.GetRW(pair.entityB).ValueRW;
                     UnitySim.SolveJacobian(ref rigidBodyA.velocity,
                                            in rigidBodyA.mass,
-                                           UnitySim.MotionStabilizationInput.kDefault,
+                                           in rigidBodyA.motionStabilizer,
                                            ref rigidBodyB.velocity,
                                            in rigidBodyB.mass,
-                                           UnitySim.MotionStabilizationInput.kDefault,
+                                           in rigidBodyB.motionStabilizer,
                                            streamData.contactParameters.AsSpan(),
                                            streamData.contactImpulses.AsSpan(),
                                            in streamData.bodyParameters,
                                            false,
                                            invNumSolverIterations,
                                            out _);
+                    if (firstIteration)
+                    {
+                        if (UnitySim.IsStabilizerSignificantBody(rigidBodyA.mass.inverseMass, rigidBodyB.mass.inverseMass))
+                            rigidBodyA.numOtherSignificantBodiesInContact++;
+                        if (UnitySim.IsStabilizerSignificantBody(rigidBodyB.mass.inverseMass, rigidBodyA.mass.inverseMass))
+                            rigidBodyB.numOtherSignificantBodiesInContact++;
+                    }
                 }
                 else
                 {
                     UnitySim.Velocity environmentVelocity = default;
                     UnitySim.SolveJacobian(ref rigidBodyA.velocity,
                                            in rigidBodyA.mass,
-                                           UnitySim.MotionStabilizationInput.kDefault,
+                                           in rigidBodyA.motionStabilizer,
                                            ref environmentVelocity,
                                            default,
-                                           UnitySim.MotionStabilizationInput.kDefault,
+                                           UnitySim.MotionStabilizer.kDefault,
                                            streamData.contactParameters.AsSpan(),
                                            streamData.contactImpulses.AsSpan(),
                                            in streamData.bodyParameters,
                                            false,
                                            invNumSolverIterations,
                                            out _);
+                    if (firstIteration)
+                    {
+                        if (UnitySim.IsStabilizerSignificantBody(rigidBodyA.mass.inverseMass, 0f))
+                            rigidBodyA.numOtherSignificantBodiesInContact++;
+                    }
                 }
+            }
+        }
+
+        [BurstCompile]
+        partial struct StabilizeRigidBodiesJob : IJobEntity
+        {
+            public bool  firstIteration;
+            public float timeScaledGravity;
+
+            public void Execute(ref RigidBody rigidBody)
+            {
+                UnitySim.UpdateStabilizationAfterSolverIteration(ref rigidBody.motionStabilizer,
+                                                                 ref rigidBody.velocity,
+                                                                 rigidBody.mass.inverseMass,
+                                                                 rigidBody.angularExpansion,
+                                                                 rigidBody.numOtherSignificantBodiesInContact,
+                                                                 new float3(0f, timeScaledGravity, 0f),
+                                                                 new float3(0f, -1f, 0f),
+                                                                 UnitySim.kDefaultVelocityClippingFactor,
+                                                                 UnitySim.kDefaultInertialScalingFactor,
+                                                                 firstIteration);
             }
         }
 

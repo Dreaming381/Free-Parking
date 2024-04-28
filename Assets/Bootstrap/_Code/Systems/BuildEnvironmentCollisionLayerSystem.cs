@@ -1,6 +1,5 @@
 using Latios;
 using Latios.Psyshock;
-using Latios.Transforms;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -25,11 +24,6 @@ namespace FreeParking.Systems
             m_environmentQuery = state.Fluent().With<EnvironmentTag>(true).PatchQueryForBuildingCollisionLayer().Build();
         }
 
-        [BurstCompile]
-        public void OnDestroy(ref SystemState state)
-        {
-        }
-
         public void OnNewScene(ref SystemState state)
         {
             latiosWorld.sceneBlackboardEntity.AddOrSetCollectionComponentAndDisposeOld<EnvironmentCollisionLayer>(default);
@@ -42,6 +36,7 @@ namespace FreeParking.Systems
 
             state.Dependency = Physics.BuildCollisionLayer(m_environmentQuery, in m_handles)
                                .ScheduleParallel(out var environmentLayer, Allocator.Persistent, state.Dependency);
+
             latiosWorld.sceneBlackboardEntity.SetCollectionComponentAndDisposeOld(new EnvironmentCollisionLayer { layer = environmentLayer });
         }
     }
