@@ -46,8 +46,8 @@ namespace Latios.Calligraphics
         /// </summary>
         public VerticalAlignmentOptions verticalAlignment
         {
-            get => (VerticalAlignmentOptions)((m_alignmentWeightOrtho & 0x380) >> 7);
-            set => m_alignmentWeightOrtho = (ushort)((m_alignmentWeightOrtho & ~0x380) | ((ushort)value << 7));
+            get => (VerticalAlignmentOptions)((m_alignmentWeightOrtho & 0x780) >> 7);
+            set => m_alignmentWeightOrtho = (ushort)((m_alignmentWeightOrtho & ~0x780) | ((ushort)value << 7));
         }
         public FontWeight fontWeight
         {
@@ -67,7 +67,7 @@ namespace Latios.Calligraphics
         public bool enableKerning;
 
         private ushort m_fontStyleFlags;  // 6 bits unused, but Unity may add more.
-        ushort         m_alignmentWeightOrtho;  // 5 bits unused.
+        ushort         m_alignmentWeightOrtho;  // 4 bits unused.
     }
 
     /// <summary>
@@ -130,12 +130,17 @@ namespace Latios.Calligraphics
     /// </summary>
     public enum VerticalAlignmentOptions : byte
     {
-        Top,
-        Middle,
-        Bottom,
-        Baseline,
-        Geometry,
-        Capline,
+        TopBase,
+        TopAscent,
+        TopDescent,
+        TopCap,
+        TopMean,
+        BottomBase,
+        BottomAscent,
+        BottomDescent,
+        BottomCap,
+        BottomMean,
+        MiddleTopAscentToBottomDescent,
     }
 
     public enum FontWeight

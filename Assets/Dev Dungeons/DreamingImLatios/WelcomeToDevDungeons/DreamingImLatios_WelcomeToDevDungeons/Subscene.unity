@@ -229,7 +229,7 @@ MonoBehaviour:
   wordWrap: 1
   maxLineWidth: 18
   horizontalAlignment: 3
-  verticalAlignment: 1
+  verticalAlignment: 10
   isOrthographic: 0
   enableKerning: 1
   fontStyle: 0
