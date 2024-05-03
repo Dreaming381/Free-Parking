@@ -31,6 +31,10 @@ namespace Latios.Calligraphics.Authoring
         public bool                       enableKerning       = true;
         public FontStyles                 fontStyle           = FontStyles.Normal;
         public FontWeight                 fontWeight          = FontWeight.Regular;
+        [Tooltip("Additional line spacing in font units where a value of 1 equals 1/100em.")]
+        public float lineSpacing = 0;
+        [Tooltip("Paragraph spacing in font units where a value of 1 equals 1/100em.")]
+        public float paragraphSpacing = 0;
 
         public Color32 color = UnityEngine.Color.white;
 
@@ -99,6 +103,8 @@ namespace Latios.Calligraphics.Authoring
                 enableKerning     = authoring.enableKerning,
                 fontStyle         = authoring.fontStyle,
                 fontWeight        = authoring.fontWeight,
+                lineSpacing = authoring.lineSpacing,
+                paragraphSpacing = authoring.paragraphSpacing,
             });
         }
 

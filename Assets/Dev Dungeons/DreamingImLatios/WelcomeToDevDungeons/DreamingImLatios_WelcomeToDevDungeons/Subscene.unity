@@ -163,6 +163,8 @@ MonoBehaviour:
   enableKerning: 1
   fontStyle: 0
   fontWeight: 3
+  lineSpacing: 0
+  paragraphSpacing: 0
   color:
     serializedVersion: 2
     rgba: 4294967295
@@ -234,6 +236,8 @@ MonoBehaviour:
   enableKerning: 1
   fontStyle: 0
   fontWeight: 0
+  lineSpacing: 0
+  paragraphSpacing: 0
   color:
     serializedVersion: 2
     rgba: 4294967295

@@ -44,11 +44,6 @@ namespace Latios.Calligraphics
         /// Padding that is read from material properties
         /// </summary>
         public float materialPadding;
-
-        public float baseScale => 1f / pointSize * scale * .1f;
-
-        public const float smallCapsScaleMultiplier    = .8f;
-        public const float orthographicScaleMultiplier = 10f;
     }
 
     public struct GlyphBlob

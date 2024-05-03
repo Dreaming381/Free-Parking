@@ -9,7 +9,6 @@ using UnityEngine;
 using UnityEngine.TextCore;
 using UnityEngine.TextCore.LowLevel;
 using UnityEngine.TextCore.Text;
-using UnityEngine.UIElements;
 
 namespace Latios.Calligraphics
 {
@@ -24,8 +23,9 @@ namespace Latios.Calligraphics
             renderGlyphs.Clear();
 
             //initialized textConfiguration which stores all fields that are modified by RichText Tags
-            var richTextTagIdentifiers = new FixedList512Bytes<RichTextTagIdentifier>();
-            var textConfiguration      = new TextConfiguration(baseConfiguration);
+            var          richTextTagIdentifiers = new FixedList512Bytes<RichTextTagIdentifier>();
+            var          textConfiguration      = new TextConfiguration(baseConfiguration);
+            ref FontBlob font                   = ref fontMaterialSet[textConfiguration.m_currentFontMaterialIndex];
 
             float2                 cumulativeOffset                                = new float2();  // Tracks text progression and word wrap
             float2                 adjustmentOffset                                = new float2();  //Tracks placement adjustments
@@ -40,11 +40,24 @@ namespace Latios.Calligraphics
             float                  currentLineHeight                               = 0f;
             float                  accumulatedVerticalOffset                       = 0f;
 
-            float        topAnchor           = GetTopAnchorForConfig(ref fontMaterialSet[0], baseConfiguration.verticalAlignment, textConfiguration.m_currentFontSize);
-            float        bottomAnchor        = GetBottomAnchorForConfig(ref fontMaterialSet[0], baseConfiguration.verticalAlignment, textConfiguration.m_currentFontSize);
-            ref FontBlob font                = ref fontMaterialSet[textConfiguration.m_currentFontMaterialIndex];
-            var          calliString         = new CalliString(calliBytes);
-            var          characterEnumerator = calliString.GetEnumerator();
+            float m_maxLineAscender     = float.MinValue;
+            float m_maxLineDescender    = float.MaxValue;
+            float m_startOfLineAscender = font.ascentLine;
+            float lineGap               = font.lineHeight - (font.ascentLine - font.descentLine);
+            float lastVisibleAscender   = 0;
+
+            // Calculate the scale of the font based on selected font size and sampling point size.
+            // baseScale is calculated using the font asset assigned to the text object.
+            float baseScale           = (baseConfiguration.fontSize / font.pointSize * font.scale * (baseConfiguration.isOrthographic ? 1 : 0.1f));
+            float currentElementScale = baseScale;
+            float currentEmScale      = baseConfiguration.fontSize * 0.01f * (baseConfiguration.isOrthographic ? 1 : 0.1f);
+
+            float topAnchor    = GetTopAnchorForConfig(ref fontMaterialSet[0], baseConfiguration.verticalAlignment, baseScale);
+            float bottomAnchor = GetBottomAnchorForConfig(ref fontMaterialSet[0], baseConfiguration.verticalAlignment, baseScale);
+
+            var         calliString         = new CalliString(calliBytes);
+            var         characterEnumerator = calliString.GetEnumerator();
+            PrevCurNext prevCurNext         = new PrevCurNext { prev = Unicode.BadRune, current = Unicode.BadRune, next = Unicode.BadRune};
             while (characterEnumerator.MoveNext())
             {
                 var currentRune = characterEnumerator.Current;
@@ -64,13 +77,14 @@ namespace Latios.Calligraphics
                     }
                 }
                 #endregion
-
+                UpdateCharacterWindow(ref prevCurNext, characterEnumerator, baseConfiguration.enableKerning);
                 font                              = ref fontMaterialSet[textConfiguration.m_currentFontMaterialIndex];
                 textConfiguration.m_isParsingText = false;
-                currentLineHeight                 = math.max(currentLineHeight, font.lineHeight * font.baseScale * textConfiguration.m_currentFontSize);
+                //currentLineHeight = 0 - m_maxLineDescender + lastVisibleAscender + (lineGap + m_lineSpacingDelta) * baseScale + (m_lineSpacing + (currentRune.value == 10 || currentRune.value == 0x2029 ? m_paragraphSpacing : 0)) * currentEmScale;
+                currentLineHeight = math.max(currentLineHeight, font.lineHeight * baseScale + (m_maxLineAscender - font.ascentLine * baseScale));
                 if (lineCount == 0)
-                    topAnchor = GetTopAnchorForConfig(ref font, baseConfiguration.verticalAlignment, textConfiguration.m_currentFontSize, topAnchor);
-                bottomAnchor  = GetBottomAnchorForConfig(ref font, baseConfiguration.verticalAlignment, textConfiguration.m_currentFontSize, bottomAnchor);
+                    topAnchor = GetTopAnchorForConfig(ref font, baseConfiguration.verticalAlignment, baseScale, topAnchor);
+                bottomAnchor  = GetBottomAnchorForConfig(ref font, baseConfiguration.verticalAlignment, baseScale, bottomAnchor);
 
                 // Handle Font Styles like LowerCase, UpperCase and SmallCaps.
                 #region Handling of LowerCase, UpperCase and SmallCaps Font Styles
@@ -83,21 +97,30 @@ namespace Latios.Calligraphics
                 if ((textConfiguration.m_fontStyleInternal & FontStyles.UpperCase) == FontStyles.UpperCase)
                 {
                     // If this character is lowercase, switch to uppercase.
-                    currentRune = currentRune.ToUpper();
+                    prevCurNext.current = currentRune.ToUpper();
+                    currentRune         = prevCurNext.current;
+                    if (prevCurNext.next != Unicode.BadRune)
+                        prevCurNext.next = prevCurNext.next.ToUpper();
                 }
                 else if ((textConfiguration.m_fontStyleInternal & FontStyles.LowerCase) == FontStyles.LowerCase)
                 {
                     // If this character is uppercase, switch to lowercase.
-                    currentRune = currentRune.ToLower();
+                    prevCurNext.current = currentRune.ToLower();
+                    currentRune         = prevCurNext.current;
+                    if (prevCurNext.next != Unicode.BadRune)
+                        prevCurNext.next = prevCurNext.next.ToLower();
                 }
                 else if ((textConfiguration.m_fontStyleInternal & FontStyles.SmallCaps) == FontStyles.SmallCaps)
                 {
-                    var oldUnicode = currentRune;
-                    currentRune    = currentRune.ToUpper();
-                    if (currentRune != oldUnicode)
+                    var oldUnicode      = currentRune;
+                    prevCurNext.current = currentRune.ToUpper();
+                    currentRune         = prevCurNext.current;
+                    if (prevCurNext.current != oldUnicode)
                     {
                         smallCapsMultiplier = 0.8f;
                     }
+                    if (prevCurNext.next != Unicode.BadRune)
+                        prevCurNext.next = prevCurNext.next.ToUpper();
                 }
                 #endregion
 
@@ -134,10 +157,20 @@ namespace Latios.Calligraphics
                             ApplyVerticalOffsetToGlyphs(ref glyphsLine, accumulatedVerticalOffset);
                             lastCommittedStartOfLineGlyphIndex = startOfLineGlyphIndex;
                         }
+                        if (m_maxLineDescender != float.MaxValue)
+                            accumulatedVerticalOffset += (font.descentLine * baseScale - m_maxLineDescender); // Todo: Delta should be computed per glyph
+                        //apply user configurable line and paragraph spacing
+                        accumulatedVerticalOffset +=
+                            (baseConfiguration.lineSpacing + (currentRune.value == 10 || currentRune.value == 0x2029 ? baseConfiguration.paragraphSpacing : 0)) * currentEmScale;
                     }
+                    //reset line status
+                    m_maxLineAscender     = float.MinValue;
+                    m_maxLineDescender    = float.MaxValue;
+                    m_startOfLineAscender = lastVisibleAscender;
+
                     lineCount++;
                     isLineStart  = true;
-                    bottomAnchor = GetBottomAnchorForConfig(ref font, baseConfiguration.verticalAlignment, textConfiguration.m_currentFontSize);
+                    bottomAnchor = GetBottomAnchorForConfig(ref font, baseConfiguration.verticalAlignment, baseScale);
 
                     cumulativeOffset.x = 0;
                     cumulativeOffset.y = 0;
@@ -169,8 +202,7 @@ namespace Latios.Calligraphics
 
                     var adjustedScale = textConfiguration.m_currentFontSize * smallCapsMultiplier / font.pointSize * font.scale *
                                         (baseConfiguration.isOrthographic ? 1 : 0.1f);
-                    var   currentElementScale = adjustedScale * textConfiguration.m_fontScaleMultiplier * glyphBlob.glyphScale;  //* m_cached_TextElement.m_Scale
-                    float currentEmScale      = baseConfiguration.fontSize * 0.01f * (baseConfiguration.isOrthographic ? 1 : 0.1f);
+                    currentElementScale = adjustedScale * textConfiguration.m_fontScaleMultiplier * glyphBlob.glyphScale;  //* m_cached_TextElement.m_Scale
 
                     // Determine the position of the vertices of the Character
                     #region Calculate Vertices Position
@@ -238,12 +270,14 @@ namespace Latios.Calligraphics
                     if (((textConfiguration.m_fontStyleInternal & FontStyles.Italic) == FontStyles.Italic))
                     {
                         // Shift Top vertices forward by half (Shear Value * height of character) and Bottom vertices back by same amount.
-                        float  shear       = textConfiguration.m_italicAngle * 0.01f;
-                        float2 topShear    = new float2(shear * ((currentGlyphMetrics.horizontalBearingY + font.materialPadding + style_padding) * currentElementScale), 0);
+                        float  shear_value = textConfiguration.m_italicAngle * 0.01f;
+                        float  midPoint    = ((font.capLine - (font.baseLine + textConfiguration.m_baselineOffset)) / 2) * textConfiguration.m_fontScaleMultiplier * font.scale;
+                        float2 topShear    =
+                            new float2(shear_value * ((currentGlyphMetrics.horizontalBearingY + font.materialPadding + style_padding - midPoint) * currentElementScale), 0);
                         float2 bottomShear =
-                            new float2(
-                                shear * (((currentGlyphMetrics.horizontalBearingY - currentGlyphMetrics.height - font.materialPadding - style_padding)) * currentElementScale),
-                                0);
+                            new float2(shear_value *
+                                       (((currentGlyphMetrics.horizontalBearingY - currentGlyphMetrics.height - font.materialPadding - style_padding - midPoint)) *
+                                        currentElementScale), 0);
                         float2 shearAdjustment = (topShear - bottomShear) * 0.5f;
 
                         topShear    -= shearAdjustment;
@@ -297,31 +331,26 @@ namespace Latios.Calligraphics
                     float           m_GlyphHorizontalAdvanceAdjustment = 0;
                     if (baseConfiguration.enableKerning)
                     {
-                        if (characterEnumerator.MoveNext())
+                        if (prevCurNext.next != Unicode.BadRune)
                         {
-                            var nextUnicodeRune = characterEnumerator.Current;
-                            if (glyphBlob.glyphAdjustmentsLookup.TryGetAdjustmentPairIndexForUnicodeAfter(nextUnicodeRune.value, out var adjustmentIndex))
+                            if (glyphBlob.glyphAdjustmentsLookup.TryGetAdjustmentPairIndexForUnicodeAfter(prevCurNext.next.value, out var adjustmentIndex))
                             {
                                 var adjustmentPair         = font.adjustmentPairs[adjustmentIndex];
                                 glyphAdjustments           = adjustmentPair.firstAdjustment;
                                 characterSpacingAdjustment = (adjustmentPair.fontFeatureLookupFlags & FontFeatureLookupFlags.IgnoreSpacingAdjustments) ==
                                                              FontFeatureLookupFlags.IgnoreSpacingAdjustments ? 0 : characterSpacingAdjustment;
                             }
-                            characterEnumerator.MovePrevious();  //rewind
                         }
 
                         if (textConfiguration.m_characterCount >= 1)
                         {
-                            characterEnumerator.MovePrevious();
-                            var prevUnicodeRune = characterEnumerator.Current;
-                            if (glyphBlob.glyphAdjustmentsLookup.TryGetAdjustmentPairIndexForUnicodeBefore(prevUnicodeRune.value, out var adjustmentIndex))
+                            if (glyphBlob.glyphAdjustmentsLookup.TryGetAdjustmentPairIndexForUnicodeBefore(prevCurNext.prev.value, out var adjustmentIndex))
                             {
                                 var adjustmentPair          = font.adjustmentPairs[adjustmentIndex];
                                 glyphAdjustments           += adjustmentPair.secondAdjustment;
                                 characterSpacingAdjustment  = (adjustmentPair.fontFeatureLookupFlags & FontFeatureLookupFlags.IgnoreSpacingAdjustments) ==
                                                               FontFeatureLookupFlags.IgnoreSpacingAdjustments ? 0 : characterSpacingAdjustment;
                             }
-                            characterEnumerator.MoveNext();  //undo rewind
                         }
                     }
 
@@ -374,12 +403,24 @@ namespace Latios.Calligraphics
                                                              ref characterGlyphIndicesWithPreceedingSpacesInLine,
                                                              baseConfiguration.maxLineWidth,
                                                              textConfiguration.m_lineJustification);
+
                             if (lineCount > 0)
                             {
                                 accumulatedVerticalOffset += currentLineHeight;
                                 ApplyVerticalOffsetToGlyphs(ref glyphsLine, accumulatedVerticalOffset);
                                 lastCommittedStartOfLineGlyphIndex = startOfLineGlyphIndex;
                             }
+                            accumulatedVerticalOffset += (font.descentLine * baseScale - m_maxLineDescender);  // Todo: Delta should be computed per glyph
+                            //apply user configurable line and paragraph spacing
+                            accumulatedVerticalOffset +=
+                                (baseConfiguration.lineSpacing +
+                                 (currentRune.value == 10 || currentRune.value == 0x2029 ? baseConfiguration.paragraphSpacing : 0)) * currentEmScale;
+
+                            //reset line status
+                            m_maxLineAscender     = float.MinValue;
+                            m_maxLineDescender    = float.MaxValue;
+                            m_startOfLineAscender = lastVisibleAscender;
+
                             startOfLineGlyphIndex = lastWordStartCharacterGlyphIndex;
                             lineCount++;
 
@@ -421,6 +462,34 @@ namespace Latios.Calligraphics
                         prevWasSpace = false;
                     }
                     #endregion
+
+                    // Compute line metrics
+                    #region Compute Ascender & Descender values
+                    // Element Ascender in line space
+                    float elementAscentLine  = font.ascentLine;
+                    float elementDescentLine = font.descentLine;
+                    float elementAscender    = elementAscentLine * currentElementScale / smallCapsMultiplier + textConfiguration.m_baselineOffset;
+
+                    // Element Descender in line space
+                    float elementDescender = elementDescentLine * currentElementScale / smallCapsMultiplier + textConfiguration.m_baselineOffset;
+
+                    float adjustedAscender  = elementAscender;
+                    float adjustedDescender = elementDescender;
+                    // Max line ascender and descender in line space
+                    if (isLineStart || currentRune.IsWhiteSpace() == false)
+                    {
+                        // Special handling for Superscript and Subscript where we use the unadjusted line ascender and descender
+                        if (textConfiguration.m_baselineOffset != 0)
+                        {
+                            adjustedAscender  = Mathf.Max((elementAscender - textConfiguration.m_baselineOffset) / textConfiguration.m_fontScaleMultiplier, adjustedAscender);
+                            adjustedDescender = Mathf.Min((elementDescender - textConfiguration.m_baselineOffset) / textConfiguration.m_fontScaleMultiplier, adjustedDescender);
+                        }
+                        m_maxLineAscender  = Mathf.Max(adjustedAscender, m_maxLineAscender);
+                        m_maxLineDescender = Mathf.Min(adjustedDescender, m_maxLineDescender);
+                    }
+                    lastVisibleAscender = adjustedAscender;
+
+                    #endregion
                 }
             }
 
@@ -444,34 +513,32 @@ namespace Latios.Calligraphics
             ApplyVerticalAlignmentToGlyphs(ref renderGlyphs, topAnchor, bottomAnchor, accumulatedVerticalOffset, baseConfiguration.verticalAlignment);
         }
 
-        static float GetTopAnchorForConfig(ref FontBlob font, VerticalAlignmentOptions verticalMode, float fontSize, float oldValue = float.PositiveInfinity)
+        static float GetTopAnchorForConfig(ref FontBlob font, VerticalAlignmentOptions verticalMode, float baseScale, float oldValue = float.PositiveInfinity)
         {
-            bool  replace = oldValue == float.PositiveInfinity;
-            float scale   = fontSize * font.baseScale;
+            bool replace = oldValue == float.PositiveInfinity;
             switch (verticalMode)
             {
                 case VerticalAlignmentOptions.TopBase: return 0f;
                 case VerticalAlignmentOptions.MiddleTopAscentToBottomDescent:
-                case VerticalAlignmentOptions.TopAscent: return scale * math.max(font.ascentLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
-                case VerticalAlignmentOptions.TopDescent: return scale * math.min(font.descentLine - font.baseLine, oldValue);
-                case VerticalAlignmentOptions.TopCap: return scale * math.max(font.capLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
-                case VerticalAlignmentOptions.TopMean: return scale * math.max(font.meanLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
+                case VerticalAlignmentOptions.TopAscent: return baseScale * math.max(font.ascentLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
+                case VerticalAlignmentOptions.TopDescent: return baseScale * math.min(font.descentLine - font.baseLine, oldValue);
+                case VerticalAlignmentOptions.TopCap: return baseScale * math.max(font.capLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
+                case VerticalAlignmentOptions.TopMean: return baseScale * math.max(font.meanLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
                 default: return 0f;
             }
         }
 
-        static float GetBottomAnchorForConfig(ref FontBlob font, VerticalAlignmentOptions verticalMode, float fontSize, float oldValue = float.PositiveInfinity)
+        static float GetBottomAnchorForConfig(ref FontBlob font, VerticalAlignmentOptions verticalMode, float baseScale, float oldValue = float.PositiveInfinity)
         {
-            bool  replace = oldValue == float.PositiveInfinity;
-            float scale   = fontSize * font.baseScale;
+            bool replace = oldValue == float.PositiveInfinity;
             switch (verticalMode)
             {
                 case VerticalAlignmentOptions.BottomBase: return 0f;
-                case VerticalAlignmentOptions.BottomAscent: return scale * math.max(font.ascentLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
+                case VerticalAlignmentOptions.BottomAscent: return baseScale * math.max(font.ascentLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
                 case VerticalAlignmentOptions.MiddleTopAscentToBottomDescent:
-                case VerticalAlignmentOptions.BottomDescent: return scale * math.min(font.descentLine - font.baseLine, oldValue);
-                case VerticalAlignmentOptions.BottomCap: return scale * math.max(font.capLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
-                case VerticalAlignmentOptions.BottomMean: return scale * math.max(font.meanLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
+                case VerticalAlignmentOptions.BottomDescent: return baseScale * math.min(font.descentLine - font.baseLine, oldValue);
+                case VerticalAlignmentOptions.BottomCap: return baseScale * math.max(font.capLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
+                case VerticalAlignmentOptions.BottomMean: return baseScale * math.max(font.meanLine - font.baseLine, math.select(oldValue, float.NegativeInfinity, replace));
                 default: return 0f;
             }
         }
@@ -589,6 +656,29 @@ namespace Latios.Calligraphics
                     break;
                 }
             }
+        }
+        static void UpdateCharacterWindow(ref PrevCurNext prevCurNext, CalliString.Enumerator characterEnumerator, bool kerningEnabled)
+        {
+            prevCurNext.prev    = prevCurNext.current;
+            prevCurNext.current = characterEnumerator.Current;
+            if (kerningEnabled)
+            {
+                if (characterEnumerator.MoveNext())
+                {
+                    //could return rich text opening tag `<` but only in
+                    //the very unlikly case of having exactly 1 valid text char between 2 tags
+                    prevCurNext.next = characterEnumerator.Current;
+                    characterEnumerator.MovePrevious();
+                }
+                else
+                    prevCurNext.next = Unicode.BadRune;
+            }
+        }
+        public struct PrevCurNext
+        {
+            public Unicode.Rune prev;
+            public Unicode.Rune current;
+            public Unicode.Rune next;
         }
     }
 }
