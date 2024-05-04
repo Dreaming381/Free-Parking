@@ -27,8 +27,8 @@ namespace Latios.Calligraphics
             var          textConfiguration      = new TextConfiguration(baseConfiguration);
             ref FontBlob font                   = ref fontMaterialSet[textConfiguration.m_currentFontMaterialIndex];
 
-            float2                 cumulativeOffset                                = new float2();  // Tracks text progression and word wrap
-            float2                 adjustmentOffset                                = new float2();  //Tracks placement adjustments
+            float2                 cumulativeOffset                                = default;  // Tracks text progression and word wrap
+            float2                 adjustmentOffset                                = default;  //Tracks placement adjustments
             int                    lastWordStartCharacterGlyphIndex                = 0;
             FixedList512Bytes<int> characterGlyphIndicesWithPreceedingSpacesInLine = default;
             int                    accumulatedSpaces                               = 0;
@@ -39,16 +39,15 @@ namespace Latios.Calligraphics
             bool                   isLineStart                                     = true;
             float                  currentLineHeight                               = 0f;
             float                  accumulatedVerticalOffset                       = 0f;
-
-            float m_maxLineAscender     = float.MinValue;
-            float m_maxLineDescender    = float.MaxValue;
-            float m_startOfLineAscender = font.ascentLine;
-            float lineGap               = font.lineHeight - (font.ascentLine - font.descentLine);
-            float lastVisibleAscender   = 0;
+            float                  maxLineAscender                                 = float.MinValue;
+            float                  maxLineDescender                                = float.MaxValue;
+            float                  startOfLineAscender                             = font.ascentLine;
+            float                  lineGap                                         = font.lineHeight - (font.ascentLine - font.descentLine);
+            float                  lastVisibleAscender                             = 0;
 
             // Calculate the scale of the font based on selected font size and sampling point size.
             // baseScale is calculated using the font asset assigned to the text object.
-            float baseScale           = (baseConfiguration.fontSize / font.pointSize * font.scale * (baseConfiguration.isOrthographic ? 1 : 0.1f));
+            float baseScale           = baseConfiguration.fontSize / font.pointSize * font.scale * (baseConfiguration.isOrthographic ? 1 : 0.1f);
             float currentElementScale = baseScale;
             float currentEmScale      = baseConfiguration.fontSize * 0.01f * (baseConfiguration.isOrthographic ? 1 : 0.1f);
 
@@ -65,7 +64,7 @@ namespace Latios.Calligraphics
 
                 // Parse Rich Text Tag
                 #region Parse Rich Text Tag
-                if (currentRune == '<')  // '<'
+                if (currentRune == '<')
                 {
                     textConfiguration.m_isParsingText = true;
                     // Check if Tag is valid. If valid, skip to the end of the validated tag.
@@ -77,11 +76,11 @@ namespace Latios.Calligraphics
                     }
                 }
                 #endregion
-                UpdateCharacterWindow(ref prevCurNext, characterEnumerator, baseConfiguration.enableKerning);
+                UpdateCharacterWindow(ref prevCurNext, ref characterEnumerator, baseConfiguration.enableKerning);
                 font                              = ref fontMaterialSet[textConfiguration.m_currentFontMaterialIndex];
                 textConfiguration.m_isParsingText = false;
                 //currentLineHeight = 0 - m_maxLineDescender + lastVisibleAscender + (lineGap + m_lineSpacingDelta) * baseScale + (m_lineSpacing + (currentRune.value == 10 || currentRune.value == 0x2029 ? m_paragraphSpacing : 0)) * currentEmScale;
-                currentLineHeight = math.max(currentLineHeight, font.lineHeight * baseScale + (m_maxLineAscender - font.ascentLine * baseScale));
+                currentLineHeight = font.lineHeight * baseScale + (maxLineAscender - font.ascentLine * baseScale);
                 if (lineCount == 0)
                     topAnchor = GetTopAnchorForConfig(ref font, baseConfiguration.verticalAlignment, baseScale, topAnchor);
                 bottomAnchor  = GetBottomAnchorForConfig(ref font, baseConfiguration.verticalAlignment, baseScale, bottomAnchor);
@@ -157,16 +156,24 @@ namespace Latios.Calligraphics
                             ApplyVerticalOffsetToGlyphs(ref glyphsLine, accumulatedVerticalOffset);
                             lastCommittedStartOfLineGlyphIndex = startOfLineGlyphIndex;
                         }
-                        if (m_maxLineDescender != float.MaxValue)
-                            accumulatedVerticalOffset += (font.descentLine * baseScale - m_maxLineDescender); // Todo: Delta should be computed per glyph
+                        accumulatedVerticalOffset += (font.descentLine * baseScale - maxLineDescender);
+
                         //apply user configurable line and paragraph spacing
                         accumulatedVerticalOffset +=
                             (baseConfiguration.lineSpacing + (currentRune.value == 10 || currentRune.value == 0x2029 ? baseConfiguration.paragraphSpacing : 0)) * currentEmScale;
                     }
-                    //reset line status
-                    m_maxLineAscender     = float.MinValue;
-                    m_maxLineDescender    = float.MaxValue;
-                    m_startOfLineAscender = lastVisibleAscender;
+                    else
+                    {
+                        //ensure we apply the descenderDelta also for a manual line break right after the first line
+                        accumulatedVerticalOffset += (font.descentLine * baseScale - maxLineDescender);
+                        //apply user configurable line and paragraph spacing
+                        accumulatedVerticalOffset +=
+                            (baseConfiguration.lineSpacing + (currentRune.value == 10 || currentRune.value == 0x2029 ? baseConfiguration.paragraphSpacing : 0)) * currentEmScale;
+                    }
+                    //reset line status. As manual line feed will skip the line metrics region, mimic here what it would do
+                    maxLineAscender     = font.ascentLine * baseScale;
+                    maxLineDescender    = font.descentLine * baseScale;
+                    startOfLineAscender = lastVisibleAscender;
 
                     lineCount++;
                     isLineStart  = true;
@@ -410,16 +417,16 @@ namespace Latios.Calligraphics
                                 ApplyVerticalOffsetToGlyphs(ref glyphsLine, accumulatedVerticalOffset);
                                 lastCommittedStartOfLineGlyphIndex = startOfLineGlyphIndex;
                             }
-                            accumulatedVerticalOffset += (font.descentLine * baseScale - m_maxLineDescender);  // Todo: Delta should be computed per glyph
+                            accumulatedVerticalOffset += (font.descentLine * baseScale - maxLineDescender);  // Todo: Delta should be computed per glyph
                             //apply user configurable line and paragraph spacing
                             accumulatedVerticalOffset +=
                                 (baseConfiguration.lineSpacing +
                                  (currentRune.value == 10 || currentRune.value == 0x2029 ? baseConfiguration.paragraphSpacing : 0)) * currentEmScale;
 
                             //reset line status
-                            m_maxLineAscender     = float.MinValue;
-                            m_maxLineDescender    = float.MaxValue;
-                            m_startOfLineAscender = lastVisibleAscender;
+                            maxLineAscender     = float.MinValue;
+                            maxLineDescender    = float.MaxValue;
+                            startOfLineAscender = lastVisibleAscender;
 
                             startOfLineGlyphIndex = lastWordStartCharacterGlyphIndex;
                             lineCount++;
@@ -484,8 +491,8 @@ namespace Latios.Calligraphics
                             adjustedAscender  = Mathf.Max((elementAscender - textConfiguration.m_baselineOffset) / textConfiguration.m_fontScaleMultiplier, adjustedAscender);
                             adjustedDescender = Mathf.Min((elementDescender - textConfiguration.m_baselineOffset) / textConfiguration.m_fontScaleMultiplier, adjustedDescender);
                         }
-                        m_maxLineAscender  = Mathf.Max(adjustedAscender, m_maxLineAscender);
-                        m_maxLineDescender = Mathf.Min(adjustedDescender, m_maxLineDescender);
+                        maxLineAscender  = Mathf.Max(adjustedAscender, maxLineAscender);
+                        maxLineDescender = Mathf.Min(adjustedDescender, maxLineDescender);
                     }
                     lastVisibleAscender = adjustedAscender;
 
@@ -657,7 +664,7 @@ namespace Latios.Calligraphics
                 }
             }
         }
-        static void UpdateCharacterWindow(ref PrevCurNext prevCurNext, CalliString.Enumerator characterEnumerator, bool kerningEnabled)
+        static void UpdateCharacterWindow(ref PrevCurNext prevCurNext, ref CalliString.Enumerator characterEnumerator, bool kerningEnabled)
         {
             prevCurNext.prev    = prevCurNext.current;
             prevCurNext.current = characterEnumerator.Current;
