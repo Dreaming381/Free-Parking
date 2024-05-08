@@ -120,6 +120,8 @@ namespace Latios.Calligraphics.Authoring.Systems
             fontBlobRoot.subscriptSize       = font.faceInfo.subscriptSize;
             fontBlobRoot.superscriptOffset   = font.faceInfo.superscriptOffset;
             fontBlobRoot.superscriptSize     = font.faceInfo.superscriptSize;
+            fontBlobRoot.tabWidth            = font.faceInfo.tabWidth;
+            fontBlobRoot.tabMultiple         = font.tabMultiple;
             fontBlobRoot.regularStyleSpacing = font.regularStyleSpacing;
             fontBlobRoot.regularStyleWeight  = font.regularStyleWeight;
             fontBlobRoot.boldStyleSpacing    = font.boldStyleSpacing;

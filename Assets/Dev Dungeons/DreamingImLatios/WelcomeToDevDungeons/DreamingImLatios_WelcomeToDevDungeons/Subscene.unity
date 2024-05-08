@@ -155,17 +155,18 @@ MonoBehaviour:
   text: "Up <voffset=1em>up <voffset=2em>UP</voffset> and <voffset=-0.5em>down</voffset>
     we go again. <color=\"red\">Red <color=#005500>Dark Green <#0000FF>Blue <color=#FF000088>Semitransparent
     Red</color> <lowercase>Alice and Bob watched TV.</lowercase> \n\n</color><uppercase>Alice
-    <b>and Bob</b> watched TV.</uppercase> </color><allcaps>Alice <i>and Bob</i>
+    <b>and Bob</b> watched TV.</uppercase> </color><allcaps>Alice <i>and an Bob</i>
     watched TV.</allcaps></color> <smallcaps>Alice and Bob watched TV.</smallcaps>"
   fontSize: 8
   wordWrap: 1
   maxLineWidth: 18
-  horizontalAlignment: 3
+  horizontalAlignment: 0
   verticalAlignment: 10
   isOrthographic: 0
   enableKerning: 1
   fontStyle: 0
   fontWeight: 3
+  wordSpacing: 0
   lineSpacing: 0
   paragraphSpacing: 0
   color:
@@ -239,6 +240,7 @@ MonoBehaviour:
   enableKerning: 1
   fontStyle: 0
   fontWeight: 0
+  wordSpacing: 0
   lineSpacing: 0
   paragraphSpacing: 0
   color:

@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Latios.Calligraphics.Rendering;
 using Latios.Calligraphics.RichText;
 using Unity.Collections;
@@ -6,7 +5,6 @@ using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.TextCore;
 using UnityEngine.TextCore.LowLevel;
 using UnityEngine.TextCore.Text;
 
@@ -17,15 +15,18 @@ namespace Latios.Calligraphics
         internal static unsafe void CreateRenderGlyphs(ref DynamicBuffer<RenderGlyph> renderGlyphs,
                                                        ref GlyphMappingWriter mappingWriter,
                                                        ref FontMaterialSet fontMaterialSet,
+                                                       ref TextConfigurationStack textConfigurationStack,
                                                        in DynamicBuffer<CalliByte>    calliBytes,
                                                        in TextBaseConfiguration baseConfiguration)
         {
             renderGlyphs.Clear();
 
-            //initialized textConfiguration which stores all fields that are modified by RichText Tags
-            var          richTextTagIdentifiers = new FixedList512Bytes<RichTextTagIdentifier>();
-            var          textConfiguration      = new TextConfiguration(baseConfiguration);
-            ref FontBlob font                   = ref fontMaterialSet[textConfiguration.m_currentFontMaterialIndex];
+            // Initialize textConfiguration which stores all fields that are modified by RichText Tags
+            textConfigurationStack.Reset(baseConfiguration);
+            var calliString = new CalliString(calliBytes);
+
+            var          textConfiguration = textConfigurationStack.GetActiveConfiguration();
+            ref FontBlob font              = ref fontMaterialSet[textConfiguration.m_currentFontMaterialIndex];
 
             float2                 cumulativeOffset                                = default;  // Tracks text progression and word wrap
             float2                 adjustmentOffset                                = default;  //Tracks placement adjustments
@@ -54,74 +55,58 @@ namespace Latios.Calligraphics
             float topAnchor    = GetTopAnchorForConfig(ref fontMaterialSet[0], baseConfiguration.verticalAlignment, baseScale);
             float bottomAnchor = GetBottomAnchorForConfig(ref fontMaterialSet[0], baseConfiguration.verticalAlignment, baseScale);
 
-            var         calliString         = new CalliString(calliBytes);
-            var         characterEnumerator = calliString.GetEnumerator();
-            PrevCurNext prevCurNext         = new PrevCurNext { prev = Unicode.BadRune, current = Unicode.BadRune, next = Unicode.BadRune};
-            while (characterEnumerator.MoveNext())
-            {
-                var currentRune = characterEnumerator.Current;
-                textConfiguration.m_characterCount++;
+            PrevCurNext prevCurNext                    = new PrevCurNext(calliString.GetEnumerator());
+            bool        needsActiveConfigurationUpdate = false;
+            bool        firstIteration                 = true;
 
-                // Parse Rich Text Tag
-                #region Parse Rich Text Tag
-                if (currentRune == '<')
+            while (prevCurNext.nextIsValid)
+            {
+                // On the first iteration, we need to queue up the first character, which could be rich text.
+                // So we process the first character, do rich text analysis, then skip to the second iteration
+                // where we shift everything. Because from the second iteration on, we want to do rich text parsing
+                // after advancing the prevCurNext.
+                if (!firstIteration)
                 {
-                    textConfiguration.m_isParsingText = true;
+                    // We update the count now so that RichTextParser receives the actual character count.
+                    textConfigurationStack.m_characterCount++;
+                    prevCurNext.MoveNext();
+                }
+
+                // If on the previous iteration we detected a new Html tag, we need to update the active configuration.
+                if (needsActiveConfigurationUpdate)
+                    textConfiguration = textConfigurationStack.GetActiveConfiguration();
+
+                while (prevCurNext.nextIsValid && prevCurNext.next.Current == '<')
+                {
+                    textConfigurationStack.m_isParsingText = true;
                     // Check if Tag is valid. If valid, skip to the end of the validated tag.
-                    if (RichTextParser.ValidateHtmlTag(in calliString, ref characterEnumerator, ref fontMaterialSet, in baseConfiguration, ref textConfiguration,
-                                                       ref richTextTagIdentifiers))
+                    if (RichTextParser.ValidateHtmlTag(in calliString, ref prevCurNext.next, ref fontMaterialSet, in baseConfiguration, ref textConfigurationStack))
                     {
+                        needsActiveConfigurationUpdate = true;
                         // Continue to next character
+                        prevCurNext.nextIsValid = prevCurNext.next.MoveNext();
                         continue;
                     }
+                    // We failed to parse something. We want to render the '<' instead.
+                    break;
                 }
-                #endregion
-                UpdateCharacterWindow(ref prevCurNext, ref characterEnumerator, baseConfiguration.enableKerning);
-                font                              = ref fontMaterialSet[textConfiguration.m_currentFontMaterialIndex];
-                textConfiguration.m_isParsingText = false;
-                //currentLineHeight = 0 - m_maxLineDescender + lastVisibleAscender + (lineGap + m_lineSpacingDelta) * baseScale + (m_lineSpacing + (currentRune.value == 10 || currentRune.value == 0x2029 ? m_paragraphSpacing : 0)) * currentEmScale;
-                currentLineHeight = font.lineHeight * baseScale + (maxLineAscender - font.ascentLine * baseScale);
+
+                if (firstIteration)
+                {
+                    firstIteration = false;
+                    continue;
+                }
+
+                var currentRune                        = prevCurNext.current.Current;
+                font                                   = ref fontMaterialSet[textConfiguration.m_currentFontMaterialIndex];
+                textConfigurationStack.m_isParsingText = false;
+                currentLineHeight                      = font.lineHeight * baseScale + (maxLineAscender - font.ascentLine * baseScale);
                 if (lineCount == 0)
                     topAnchor = GetTopAnchorForConfig(ref font, baseConfiguration.verticalAlignment, baseScale, topAnchor);
                 bottomAnchor  = GetBottomAnchorForConfig(ref font, baseConfiguration.verticalAlignment, baseScale, bottomAnchor);
 
                 // Handle Font Styles like LowerCase, UpperCase and SmallCaps.
-                #region Handling of LowerCase, UpperCase and SmallCaps Font Styles
-
-                float smallCapsMultiplier = 1.0f;
-
-                // Todo: Burst does not support language methods, and char only supports the UTF-16 subset
-                // of characters. We should encode upper and lower cross-references into the font blobs or
-                // figure out the formulas for all other languages. Right now only ascii is supported.
-                if ((textConfiguration.m_fontStyleInternal & FontStyles.UpperCase) == FontStyles.UpperCase)
-                {
-                    // If this character is lowercase, switch to uppercase.
-                    prevCurNext.current = currentRune.ToUpper();
-                    currentRune         = prevCurNext.current;
-                    if (prevCurNext.next != Unicode.BadRune)
-                        prevCurNext.next = prevCurNext.next.ToUpper();
-                }
-                else if ((textConfiguration.m_fontStyleInternal & FontStyles.LowerCase) == FontStyles.LowerCase)
-                {
-                    // If this character is uppercase, switch to lowercase.
-                    prevCurNext.current = currentRune.ToLower();
-                    currentRune         = prevCurNext.current;
-                    if (prevCurNext.next != Unicode.BadRune)
-                        prevCurNext.next = prevCurNext.next.ToLower();
-                }
-                else if ((textConfiguration.m_fontStyleInternal & FontStyles.SmallCaps) == FontStyles.SmallCaps)
-                {
-                    var oldUnicode      = currentRune;
-                    prevCurNext.current = currentRune.ToUpper();
-                    currentRune         = prevCurNext.current;
-                    if (prevCurNext.current != oldUnicode)
-                    {
-                        smallCapsMultiplier = 0.8f;
-                    }
-                    if (prevCurNext.next != Unicode.BadRune)
-                        prevCurNext.next = prevCurNext.next.ToUpper();
-                }
-                #endregion
+                SwapRune(ref currentRune, ref textConfiguration, out float smallCapsMultiplier);
 
                 if (isLineStart)
                 {
@@ -301,7 +286,7 @@ namespace Latios.Calligraphics
 
                     // Handle Character FX Rotation
                     #region Handle Character FX Rotation
-                    renderGlyph.rotationCCW = textConfiguration.m_FXRotationAngle;
+                    renderGlyph.rotationCCW = textConfiguration.m_FXRotationAngleCCW;
                     #endregion
 
                     #region handle bold
@@ -325,9 +310,9 @@ namespace Latios.Calligraphics
 
                     renderGlyphs.Add(renderGlyph);
                     fontMaterialSet.WriteFontMaterialIndexForGlyph(textConfiguration.m_currentFontMaterialIndex);
-                    mappingWriter.AddCharNoTags(textConfiguration.m_characterCount - 1, true);
-                    mappingWriter.AddCharWithTags(characterEnumerator.CurrentCharIndex, true);
-                    mappingWriter.AddBytes(characterEnumerator.CurrentByteIndex, currentRune.LengthInUtf8Bytes(), true);
+                    mappingWriter.AddCharNoTags(textConfigurationStack.m_characterCount - 1, true);
+                    mappingWriter.AddCharWithTags(prevCurNext.current.CurrentCharIndex, true);
+                    mappingWriter.AddBytes(prevCurNext.current.CurrentByteIndex, currentRune.LengthInUtf8Bytes(), true);
 
                     // Handle Kerning if Enabled.
                     #region Handle Kerning
@@ -338,9 +323,12 @@ namespace Latios.Calligraphics
                     float           m_GlyphHorizontalAdvanceAdjustment = 0;
                     if (baseConfiguration.enableKerning)
                     {
-                        if (prevCurNext.next != Unicode.BadRune)
+                        // Todo: If the active configuration changes between glyphs, we may want to cancel out of kerning.
+                        if (prevCurNext.nextIsValid)
                         {
-                            if (glyphBlob.glyphAdjustmentsLookup.TryGetAdjustmentPairIndexForUnicodeAfter(prevCurNext.next.value, out var adjustmentIndex))
+                            var nextRune = prevCurNext.next.Current;
+                            SwapRune(ref nextRune, ref textConfiguration, out _);
+                            if (glyphBlob.glyphAdjustmentsLookup.TryGetAdjustmentPairIndexForUnicodeAfter(nextRune.value, out var adjustmentIndex))
                             {
                                 var adjustmentPair         = font.adjustmentPairs[adjustmentIndex];
                                 glyphAdjustments           = adjustmentPair.firstAdjustment;
@@ -349,9 +337,11 @@ namespace Latios.Calligraphics
                             }
                         }
 
-                        if (textConfiguration.m_characterCount >= 1)
+                        if (prevCurNext.previousIsValid)
                         {
-                            if (glyphBlob.glyphAdjustmentsLookup.TryGetAdjustmentPairIndexForUnicodeBefore(prevCurNext.prev.value, out var adjustmentIndex))
+                            var prevRune = prevCurNext.prev.Current;
+                            SwapRune(ref prevRune, ref textConfiguration, out _);
+                            if (glyphBlob.glyphAdjustmentsLookup.TryGetAdjustmentPairIndexForUnicodeBefore(prevRune.value, out var adjustmentIndex))
                             {
                                 var adjustmentPair          = font.adjustmentPairs[adjustmentIndex];
                                 glyphAdjustments           += adjustmentPair.secondAdjustment;
@@ -365,10 +355,42 @@ namespace Latios.Calligraphics
 
                     adjustmentOffset.x = glyphAdjustments.xPlacement * currentElementScale;
                     adjustmentOffset.y = glyphAdjustments.yPlacement * currentElementScale;
+                    #endregion
 
-                    cumulativeOffset.x +=
-                        ((currentGlyphMetrics.horizontalAdvance * textConfiguration.m_FXScale.x + glyphAdjustments.xAdvance) * currentElementScale +
-                         (font.regularStyleSpacing + characterSpacingAdjustment + boldSpacingAdjustment) * currentEmScale + textConfiguration.m_cSpacing);  // * (1 - m_charWidthAdjDelta);
+                    // Handle Mono Spacing
+                    #region Handle Mono Spacing
+                    float monoAdvance = 0;
+                    if (textConfiguration.m_monoSpacing != 0)
+                    {
+                        monoAdvance =
+                            (textConfiguration.m_monoSpacing / 2 - (currentGlyphMetrics.width / 2 + currentGlyphMetrics.horizontalBearingX) * currentElementScale);  // * (1 - charWidthAdjDelta);
+                        cumulativeOffset.x += monoAdvance;
+                    }
+                    #endregion
+
+                    // Handle xAdvance & Tabulation Stops. Tab stops at every 25% of Font Size.
+                    #region XAdvance, Tabulation & Stops
+                    if (currentRune.value == 9)
+                    {
+                        float tabSize      = font.tabWidth * font.tabMultiple * currentElementScale;
+                        float tabs         = Mathf.Ceil(cumulativeOffset.x / tabSize) * tabSize;
+                        cumulativeOffset.x = tabs > cumulativeOffset.x ? tabs : cumulativeOffset.x + tabSize;
+                    }
+                    else if (textConfiguration.m_monoSpacing != 0)
+                    {
+                        float monoAdjustment  = textConfiguration.m_monoSpacing - monoAdvance;
+                        cumulativeOffset.x   += (monoAdjustment + ((font.regularStyleSpacing + characterSpacingAdjustment) * currentEmScale) + textConfiguration.m_cSpacing);  // * (1 - m_charWidthAdjDelta);
+                        if (currentRune.IsWhiteSpace() || currentRune.value == 0x200B)
+                            cumulativeOffset.x += baseConfiguration.wordSpacing * currentEmScale;
+                    }
+                    else
+                    {
+                        cumulativeOffset.x +=
+                            ((currentGlyphMetrics.horizontalAdvance * textConfiguration.m_FXScale.x + glyphAdjustments.xAdvance) * currentElementScale +
+                             (font.regularStyleSpacing + characterSpacingAdjustment + boldSpacingAdjustment) * currentEmScale + textConfiguration.m_cSpacing);  // * (1 - m_charWidthAdjDelta);
+                        if (currentRune.IsWhiteSpace() || currentRune.value == 0x200B)
+                            cumulativeOffset.x += baseConfiguration.wordSpacing * currentEmScale;
+                    }
                     cumulativeOffset.y += glyphAdjustments.yAdvance * currentElementScale;
                     #endregion
 
@@ -512,12 +534,41 @@ namespace Latios.Calligraphics
                 if (lineCount > 0)
                 {
                     accumulatedVerticalOffset += currentLineHeight;
-                    if (lastCommittedStartOfLineGlyphIndex != startOfLineGlyphIndex)
-                        ApplyVerticalOffsetToGlyphs(ref finalGlyphsLine, accumulatedVerticalOffset);
+                    ApplyVerticalOffsetToGlyphs(ref finalGlyphsLine, accumulatedVerticalOffset);
                 }
             }
             lineCount++;
             ApplyVerticalAlignmentToGlyphs(ref renderGlyphs, topAnchor, bottomAnchor, accumulatedVerticalOffset, baseConfiguration.verticalAlignment);
+        }
+
+        public struct PrevCurNext
+        {
+            public CalliString.Enumerator prev;
+            public CalliString.Enumerator current;
+            public CalliString.Enumerator next;
+
+            public bool previousIsValid;
+            public bool currentIsValid;
+            public bool nextIsValid;
+
+            public PrevCurNext(CalliString.Enumerator enumerator)
+            {
+                previousIsValid = false;
+                prev            = default;
+                currentIsValid  = false;
+                current         = default;
+                nextIsValid     = enumerator.MoveNext();
+                next            = enumerator;
+            }
+
+            public void MoveNext()
+            {
+                prev            = current;
+                current         = next;
+                previousIsValid = currentIsValid;
+                currentIsValid  = nextIsValid;
+                nextIsValid     = next.MoveNext();
+            }
         }
 
         static float GetTopAnchorForConfig(ref FontBlob font, VerticalAlignmentOptions verticalMode, float baseScale, float oldValue = float.PositiveInfinity)
@@ -664,28 +715,33 @@ namespace Latios.Calligraphics
                 }
             }
         }
-        static void UpdateCharacterWindow(ref PrevCurNext prevCurNext, ref CalliString.Enumerator characterEnumerator, bool kerningEnabled)
+
+        static unsafe void SwapRune(ref Unicode.Rune rune, ref ActiveTextConfiguration textConfiguration, out float smallCapsMultiplier)
         {
-            prevCurNext.prev    = prevCurNext.current;
-            prevCurNext.current = characterEnumerator.Current;
-            if (kerningEnabled)
+            smallCapsMultiplier = 1f;
+
+            // Todo: Burst does not support language methods, and char only supports the UTF-16 subset
+            // of characters. We should encode upper and lower cross-references into the font blobs or
+            // figure out the formulas for all other languages. Right now only ascii is supported.
+            if ((textConfiguration.m_fontStyleInternal & FontStyles.UpperCase) == FontStyles.UpperCase)
             {
-                if (characterEnumerator.MoveNext())
-                {
-                    //could return rich text opening tag `<` but only in
-                    //the very unlikly case of having exactly 1 valid text char between 2 tags
-                    prevCurNext.next = characterEnumerator.Current;
-                    characterEnumerator.MovePrevious();
-                }
-                else
-                    prevCurNext.next = Unicode.BadRune;
+                // If this character is lowercase, switch to uppercase.
+                rune = rune.ToUpper();
             }
-        }
-        public struct PrevCurNext
-        {
-            public Unicode.Rune prev;
-            public Unicode.Rune current;
-            public Unicode.Rune next;
+            else if ((textConfiguration.m_fontStyleInternal & FontStyles.LowerCase) == FontStyles.LowerCase)
+            {
+                // If this character is uppercase, switch to lowercase.
+                rune = rune.ToLower();
+            }
+            else if ((textConfiguration.m_fontStyleInternal & FontStyles.SmallCaps) == FontStyles.SmallCaps)
+            {
+                var oldUnicode = rune;
+                rune           = rune.ToUpper();
+                if (rune != oldUnicode)
+                {
+                    smallCapsMultiplier = 0.8f;
+                }
+            }
         }
     }
 }
