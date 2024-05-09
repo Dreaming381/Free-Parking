@@ -16,25 +16,32 @@ namespace Latios.Calligraphics
         public HorizontalAlignmentOptions m_lineJustification;
         public float                      m_baselineOffset;
         public Color32                    m_htmlColor;
-        public Color32                    m_underlineColor;
-        public Color32                    m_strikethroughColor;
-        public short                      m_italicAngle;
-        public float                      m_lineOffset;
-        public float                      m_lineHeight;
-        public float                      m_cSpacing;
-        public float                      m_monoSpacing;
-        public float                      m_xAdvance;
-        public float                      tag_LineIndent;
-        public float                      tag_Indent;
-        public bool                       tag_NoParsing;
-        public float                      m_marginWidth;
-        public float                      m_marginHeight;
-        public float                      m_marginLeft;
-        public float                      m_marginRight;
-        public float                      m_width;
-        public bool                       m_isNonBreakingSpace;
-        public float                      m_FXRotationAngleCCW;
-        public float3                     m_FXScale;
+        //public Color32                    m_underlineColor;
+        //public Color32                    m_strikethroughColor;
+        public short m_italicAngle;
+        public float m_lineOffset;
+        //public float                      m_lineHeight;
+        public float m_cSpacing;
+        public float m_monoSpacing;
+        //public float                      m_xAdvance;
+        //public float                      m_tagLineIndent;
+        //public float                      m_tagIndent;
+        //public float                      m_marginWidth;
+        //public float                      m_marginHeight;
+        //public float                      m_marginLeft;
+        //public float                      m_marginRight;
+        //public float                      m_width;
+        //public bool                       m_isNonBreakingSpace;
+        public float  m_fxRotationAngleCCW;
+        public float3 m_fxScale;
+
+        //// The following are derived values
+        //public float baseScale;
+        //
+        //public void CalculateDerived(in TextBaseConfiguration baseConfiguration, ref FontBlob font)
+        //{
+        //    baseScale = m_currentFontSize / font.pointSize * font.scale * (baseConfiguration.isOrthographic ? 1 : 0.1f);
+        //}
     }
 
     internal struct TextConfigurationStack
@@ -80,10 +87,10 @@ namespace Latios.Calligraphics
         public float m_monoSpacing;
         public float m_xAdvance;
 
-        public float                     tag_LineIndent;
-        public float                     tag_Indent;
+        public float                     m_tagLineIndent;
+        public float                     m_tagIndent;
         public FixedStack512Bytes<float> m_indentStack;
-        public bool                      tag_NoParsing;
+        public bool                      m_tagNoParsing;
 
         public float m_marginWidth;
         public float m_marginHeight;
@@ -95,8 +102,8 @@ namespace Latios.Calligraphics
 
         public bool m_isParsingText;
 
-        public float  m_FXRotationAngleCCW;
-        public float3 m_FXScale;
+        public float  m_fxRotationAngleCCW;
+        public float3 m_fxScale;
 
         public FixedStack512Bytes<HighlightState> m_highlightStateStack;
         public int                                m_characterCount;
@@ -149,11 +156,11 @@ namespace Latios.Calligraphics
             m_monoSpacing = 0;
             m_xAdvance    = 0;  // Used to track the position of each character.
 
-            tag_LineIndent = 0;  // Used for indentation of text.
-            tag_Indent     = 0;
+            m_tagLineIndent = 0;  // Used for indentation of text.
+            m_tagIndent     = 0;
             m_indentStack.Clear();
-            m_indentStack.Add(tag_Indent);
-            tag_NoParsing = false;
+            m_indentStack.Add(m_tagIndent);
+            m_tagNoParsing = false;
 
             m_marginWidth  = 0;
             m_marginHeight = 0;
@@ -164,8 +171,8 @@ namespace Latios.Calligraphics
             m_isNonBreakingSpace = false;
 
             m_isParsingText      = false;
-            m_FXRotationAngleCCW = 0;
-            m_FXScale            = 1;
+            m_fxRotationAngleCCW = 0;
+            m_fxScale            = 1;
 
             m_highlightStateStack.Clear();
 
@@ -183,26 +190,25 @@ namespace Latios.Calligraphics
                 m_fontScaleMultiplier      = m_fontScaleMultiplier,
                 m_fontStyleInternal        = m_fontStyleInternal,
                 m_fontWeightInternal       = m_fontWeightInternal,
-                m_FXRotationAngleCCW       = m_FXRotationAngleCCW,
-                m_FXScale                  = m_FXScale,
+                m_fxRotationAngleCCW       = m_fxRotationAngleCCW,
+                m_fxScale                  = m_fxScale,
                 m_htmlColor                = m_htmlColor,
-                m_isNonBreakingSpace       = m_isNonBreakingSpace,
-                m_italicAngle              = m_italicAngle,
-                m_lineHeight               = m_lineHeight,
-                m_lineJustification        = m_lineJustification,
-                m_lineOffset               = m_lineOffset,
-                m_marginHeight             = m_marginHeight,
-                m_marginLeft               = m_marginLeft,
-                m_marginRight              = m_marginRight,
-                m_marginWidth              = m_marginWidth,
-                m_monoSpacing              = m_monoSpacing,
-                m_strikethroughColor       = m_strikethroughColor,
-                m_underlineColor           = m_underlineColor,
-                m_width                    = m_width,
-                m_xAdvance                 = m_xAdvance,
-                tag_Indent                 = tag_Indent,
-                tag_LineIndent             = tag_LineIndent,
-                tag_NoParsing              = tag_NoParsing,
+                //m_isNonBreakingSpace       = m_isNonBreakingSpace,
+                m_italicAngle = m_italicAngle,
+                //m_lineHeight               = m_lineHeight,
+                m_lineJustification = m_lineJustification,
+                m_lineOffset        = m_lineOffset,
+                //m_marginHeight             = m_marginHeight,
+                //m_marginLeft               = m_marginLeft,
+                //m_marginRight              = m_marginRight,
+                //m_marginWidth              = m_marginWidth,
+                m_monoSpacing = m_monoSpacing,
+                //m_strikethroughColor       = m_strikethroughColor,
+                //m_underlineColor           = m_underlineColor,
+                //m_width                    = m_width,
+                //m_xAdvance                 = m_xAdvance,
+                //m_tagIndent                 = m_tagIndent,
+                //m_tagLineIndent             = m_tagLineIndent,
             };
         }
     }

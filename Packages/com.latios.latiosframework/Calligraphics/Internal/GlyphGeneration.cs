@@ -43,7 +43,6 @@ namespace Latios.Calligraphics
             float                  maxLineAscender                                 = float.MinValue;
             float                  maxLineDescender                                = float.MaxValue;
             float                  startOfLineAscender                             = font.ascentLine;
-            float                  lineGap                                         = font.lineHeight - (font.ascentLine - font.descentLine);
             float                  lastVisibleAscender                             = 0;
 
             // Calculate the scale of the font based on selected font size and sampling point size.
@@ -80,8 +79,10 @@ namespace Latios.Calligraphics
                 {
                     textConfigurationStack.m_isParsingText = true;
                     // Check if Tag is valid. If valid, skip to the end of the validated tag.
-                    if (RichTextParser.ValidateHtmlTag(in calliString, ref prevCurNext.next, ref fontMaterialSet, in baseConfiguration, ref textConfigurationStack))
+                    var nextEnumerator = prevCurNext.next;
+                    if (RichTextParser.ValidateHtmlTag(in calliString, ref nextEnumerator, ref fontMaterialSet, in baseConfiguration, ref textConfigurationStack))
                     {
+                        prevCurNext.next               = nextEnumerator;
                         needsActiveConfigurationUpdate = true;
                         // Continue to next character
                         prevCurNext.nextIsValid = prevCurNext.next.MoveNext();
@@ -123,7 +124,7 @@ namespace Latios.Calligraphics
                 {
                     var glyphsLine   = renderGlyphs.AsNativeArray().GetSubArray(startOfLineGlyphIndex, renderGlyphs.Length - startOfLineGlyphIndex);
                     var overrideMode = textConfiguration.m_lineJustification;
-                    if ((overrideMode) == HorizontalAlignmentOptions.Justified)
+                    if (overrideMode == HorizontalAlignmentOptions.Justified)
                     {
                         // Don't perform justified spacing for the last line in the paragraph.
                         overrideMode = HorizontalAlignmentOptions.Left;
@@ -141,7 +142,7 @@ namespace Latios.Calligraphics
                             ApplyVerticalOffsetToGlyphs(ref glyphsLine, accumulatedVerticalOffset);
                             lastCommittedStartOfLineGlyphIndex = startOfLineGlyphIndex;
                         }
-                        accumulatedVerticalOffset += (font.descentLine * baseScale - maxLineDescender);
+                        accumulatedVerticalOffset += font.descentLine * baseScale - maxLineDescender;
 
                         //apply user configurable line and paragraph spacing
                         accumulatedVerticalOffset +=
@@ -150,7 +151,7 @@ namespace Latios.Calligraphics
                     else
                     {
                         //ensure we apply the descenderDelta also for a manual line break right after the first line
-                        accumulatedVerticalOffset += (font.descentLine * baseScale - maxLineDescender);
+                        accumulatedVerticalOffset += font.descentLine * baseScale - maxLineDescender;
                         //apply user configurable line and paragraph spacing
                         accumulatedVerticalOffset +=
                             (baseConfiguration.lineSpacing + (currentRune.value == 10 || currentRune.value == 0x2029 ? baseConfiguration.paragraphSpacing : 0)) * currentEmScale;
@@ -198,9 +199,11 @@ namespace Latios.Calligraphics
 
                     // Determine the position of the vertices of the Character
                     #region Calculate Vertices Position
-                    var    currentGlyphMetrics = glyphBlob.glyphMetrics;
+                    var currentGlyphMetrics = glyphBlob.glyphMetrics;
+
+                    // top left is used to position bottom left and top right
                     float2 topLeft;
-                    topLeft.x = (currentGlyphMetrics.horizontalBearingX * textConfiguration.m_FXScale.x - font.materialPadding - style_padding) * currentElementScale;
+                    topLeft.x = (currentGlyphMetrics.horizontalBearingX * textConfiguration.m_fxScale.x - font.materialPadding - style_padding) * currentElementScale;
                     topLeft.y = (currentGlyphMetrics.horizontalBearingY + font.materialPadding) * currentElementScale - textConfiguration.m_lineOffset +
                                 textConfiguration.m_baselineOffset;
 
@@ -209,12 +212,10 @@ namespace Latios.Calligraphics
                     bottomLeft.y = topLeft.y - ((currentGlyphMetrics.height + font.materialPadding * 2) * currentElementScale);
 
                     float2 topRight;
-                    topRight.x = bottomLeft.x + (currentGlyphMetrics.width * textConfiguration.m_FXScale.x + font.materialPadding * 2 + style_padding * 2) * currentElementScale;
+                    topRight.x = bottomLeft.x + (currentGlyphMetrics.width * textConfiguration.m_fxScale.x + font.materialPadding * 2 + style_padding * 2) * currentElementScale;
                     topRight.y = topLeft.y;
 
-                    float2 bottomRight;
-                    bottomRight.x = topRight.x;
-                    bottomRight.y = bottomLeft.y;
+                    // Bottom right unused
                     #endregion
 
                     #region Setup UVA
@@ -262,31 +263,28 @@ namespace Latios.Calligraphics
                     if (((textConfiguration.m_fontStyleInternal & FontStyles.Italic) == FontStyles.Italic))
                     {
                         // Shift Top vertices forward by half (Shear Value * height of character) and Bottom vertices back by same amount.
-                        float  shear_value = textConfiguration.m_italicAngle * 0.01f;
-                        float  midPoint    = ((font.capLine - (font.baseLine + textConfiguration.m_baselineOffset)) / 2) * textConfiguration.m_fontScaleMultiplier * font.scale;
-                        float2 topShear    =
-                            new float2(shear_value * ((currentGlyphMetrics.horizontalBearingY + font.materialPadding + style_padding - midPoint) * currentElementScale), 0);
-                        float2 bottomShear =
-                            new float2(shear_value *
-                                       (((currentGlyphMetrics.horizontalBearingY - currentGlyphMetrics.height - font.materialPadding - style_padding - midPoint)) *
-                                        currentElementScale), 0);
-                        float2 shearAdjustment = (topShear - bottomShear) * 0.5f;
+                        float shear_value = textConfiguration.m_italicAngle * 0.01f;
+                        float midPoint    = ((font.capLine - (font.baseLine + textConfiguration.m_baselineOffset)) / 2) * textConfiguration.m_fontScaleMultiplier * font.scale;
+                        float topShear    = shear_value * ((currentGlyphMetrics.horizontalBearingY + font.materialPadding + style_padding - midPoint) * currentElementScale);
+                        float bottomShear = shear_value *
+                                            ((currentGlyphMetrics.horizontalBearingY - currentGlyphMetrics.height - font.materialPadding - style_padding - midPoint) *
+                                             currentElementScale);
+                        float shearAdjustment = (topShear - bottomShear) * 0.5f;
 
                         topShear    -= shearAdjustment;
                         bottomShear -= shearAdjustment;
 
-                        topLeft     += topShear;
-                        bottomLeft  += bottomShear;
-                        topRight    += topShear;
-                        bottomRight += bottomShear;
+                        topLeft.x    += topShear;
+                        bottomLeft.x += bottomShear;
+                        topRight.x   += topShear;
 
-                        renderGlyph.shear = (topLeft.x - bottomLeft.x);
+                        renderGlyph.shear = topLeft.x - bottomLeft.x;
                     }
                     #endregion Handle Italics & Shearing
 
                     // Handle Character FX Rotation
                     #region Handle Character FX Rotation
-                    renderGlyph.rotationCCW = textConfiguration.m_FXRotationAngleCCW;
+                    renderGlyph.rotationCCW = textConfiguration.m_fxRotationAngleCCW;
                     #endregion
 
                     #region handle bold
@@ -298,11 +296,10 @@ namespace Latios.Calligraphics
                     #endregion
 
                     #region apply offsets
-                    var offset   = adjustmentOffset + cumulativeOffset;
-                    topLeft     += offset;
-                    bottomLeft  += offset;
-                    topRight    += offset;
-                    bottomRight += offset;
+                    var offset  = adjustmentOffset + cumulativeOffset;
+                    topLeft    += offset;
+                    bottomLeft += offset;
+                    topRight   += offset;
                     #endregion
 
                     renderGlyph.trPosition = topRight;
@@ -386,7 +383,7 @@ namespace Latios.Calligraphics
                     else
                     {
                         cumulativeOffset.x +=
-                            ((currentGlyphMetrics.horizontalAdvance * textConfiguration.m_FXScale.x + glyphAdjustments.xAdvance) * currentElementScale +
+                            ((currentGlyphMetrics.horizontalAdvance * textConfiguration.m_fxScale.x + glyphAdjustments.xAdvance) * currentElementScale +
                              (font.regularStyleSpacing + characterSpacingAdjustment + boldSpacingAdjustment) * currentEmScale + textConfiguration.m_cSpacing);  // * (1 - m_charWidthAdjDelta);
                         if (currentRune.IsWhiteSpace() || currentRune.value == 0x200B)
                             cumulativeOffset.x += baseConfiguration.wordSpacing * currentEmScale;
@@ -439,7 +436,7 @@ namespace Latios.Calligraphics
                                 ApplyVerticalOffsetToGlyphs(ref glyphsLine, accumulatedVerticalOffset);
                                 lastCommittedStartOfLineGlyphIndex = startOfLineGlyphIndex;
                             }
-                            accumulatedVerticalOffset += (font.descentLine * baseScale - maxLineDescender);  // Todo: Delta should be computed per glyph
+                            accumulatedVerticalOffset += font.descentLine * baseScale - maxLineDescender;  // Todo: Delta should be computed per glyph
                             //apply user configurable line and paragraph spacing
                             accumulatedVerticalOffset +=
                                 (baseConfiguration.lineSpacing +
@@ -525,7 +522,7 @@ namespace Latios.Calligraphics
             var finalGlyphsLine = renderGlyphs.AsNativeArray().GetSubArray(startOfLineGlyphIndex, renderGlyphs.Length - startOfLineGlyphIndex);
             {
                 var overrideMode = textConfiguration.m_lineJustification;
-                if ((overrideMode) == HorizontalAlignmentOptions.Justified)
+                if (overrideMode == HorizontalAlignmentOptions.Justified)
                 {
                     // Don't perform justified spacing for the last line.
                     overrideMode = HorizontalAlignmentOptions.Left;

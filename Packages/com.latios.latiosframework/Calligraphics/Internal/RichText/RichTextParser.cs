@@ -191,11 +191,11 @@ namespace Latios.Calligraphics.RichText
             //#region Rich Text Tag Processing
             //#if !RICH_TEXT_ENABLED
             // Special handling of the no parsing tag </noparse> </NOPARSE> tag
-            if (textConfigurationStack.tag_NoParsing && (firstTagIndentifier.nameHashCode != 53822163 && firstTagIndentifier.nameHashCode != 49429939))
+            if (textConfigurationStack.m_tagNoParsing && (firstTagIndentifier.nameHashCode != 53822163 && firstTagIndentifier.nameHashCode != 49429939))
                 return false;
             else if (firstTagIndentifier.nameHashCode == 53822163 || firstTagIndentifier.nameHashCode == 49429939)
             {
-                textConfigurationStack.tag_NoParsing = false;
+                textConfigurationStack.m_tagNoParsing = false;
                 return true;
             }
 
@@ -1037,22 +1037,22 @@ namespace Latios.Calligraphics.RichText
                         {
                             case TagUnitType.Pixels:
                                 if (ConvertToFloat(ref textConfigurationStack.m_htmlTag, out value) != ParseError.None)
-                                    textConfigurationStack.tag_Indent = value * (baseConfiguration.isOrthographic ? 1 : 0.1f);
+                                    textConfigurationStack.m_tagIndent = value * (baseConfiguration.isOrthographic ? 1 : 0.1f);
                                 break;
                             case TagUnitType.FontUnits:
-                                textConfigurationStack.tag_Indent = value * (baseConfiguration.isOrthographic ? 1 : 0.1f) * textConfigurationStack.m_currentFontSize;
+                                textConfigurationStack.m_tagIndent = value * (baseConfiguration.isOrthographic ? 1 : 0.1f) * textConfigurationStack.m_currentFontSize;
                                 break;
                             case TagUnitType.Percentage:
-                                textConfigurationStack.tag_Indent = textConfigurationStack.m_marginWidth * value / 100;
+                                textConfigurationStack.m_tagIndent = textConfigurationStack.m_marginWidth * value / 100;
                                 break;
                         }
-                        textConfigurationStack.m_indentStack.Add(textConfigurationStack.tag_Indent);
+                        textConfigurationStack.m_indentStack.Add(textConfigurationStack.m_tagIndent);
 
-                        textConfigurationStack.m_xAdvance = textConfigurationStack.tag_Indent;
+                        textConfigurationStack.m_xAdvance = textConfigurationStack.m_tagIndent;
                         return true;
                     case 7598483:  // </indent>
                     case 6971027:  // </INDENT>
-                        textConfigurationStack.tag_Indent = textConfigurationStack.m_indentStack.RemoveExceptRoot();
+                        textConfigurationStack.m_tagIndent = textConfigurationStack.m_indentStack.RemoveExceptRoot();
                         //m_xAdvance = tag_Indent;
                         return true;
                     case 1109386397:  // <line-indent>
@@ -1065,21 +1065,21 @@ namespace Latios.Calligraphics.RichText
                         switch (tagUnitType)
                         {
                             case TagUnitType.Pixels:
-                                textConfigurationStack.tag_LineIndent = value * (baseConfiguration.isOrthographic ? 1 : 0.1f);
+                                textConfigurationStack.m_tagLineIndent = value * (baseConfiguration.isOrthographic ? 1 : 0.1f);
                                 break;
                             case TagUnitType.FontUnits:
-                                textConfigurationStack.tag_LineIndent = value * (baseConfiguration.isOrthographic ? 1 : 0.1f) * textConfigurationStack.m_currentFontSize;
+                                textConfigurationStack.m_tagLineIndent = value * (baseConfiguration.isOrthographic ? 1 : 0.1f) * textConfigurationStack.m_currentFontSize;
                                 break;
                             case TagUnitType.Percentage:
-                                textConfigurationStack.tag_LineIndent = textConfigurationStack.m_marginWidth * value / 100;
+                                textConfigurationStack.m_tagLineIndent = textConfigurationStack.m_marginWidth * value / 100;
                                 break;
                         }
 
-                        textConfigurationStack.m_xAdvance += textConfigurationStack.tag_LineIndent;
+                        textConfigurationStack.m_xAdvance += textConfigurationStack.m_tagLineIndent;
                         return true;
                     case -445537194:  // </line-indent>
                     case 1897386838:  // </LINE-INDENT>
-                        textConfigurationStack.tag_LineIndent = 0;
+                        textConfigurationStack.m_tagLineIndent = 0;
                         return true;
                     //case 2246877: // <sprite=x>
                     //case 1619421: // <SPRITE>
@@ -1442,7 +1442,7 @@ namespace Latios.Calligraphics.RichText
                         return true;
                     case 15115642:  // <noparse>
                     case 10723418:  // <NOPARSE>
-                        textConfigurationStack.tag_NoParsing = true;
+                        textConfigurationStack.m_tagNoParsing = true;
                         return true;
                     //case 1913798: // <action>
                     //case 1286342: // <ACTION>
@@ -1476,12 +1476,12 @@ namespace Latios.Calligraphics.RichText
                         if (ConvertToFloat(ref textConfigurationStack.m_htmlTag, out value) != ParseError.None)
                             return false;
 
-                        textConfigurationStack.m_FXScale = new Vector3(value, 1, 1);
+                        textConfigurationStack.m_fxScale = new Vector3(value, 1, 1);
 
                         return true;
                     case 1105611:  // </scale>
                     case 1015979:  // </SCALE>
-                        textConfigurationStack.m_FXScale = 1;
+                        textConfigurationStack.m_fxScale = 1;
                         return true;
                     case 2227963:  // <rotate=xx.x>
                     case 1600507:  // <ROTATE=xx.x>
@@ -1491,12 +1491,12 @@ namespace Latios.Calligraphics.RichText
                         if (ConvertToFloat(ref textConfigurationStack.m_htmlTag, out value) != ParseError.None)
                             return false;
 
-                        textConfigurationStack.m_FXRotationAngleCCW = -math.radians(value);
+                        textConfigurationStack.m_fxRotationAngleCCW = -math.radians(value);
 
                         return true;
                     case 7757466:  // </rotate>
                     case 7130010:  // </ROTATE>
-                        textConfigurationStack.m_FXRotationAngleCCW = 0;
+                        textConfigurationStack.m_fxRotationAngleCCW = 0;
                         return true;
                     case 317446:  // <table>
                     case 227814:  // <TABLE>
