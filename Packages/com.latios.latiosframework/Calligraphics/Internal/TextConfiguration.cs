@@ -4,14 +4,29 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.TextCore.Text;
 
+// As a general rule, GlyphGeneration should never modify the ActiveTextConfiguration or TextConfigurationStack, only read them.
+// They should be driven by the RichTextParser.
+
 namespace Latios.Calligraphics
 {
+    internal struct TextGenerationStateCommands
+    {
+        public float xAdvanceChange;
+        public bool  xAdvanceIsOverwrite;  // False is additive
+
+        public void Reset()
+        {
+            xAdvanceChange      = 0f;
+            xAdvanceIsOverwrite = false;
+        }
+    }
+
     internal struct ActiveTextConfiguration
     {
-        public float                      m_fontScaleMultiplier;  // Used for handling of superscript and subscript.
-        public float                      m_currentFontSize;
-        public FontStyles                 m_fontStyleInternal;
-        public FontWeight                 m_fontWeightInternal;
+        public float      m_fontScaleMultiplier;  // Used for handling of superscript and subscript.
+        public float      m_currentFontSize;
+        public FontStyles m_fontStyleInternal;
+        //public FontWeight                 m_fontWeightInternal;
         public int                        m_currentFontMaterialIndex;
         public HorizontalAlignmentOptions m_lineJustification;
         public float                      m_baselineOffset;
@@ -85,7 +100,6 @@ namespace Latios.Calligraphics
 
         public float m_cSpacing;
         public float m_monoSpacing;
-        public float m_xAdvance;
 
         public float                     m_tagLineIndent;
         public float                     m_tagIndent;
@@ -106,7 +120,6 @@ namespace Latios.Calligraphics
         public float3 m_fxScale;
 
         public FixedStack512Bytes<HighlightState> m_highlightStateStack;
-        public int                                m_characterCount;
 
         public void Reset(TextBaseConfiguration textBaseConfiguration)
         {
@@ -154,7 +167,6 @@ namespace Latios.Calligraphics
 
             m_cSpacing    = 0;  // Amount of space added between characters as a result of the use of the <cspace> tag.
             m_monoSpacing = 0;
-            m_xAdvance    = 0;  // Used to track the position of each character.
 
             m_tagLineIndent = 0;  // Used for indentation of text.
             m_tagIndent     = 0;
@@ -175,8 +187,6 @@ namespace Latios.Calligraphics
             m_fxScale            = 1;
 
             m_highlightStateStack.Clear();
-
-            m_characterCount = 0;  // Total characters in the CalliString
         }
 
         public ActiveTextConfiguration GetActiveConfiguration()
@@ -189,10 +199,10 @@ namespace Latios.Calligraphics
                 m_currentFontSize          = m_currentFontSize,
                 m_fontScaleMultiplier      = m_fontScaleMultiplier,
                 m_fontStyleInternal        = m_fontStyleInternal,
-                m_fontWeightInternal       = m_fontWeightInternal,
-                m_fxRotationAngleCCW       = m_fxRotationAngleCCW,
-                m_fxScale                  = m_fxScale,
-                m_htmlColor                = m_htmlColor,
+                //m_fontWeightInternal       = m_fontWeightInternal,
+                m_fxRotationAngleCCW = m_fxRotationAngleCCW,
+                m_fxScale            = m_fxScale,
+                m_htmlColor          = m_htmlColor,
                 //m_isNonBreakingSpace       = m_isNonBreakingSpace,
                 m_italicAngle = m_italicAngle,
                 //m_lineHeight               = m_lineHeight,

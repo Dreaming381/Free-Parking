@@ -154,7 +154,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   text: "Up <voffset=1em>up <voffset=2em>UP</voffset> and <voffset=-0.5em>down</voffset>
     we go again. <color=\"red\">Red <color=#005500>Dark Green <#0000FF>Blue <color=#FF000088>Semitransparent
-    Red</color> <lowercase>Alice and Bob watched TV.</lowercase> \n\n</color><uppercase>Alice
+    Red</color> <lowercase>Alice and Bob watched TV.</lowercase> \n<size=2>\naaa\nbbb\n</size></color><uppercase>Alice
     <b>and Bob</b> watched TV.</uppercase> </color><allcaps>Alice <i>and an Bob</i>
     watched TV.</allcaps></color> <smallcaps>Alice and Bob watched TV.</smallcaps>"
   fontSize: 8
@@ -179,7 +179,7 @@ MonoBehaviour:
   - font: {fileID: 11400000, guid: 19fffb8f8b6ded143952be3bc554914e, type: 2}
     overrideMaterial: {fileID: 2205255749929156853, guid: 19fffb8f8b6ded143952be3bc554914e,
       type: 2}
-  gpuResident: 1
+  gpuResident: 0
 --- !u!4 &524266842
 Transform:
   m_ObjectHideFlags: 0

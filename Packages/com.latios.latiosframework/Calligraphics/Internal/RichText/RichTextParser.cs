@@ -19,7 +19,9 @@ namespace Latios.Calligraphics.RichText
             ref CalliString.Enumerator enumerator,
             ref FontMaterialSet fontMaterialSet,
             in TextBaseConfiguration baseConfiguration,
-            ref TextConfigurationStack textConfigurationStack)  //this is just a cache to avoid allocation
+            ref TextConfigurationStack textConfigurationStack,
+            ref TextGenerationStateCommands textGenerationStateCommands,
+            int characterCount)  // CharacterCount is a temporary argument until we replace the enumerator.
         {
             ref var richTextTagIndentifiers = ref textConfigurationStack.richTextTagIndentifiers;
             richTextTagIndentifiers.Clear();
@@ -514,13 +516,17 @@ namespace Latios.Calligraphics.RichText
                         switch (tagUnitType)
                         {
                             case TagUnitType.Pixels:
-                                textConfigurationStack.m_xAdvance = value * (baseConfiguration.isOrthographic ? 1.0f : 0.1f);
+                                textGenerationStateCommands.xAdvanceChange      = value * (baseConfiguration.isOrthographic ? 1.0f : 0.1f);
+                                textGenerationStateCommands.xAdvanceIsOverwrite = true;
                                 return true;
                             case TagUnitType.FontUnits:
-                                textConfigurationStack.m_xAdvance = value * textConfigurationStack.m_currentFontSize * (baseConfiguration.isOrthographic ? 1.0f : 0.1f);
+                                textGenerationStateCommands.xAdvanceChange = value * textConfigurationStack.m_currentFontSize *
+                                                                             (baseConfiguration.isOrthographic ? 1.0f : 0.1f);
+                                textGenerationStateCommands.xAdvanceIsOverwrite = true;
                                 return true;
                             case TagUnitType.Percentage:
-                                textConfigurationStack.m_xAdvance = textConfigurationStack.m_marginWidth * value / 100;
+                                textGenerationStateCommands.xAdvanceChange      = textConfigurationStack.m_marginWidth * value / 100;
+                                textGenerationStateCommands.xAdvanceIsOverwrite = true;
                                 return true;
                         }
                         return false;
@@ -722,10 +728,10 @@ namespace Latios.Calligraphics.RichText
                         switch (tagUnitType)
                         {
                             case TagUnitType.Pixels:
-                                textConfigurationStack.m_xAdvance += value * (baseConfiguration.isOrthographic ? 1 : 0.1f);
+                                textGenerationStateCommands.xAdvanceChange += value * (baseConfiguration.isOrthographic ? 1 : 0.1f);
                                 return true;
                             case TagUnitType.FontUnits:
-                                textConfigurationStack.m_xAdvance += value * (baseConfiguration.isOrthographic ? 1 : 0.1f) * textConfigurationStack.m_currentFontSize;
+                                textGenerationStateCommands.xAdvanceChange += value * (baseConfiguration.isOrthographic ? 1 : 0.1f) * textConfigurationStack.m_currentFontSize;
                                 return true;
                             case TagUnitType.Percentage:
                                 // Not applicable
@@ -990,9 +996,9 @@ namespace Latios.Calligraphics.RichText
                             return true;
 
                         // Adjust xAdvance to remove extra space from last character.
-                        if (textConfigurationStack.m_characterCount > 0)
+                        if (characterCount > 0)
                         {
-                            textConfigurationStack.m_xAdvance -= textConfigurationStack.m_cSpacing;
+                            textGenerationStateCommands.xAdvanceChange -= textConfigurationStack.m_cSpacing;
                             //m_textInfo.characterInfo[m_characterCount - 1].xAdvance = m_xAdvance;
                         }
                         textConfigurationStack.m_cSpacing = 0;
@@ -1048,7 +1054,8 @@ namespace Latios.Calligraphics.RichText
                         }
                         textConfigurationStack.m_indentStack.Add(textConfigurationStack.m_tagIndent);
 
-                        textConfigurationStack.m_xAdvance = textConfigurationStack.m_tagIndent;
+                        textGenerationStateCommands.xAdvanceChange      = textConfigurationStack.m_tagIndent;
+                        textGenerationStateCommands.xAdvanceIsOverwrite = true;
                         return true;
                     case 7598483:  // </indent>
                     case 6971027:  // </INDENT>
@@ -1075,7 +1082,7 @@ namespace Latios.Calligraphics.RichText
                                 break;
                         }
 
-                        textConfigurationStack.m_xAdvance += textConfigurationStack.m_tagLineIndent;
+                        textGenerationStateCommands.xAdvanceChange += textConfigurationStack.m_tagLineIndent;
                         return true;
                     case -445537194:  // </line-indent>
                     case 1897386838:  // </LINE-INDENT>
