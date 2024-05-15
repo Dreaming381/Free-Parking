@@ -133,6 +133,7 @@ GameObject:
   m_Component:
   - component: {fileID: 524266842}
   - component: {fileID: 524266841}
+  - component: {fileID: 524266843}
   m_Layer: 0
   m_Name: Test
   m_TagString: Untagged
@@ -154,9 +155,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   text: "Up <voffset=1em>up <voffset=2em>UP</voffset> and <voffset=-0.5em>down</voffset>
     we go again. <color=\"red\">Red <color=#005500>Dark Green <#0000FF>Blue <color=#FF000088>Semitransparent
-    Red</color> <lowercase>Alice and Bob watched TV.</lowercase> \n<size=2>\naaa\nbbb\n</size></color><uppercase>Alice
-    <b>and Bob</b> watched TV.</uppercase> </color><allcaps>Alice <i>and an Bob</i>
-    watched TV.</allcaps></color> <smallcaps>Alice and Bob watched TV.</smallcaps>"
+    Red</color> <lowercase>Alice and Bob watched TV.</lowercase> \r\n<size=2>\r\naaa\r\nbbb\n     
+    ccc\r\n</size></color><uppercase>Alice <b>and Bob</b> watched TV.</uppercase>
+    </color><allcaps>Alice <i>and an Bob</i> watched TV.</allcaps></color> <smallcaps>Alice
+    and Bob watched TV.</smallcaps>"
   fontSize: 8
   wordWrap: 1
   maxLineWidth: 18
@@ -195,6 +197,119 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &524266843
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 524266839}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17371222fd8d45099860435baba5d085, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  glyphAnimations:
+  - glyphProperty: 0
+    animationStyle: 0
+    interpolation: 0
+    unitScope: 1
+    startIndex: 0
+    endIndex: 200
+    endBehavior: 2
+    loopCount: 0
+    loopDelay: 0
+    transitionTimeOffset: 1
+    transitionDuration: 0.5
+    progressiveTimeOffset: 0.1
+    startValueByte: 0
+    endValueByte: 255
+    startValueFloat: 0
+    endValueFloat: 0
+    startValueColor:
+      serializedVersion: 2
+      rgba: 0
+    endValueColor:
+      serializedVersion: 2
+      rgba: 0
+    startValueFloat2:
+      x: 0
+      y: 0
+    endValueFloat2:
+      x: 0
+      y: 0
+    noiseScaleFloat: 0
+    noiseScaleFloat2:
+      x: 0
+      y: 0
+    startValueFloat3:
+      x: 0
+      y: 0
+      z: 0
+    endValueFloat3:
+      x: 0
+      y: 0
+      z: 0
+    startValueGradient:
+      serializedVersion: 2
+      key0: {r: 0, g: 0, b: 0, a: 0}
+      key1: {r: 0, g: 0, b: 0, a: 0}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    endValueGradient:
+      serializedVersion: 2
+      key0: {r: 0, g: 0, b: 0, a: 0}
+      key1: {r: 0, g: 0, b: 0, a: 0}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_ColorSpace: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
 --- !u!1 &1226990693
 GameObject:
   m_ObjectHideFlags: 0

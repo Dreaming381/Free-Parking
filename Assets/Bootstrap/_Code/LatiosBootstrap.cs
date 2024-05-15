@@ -59,6 +59,7 @@ namespace FreeParking.Bootstrap
             Latios.Kinemation.KinemationBootstrap.InstallKinemation(world);
             Latios.Mimic.MimicBootstrap.InstallMecanimAddon(world);
             Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphics(world);
+            Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphicsAnimations(world);
 
             BootstrapTools.InjectRootSuperSystems(systems, world, world.simulationSystemGroup);
 
