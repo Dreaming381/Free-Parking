@@ -804,7 +804,7 @@ PlayerSettings:
   webGLMemoryGeometricGrowthCap: 96
   webGLPowerPreference: 2
   scriptingDefineSymbols:
-    Standalone: UNITY_BURST_EXPERIMENTAL_ATOMIC_INTRINSICS;ENABLE_MESH_RENDERER_SUBMESH_DATA_SHARING
+    Standalone: UNITY_BURST_EXPERIMENTAL_ATOMIC_INTRINSICS;ENTITY_STORE_V1
   additionalCompilerArguments: {}
   platformArchitecture: {}
   scriptingBackend: {}
