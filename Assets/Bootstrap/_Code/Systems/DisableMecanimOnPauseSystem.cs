@@ -77,7 +77,7 @@ namespace FreeParking.Bootstrap.Systems
             {
                 for (int i = 0; i < entities.Length; i++)
                 {
-                    var enabled = enabledLookup.GetComponentEnabledRefRWOptional<MecanimController>(entities[i]);
+                    var enabled = enabledLookup.GetEnabledRefRWOptional<MecanimController>(entities[i]);
                     if (enabled.IsValid)
                         enabled.ValueRW = true;
                 }

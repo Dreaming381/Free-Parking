@@ -6,8 +6,8 @@ namespace Latios.Psyshock
 {
     public static partial class UnitySim
     {
-        public static float kStiffSpringFrequency = 74341.31f;
-        public static float kStiffDampingRatio    = 2530.126f;
+        public const float kStiffSpringFrequency = 74341.31f;
+        public const float kStiffDampingRatio    = 2530.126f;
 
         public static float SpringFrequencyFrom(float springConstant, float inverseMass)
         {
@@ -202,7 +202,7 @@ namespace Latios.Psyshock
             float exp2  = math.pow(exp1, 1f / iterations);
 
             constraintDamping = 1 - exp2;
-            constraintTau     = hhww / denom * constraintDamping;
+            constraintTau     = denom < math.EPSILON ? 0f : hhww / denom * constraintDamping;
         }
 
         const float rcpTwoPI = 0.5f / math.PI;

@@ -49,6 +49,7 @@ namespace DreamingImLatios.Holiday2023.Authoring
             var opaqueMaterialCount = RenderingBakingTools.GroupByDepthSorting(mms);
 
             RenderingBakingTools.GetLOD(baker, renderer, out var lodSettings);
+            RenderingBakingTools.BakeLodMaskForEntity(baker, entity, lodSettings);
 
             var rendererSettings = new MeshRendererBakeSettings
             {
@@ -59,7 +60,6 @@ namespace DreamingImLatios.Holiday2023.Authoring
                 useLightmapsIfPossible      = true,
                 lightmapIndex               = renderer.lightmapIndex,
                 lightmapScaleOffset         = renderer.lightmapScaleOffset,
-                lodSettings                 = lodSettings,
                 isStatic                    = baker.IsStatic(),
                 localBounds                 = filter.sharedMesh != null ? filter.sharedMesh.bounds : default,
             };

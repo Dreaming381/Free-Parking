@@ -82,7 +82,7 @@ public class PsyshockQueryDebugger : UnityEngine.MonoBehaviour
         }
     }
 
-    unsafe struct HexReader : BinaryReader
+    internal unsafe struct HexReader : BinaryReader
     {
         public string                 content;
         private NativeReference<long> position;

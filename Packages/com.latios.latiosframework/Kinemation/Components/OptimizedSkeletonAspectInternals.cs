@@ -10,7 +10,7 @@ using Unity.Mathematics;
 
 namespace Latios.Kinemation
 {
-    public partial struct OptimizedSkeletonAspect
+    public readonly partial struct OptimizedSkeletonAspect
     {
         internal bool BeginSampleTrueIfAdditive(out NativeArray<AclUnity.Qvvs> targetLocalTransforms)
         {
@@ -70,6 +70,39 @@ namespace Latios.Kinemation
 
             for (int i = 0; i < boneCount; i++)
             {
+                var currentNormalized = currentLocals[i];
+                currentNormalized.NormalizeBone();
+                inertialBlends[i].StartNewBlend(in currentNormalized, previousLocals[i], twoAgoLocals[i], rcpTime, maxBlendDuration);
+            }
+        }
+
+        unsafe void StartInertialBlendInternal(float previousDeltaTime, float maxBlendDuration, ReadOnlySpan<ulong> mask)
+        {
+            var bufferAsArray  = m_boneTransforms.Reinterpret<TransformQvvs>().AsNativeArray();
+            var previousLocals = bufferAsArray.GetSubArray(m_previousBaseRootIndex + boneCount, boneCount);
+            var twoAgoLocals   = bufferAsArray.GetSubArray(m_twoAgoBaseRootIndex + boneCount, boneCount);
+            var currentLocals  = isDirty ? bufferAsArray.GetSubArray(m_currentBaseRootIndexWrite + boneCount, boneCount) : previousLocals;
+
+            if (m_bonesInertialBlendStates.Length < boneCount)
+            {
+                for (int i = m_bonesInertialBlendStates.Length; i < boneCount; i++)
+                {
+                    m_bonesInertialBlendStates.Add(default);
+                }
+            }
+
+            // We go unsafe here to avoid copying as these are large
+            var inertialBlends = (InertialBlendingTransformState*)m_bonesInertialBlendStates.Reinterpret<InertialBlendingTransformState>().GetUnsafePtr();
+
+            float rcpTime = math.rcp(previousDeltaTime);
+
+            for (int i = 0; i < boneCount; i++)
+            {
+                var batch = mask[i >> 6];
+                var bit   = 1ul << (i & 0x3f);
+                if ((batch & bit) == 0)
+                    continue;
+
                 var currentNormalized = currentLocals[i];
                 currentNormalized.NormalizeBone();
                 inertialBlends[i].StartNewBlend(in currentNormalized, previousLocals[i], twoAgoLocals[i], rcpTime, maxBlendDuration);
