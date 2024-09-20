@@ -345,7 +345,7 @@ namespace Latios.Kinemation.Systems
                 JobHandle.ScheduleBatchedJobs();
 
                 // If we remove this component right away, we'll end up with motion vector artifacts. So we defer it by one frame.
-                latiosWorld.syncPoint.CreateEntityCommandBuffer().RemoveComponent<PreviousPostProcessMatrix>(m_deadPreviousPostProcessMatrixQuery, EntityQueryCaptureMode.AtRecord);
+                latiosWorld.syncPoint.CreateEntityCommandBuffer().RemoveComponent<PreviousPostProcessMatrix>(m_deadPreviousPostProcessMatrixQuery.ToEntityArray(Allocator.Temp));
 
                 state.CompleteDependency();
 
@@ -395,10 +395,12 @@ namespace Latios.Kinemation.Systems
                 state.EntityManager.RemoveComponent(m_deadCopyDeformQuery, ComponentType.ChunkComponent<ChunkCopyDeformTag>());
                 state.EntityManager.AddComponent(m_newCopyDeformQuery, ComponentType.ChunkComponent<ChunkCopyDeformTag>());
                 state.EntityManager.RemoveComponent(m_deadMeshesQuery, new ComponentTypeSet(ComponentType.ChunkComponent<ChunkPerFrameCullingMask>(),
+                                                                                            ComponentType.ChunkComponent<ChunkPerDispatchCullingMask>(),
                                                                                             ComponentType.ChunkComponent<ChunkPerCameraCullingMask>(),
                                                                                             ComponentType.ChunkComponent<ChunkPerCameraCullingSplitsMask>(),
                                                                                             ComponentType.ChunkComponent<ChunkMaterialPropertyDirtyMask>()));
                 state.EntityManager.AddComponent(m_newMeshesQuery, new ComponentTypeSet(ComponentType.ChunkComponent<ChunkPerFrameCullingMask>(),
+                                                                                        ComponentType.ChunkComponent<ChunkPerDispatchCullingMask>(),
                                                                                         ComponentType.ChunkComponent<ChunkPerCameraCullingMask>(),
                                                                                         ComponentType.ChunkComponent<ChunkPerCameraCullingSplitsMask>(),
                                                                                         ComponentType.ChunkComponent<ChunkMaterialPropertyDirtyMask>()));
@@ -1141,7 +1143,7 @@ namespace Latios.Kinemation.Systems
                 skinnedMeshRemoveOpsBlockList.GetElementValues(skinnedRemoveOps);
                 skinnedRemoveOps.Sort();
 
-                MeshGpuRequiredSizes* requiredGpuSizes = (MeshGpuRequiredSizes*)meshManager.requiredBufferSizes.GetUnsafePtr();
+                MeshGpuRequiredSizes* requiredGpuSizes = meshManager.requiredBufferSizes.GetUnsafePtr();
 
                 bool madeBoneOffsetGaps = false;
 
@@ -1479,7 +1481,7 @@ namespace Latios.Kinemation.Systems
 
                         uint weightsNeeded = (uint)blob.Value.skinningData.boneWeights.Length;
                         uint weightsGpuStart;
-                        if (AllocateInGap(meshManager.weightsGaps, verticesNeeded, out uint weightsWriteIndex))
+                        if (AllocateInGap(meshManager.weightsGaps, weightsNeeded, out uint weightsWriteIndex))
                         {
                             weightsGpuStart = weightsWriteIndex;
                         }
@@ -1491,7 +1493,7 @@ namespace Latios.Kinemation.Systems
 
                         uint bindPosesNeeded = (uint)blob.Value.skinningData.bindPoses.Length + (uint)blob.Value.skinningData.bindPosesDQ.Length;
                         uint bindPosesGpuStart;
-                        if (AllocateInGap(meshManager.bindPosesGaps, verticesNeeded, out uint bindPosesWriteIndex))
+                        if (AllocateInGap(meshManager.bindPosesGaps, bindPosesNeeded, out uint bindPosesWriteIndex))
                         {
                             bindPosesGpuStart = bindPosesWriteIndex;
                         }

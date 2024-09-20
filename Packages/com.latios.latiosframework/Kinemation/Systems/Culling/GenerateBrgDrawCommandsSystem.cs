@@ -11,11 +11,16 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Profiling;
 using Unity.Rendering;
-using Unity.Transforms;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 using static Unity.Entities.SystemAPI;
+
+#if UNITY_6000_0_OR_NEWER
+using ChunkMergeCullingMask = Latios.Kinemation.ChunkPerDispatchCullingMask;
+#else
+using ChunkMergeCullingMask = Latios.Kinemation.ChunkPerFrameCullingMask;
+#endif
 
 namespace Latios.Kinemation.Systems
 {
@@ -24,39 +29,67 @@ namespace Latios.Kinemation.Systems
     [BurstCompile]
     public partial struct GenerateBrgDrawCommandsSystem : ISystem
     {
+        /// <summary>
+        /// Access via WorldUnamanged.GetUnsafeSystemRef(), this can be used to tune the performance of your project for your use case.
+        /// The differences are subtle, and for most use cases, adjusting this setting will have a negligible or negative impact.
+        /// </summary>
+        public bool optimizeForMainThread
+        {
+            get => m_useFewerJobs;
+            set => m_useFewerJobs = value;
+        }
+
         LatiosWorldUnmanaged latiosWorld;
         EntityQuery          m_metaQuery;
         EntityQueryMask      m_motionVectorDeformQueryMask;
+        EntityQuery          m_lodCrossfadeDependencyQuery;
 
         FindChunksWithVisibleJob m_findJob;
         ProfilerMarker           m_profilerEmitChunk;
+        ProfilerMarker           m_profilerCollect;
+        ProfilerMarker           m_profilerWrite;
+        ProfilerMarker           m_profilerOnUpdate;
+
+        bool m_useFewerJobs;
 
         public void OnCreate(ref SystemState state)
         {
             latiosWorld = state.GetLatiosWorldUnmanaged();
             m_metaQuery = state.Fluent().With<ChunkHeader>(true).With<ChunkPerCameraCullingMask>(true).With<ChunkPerCameraCullingSplitsMask>(true)
-                          .With<ChunkPerFrameCullingMask>(false).With<EntitiesGraphicsChunkInfo>(true).Build();
+                          .With<ChunkMergeCullingMask>(false).With<EntitiesGraphicsChunkInfo>(true).Build();
             var motionVectorDeformQuery = state.Fluent().WithAnyEnabled<PreviousDeformShaderIndex, TwoAgoDeformShaderIndex, PreviousMatrixVertexSkinningShaderIndex>(true)
                                           .WithAnyEnabled<TwoAgoMatrixVertexSkinningShaderIndex, PreviousDqsVertexSkinningShaderIndex, TwoAgoDqsVertexSkinningShaderIndex>(true)
                                           .WithAnyEnabled<ShaderEffectRadialBounds,
                                                           LegacyDotsDeformParamsShaderIndex>(                                                                              true).
                                           Build();
             m_motionVectorDeformQueryMask = motionVectorDeformQuery.GetEntityQueryMask();
+            m_lodCrossfadeDependencyQuery = state.EntityManager.CreateEntityQuery(new EntityQueryBuilder(Allocator.Temp).WithAll<LodCrossfade>());
 
             m_findJob = new FindChunksWithVisibleJob
             {
-                perCameraCullingMaskHandle = state.GetComponentTypeHandle<ChunkPerCameraCullingMask>(true),
-                chunkHeaderHandle          = state.GetComponentTypeHandle<ChunkHeader>(true),
-                perFrameCullingMaskHandle  = state.GetComponentTypeHandle<ChunkPerFrameCullingMask>(false)
+                perCameraCullingMaskHandle      = state.GetComponentTypeHandle<ChunkPerCameraCullingMask>(true),
+                chunkHeaderHandle               = state.GetComponentTypeHandle<ChunkHeader>(true),
+                perCameraMergeCullingMaskHandle = state.GetComponentTypeHandle<ChunkMergeCullingMask>(false)
             };
 
+            m_useFewerJobs = false;
+
             m_profilerEmitChunk = new ProfilerMarker("EmitChunk");
+            m_profilerCollect   = new ProfilerMarker("Collect");
+            m_profilerWrite     = new ProfilerMarker("Write");
+            m_profilerOnUpdate  = new ProfilerMarker("OnUpdateGenerateBrg");
         }
 
         [BurstCompile]
         public unsafe void OnUpdate(ref SystemState state)
         {
-            var brgCullingContext  = latiosWorld.worldBlackboardEntity.GetCollectionComponent<BrgCullingContext>();
+            m_profilerOnUpdate.Begin();
+
+            JobHandle finalJh        = default;
+            JobHandle ecsJh          = default;
+            JobHandle lodCrossfadeJh = default;
+
+            var brgCullingContext  = latiosWorld.worldBlackboardEntity.GetCollectionComponent<BrgCullingContext>(false);
             var lodCrossfadePtrMap = latiosWorld.worldBlackboardEntity.GetCollectionComponent<LODCrossfadePtrMap>(true);
             var cullingContext     = latiosWorld.worldBlackboardEntity.GetComponentData<CullingContext>();
 
@@ -65,8 +98,7 @@ namespace Latios.Kinemation.Systems
             m_findJob.chunkHeaderHandle.Update(ref state);
             m_findJob.chunksToProcess = chunkList.AsParallelWriter();
             m_findJob.perCameraCullingMaskHandle.Update(ref state);
-            m_findJob.perFrameCullingMaskHandle.Update(ref state);
-            state.Dependency = m_findJob.ScheduleParallelByRef(m_metaQuery, state.Dependency);
+            m_findJob.perCameraMergeCullingMaskHandle.Update(ref state);
 
             // TODO: Dynamically estimate this based on past frames
             int binCountEstimate       = 1;
@@ -109,51 +141,10 @@ namespace Latios.Kinemation.Systems
 #endif
             };
 
-            var allocateWorkItemsJob = new AllocateWorkItemsJob
-            {
-                DrawCommandOutput = chunkDrawCommandOutput,
-            };
+            var findDependency = m_findJob.ScheduleParallelByRef(m_metaQuery, state.Dependency);
 
-            var collectWorkItemsJob = new CollectWorkItemsJob
-            {
-                DrawCommandOutput = chunkDrawCommandOutput,
-                ProfileCollect    = new ProfilerMarker("Collect"),
-                ProfileWrite      = new ProfilerMarker("Write"),
-            };
-
-            var flushWorkItemsJob = new FlushWorkItemsJob
-            {
-                DrawCommandOutput = chunkDrawCommandOutput,
-            };
-
-            var allocateInstancesJob = new AllocateInstancesJob
-            {
-                DrawCommandOutput = chunkDrawCommandOutput,
-            };
-
-            var allocateDrawCommandsJob = new AllocateDrawCommandsJob
-            {
-                DrawCommandOutput = chunkDrawCommandOutput
-            };
-
-            var expandInstancesJob = new ExpandVisibleInstancesJob
-            {
-                DrawCommandOutput = chunkDrawCommandOutput,
-                crossfadesPtrMap  = lodCrossfadePtrMap.chunkIdentifierToPtrMap
-            };
-
-            var generateDrawCommandsJob = new GenerateDrawCommandsJob
-            {
-                DrawCommandOutput = chunkDrawCommandOutput,
-            };
-
-            var generateDrawRangesJob = new GenerateDrawRangesJob
-            {
-                DrawCommandOutput = chunkDrawCommandOutput,
-                FilterSettings    = brgCullingContext.batchFilterSettingsByRenderFilterSettingsSharedIndex,
-            };
-
-            var emitDrawCommandsDependency = emitDrawCommandsJob.ScheduleByRef(chunkList, 1, state.Dependency);
+            var emitDrawCommandsDependency = emitDrawCommandsJob.ScheduleByRef(chunkList, 1, findDependency);
+            ecsJh                          = emitDrawCommandsDependency;
 
             var collectGlobalBinsDependency =
                 chunkDrawCommandOutput.BinCollector.ScheduleFinalize(emitDrawCommandsDependency);
@@ -163,43 +154,112 @@ namespace Latios.Kinemation.Systems
                 chunkDrawCommandOutput.UnsortedBins,
                 collectGlobalBinsDependency);
 
-            var allocateWorkItemsDependency = allocateWorkItemsJob.Schedule(collectGlobalBinsDependency);
-            var collectWorkItemsDependency  = collectWorkItemsJob.ScheduleWithIndirectList(
-                chunkDrawCommandOutput.UnsortedBins, 1, allocateWorkItemsDependency);
+            if (!m_useFewerJobs)
+            {
+                var allocateWorkItemsJob = new AllocateWorkItemsJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                };
 
-            var flushWorkItemsDependency =
-                flushWorkItemsJob.Schedule(ChunkDrawCommandOutput.NumThreads, 1, collectWorkItemsDependency);
+                var collectWorkItemsJob = new CollectWorkItemsJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                    ProfileCollect    = m_profilerCollect,
+                    ProfileWrite      = m_profilerWrite,
+                };
 
-            var allocateInstancesDependency = allocateInstancesJob.Schedule(flushWorkItemsDependency);
+                var flushWorkItemsJob = new FlushWorkItemsJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                };
 
-            var allocateDrawCommandsDependency = allocateDrawCommandsJob.Schedule(
-                JobHandle.CombineDependencies(sortBinsDependency, flushWorkItemsDependency));
+                var allocateInstancesJob = new AllocateInstancesJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                };
 
-            var allocationsDependency = JobHandle.CombineDependencies(
-                allocateInstancesDependency,
-                allocateDrawCommandsDependency);
+                var allocateDrawCommandsJob = new AllocateDrawCommandsJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput
+                };
 
-            var expandInstancesDependency = expandInstancesJob.ScheduleWithIndirectList(
-                chunkDrawCommandOutput.WorkItems,
-                1,
-                allocateInstancesDependency);
-            var generateDrawCommandsDependency = generateDrawCommandsJob.ScheduleWithIndirectList(
-                chunkDrawCommandOutput.SortedBins,
-                1,
-                allocationsDependency);
-            var generateDrawRangesDependency = generateDrawRangesJob.Schedule(allocateDrawCommandsDependency);
+                var expandInstancesJob = new ExpandVisibleInstancesJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                    crossfadesPtrMap  = lodCrossfadePtrMap.chunkIdentifierToPtrMap
+                };
 
-            var expansionDependency = JobHandle.CombineDependencies(
-                expandInstancesDependency,
-                generateDrawCommandsDependency,
-                generateDrawRangesDependency);
+                var generateDrawCommandsJob = new GenerateDrawCommandsJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                };
 
-            state.Dependency = chunkDrawCommandOutput.Dispose(expansionDependency);
+                var generateDrawRangesJob = new GenerateDrawRangesJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                    FilterSettings    = brgCullingContext.batchFilterSettingsByRenderFilterSettingsSharedIndex,
+                };
+
+                var allocateWorkItemsDependency = allocateWorkItemsJob.Schedule(collectGlobalBinsDependency);
+                var collectWorkItemsDependency  = collectWorkItemsJob.ScheduleWithIndirectList(
+                    chunkDrawCommandOutput.UnsortedBins, 1, allocateWorkItemsDependency);
+
+                var flushWorkItemsDependency =
+                    flushWorkItemsJob.Schedule(ChunkDrawCommandOutput.NumThreads, 1, collectWorkItemsDependency);
+
+                var allocateInstancesDependency = allocateInstancesJob.Schedule(flushWorkItemsDependency);
+
+                var allocateDrawCommandsDependency = allocateDrawCommandsJob.Schedule(
+                    JobHandle.CombineDependencies(sortBinsDependency, flushWorkItemsDependency));
+
+                var allocationsDependency = JobHandle.CombineDependencies(
+                    allocateInstancesDependency,
+                    allocateDrawCommandsDependency);
+
+                var expandInstancesDependency = expandInstancesJob.ScheduleWithIndirectList(
+                    chunkDrawCommandOutput.WorkItems,
+                    1,
+                    allocateInstancesDependency);
+                var generateDrawCommandsDependency = generateDrawCommandsJob.ScheduleWithIndirectList(
+                    chunkDrawCommandOutput.SortedBins,
+                    1,
+                    allocationsDependency);
+                var generateDrawRangesDependency = generateDrawRangesJob.Schedule(allocateDrawCommandsDependency);
+
+                var expansionDependency = JobHandle.CombineDependencies(
+                    expandInstancesDependency,
+                    generateDrawCommandsDependency,
+                    generateDrawRangesDependency);
+
+                //state.Dependency = chunkDrawCommandOutput.Dispose(expansionDependency);
+                var disposeDependency = new SingleThreadedDisposalJob { chunkDrawCommandOutput = chunkDrawCommandOutput }.Schedule(expansionDependency);
+                finalJh                                                                        = chunkDrawCommandOutput.BinCollector.Dispose(disposeDependency);
+                lodCrossfadeJh                                                                 = expandInstancesDependency;
+            }
+            else
+            {
+                var singleJobDependency = new SingleThreadedJob
+                {
+                    chunkDrawCommandOutput = chunkDrawCommandOutput,
+                    m_profilerCollect      = m_profilerCollect,
+                    m_profilerWrite        = m_profilerWrite,
+                    lodCrossfadePtrMap     = lodCrossfadePtrMap,
+                    brgFilterSettings      = brgCullingContext.batchFilterSettingsByRenderFilterSettingsSharedIndex
+                }.Schedule(sortBinsDependency);
+                lodCrossfadeJh = singleJobDependency;
+                finalJh        = chunkDrawCommandOutput.BinCollector.Dispose(singleJobDependency);
+            }
+            state.Dependency = ecsJh;
+            latiosWorld.worldBlackboardEntity.UpdateJobDependency<BrgCullingContext>(finalJh, true);
+            m_lodCrossfadeDependencyQuery.AddDependency(lodCrossfadeJh);
+
+            m_profilerOnUpdate.End();
         }
 
         [BurstCompile]
         public void OnDestroy(ref SystemState state)
         {
+            m_lodCrossfadeDependencyQuery.Dispose();
         }
 
         [BurstCompile]
@@ -208,7 +268,7 @@ namespace Latios.Kinemation.Systems
             [ReadOnly] public ComponentTypeHandle<ChunkPerCameraCullingMask> perCameraCullingMaskHandle;
             [ReadOnly] public ComponentTypeHandle<ChunkHeader>               chunkHeaderHandle;
 
-            public ComponentTypeHandle<ChunkPerFrameCullingMask> perFrameCullingMaskHandle;
+            public ComponentTypeHandle<ChunkMergeCullingMask> perCameraMergeCullingMaskHandle;
 
             public NativeList<ArchetypeChunk>.ParallelWriter chunksToProcess;
 
@@ -219,7 +279,7 @@ namespace Latios.Kinemation.Systems
                 int chunksCount = 0;
                 var masks       = metaChunk.GetNativeArray(ref perCameraCullingMaskHandle);
                 var headers     = metaChunk.GetNativeArray(ref chunkHeaderHandle);
-                var frameMask   = (ChunkPerFrameCullingMask*)metaChunk.GetComponentDataPtrRW(ref perFrameCullingMaskHandle);
+                var mergeMask   = (ChunkMergeCullingMask*)metaChunk.GetComponentDataPtrRW(ref perCameraMergeCullingMaskHandle);
                 for (int i = 0; i < metaChunk.Count; i++)
                 {
                     var mask = masks[i];
@@ -229,8 +289,8 @@ namespace Latios.Kinemation.Systems
                         chunksCount++;
                     }
 
-                    frameMask[i].lower.Value |= mask.lower.Value;
-                    frameMask[i].upper.Value |= mask.upper.Value;
+                    mergeMask[i].lower.Value |= mask.lower.Value;
+                    mergeMask[i].upper.Value |= mask.upper.Value;
                 }
 
                 if (chunksCount > 0)
@@ -567,7 +627,7 @@ namespace Latios.Kinemation.Systems
         }
 
         [BurstCompile]
-        internal unsafe struct ExpandVisibleInstancesJob : IJobParallelForDefer
+        unsafe struct ExpandVisibleInstancesJob : IJobParallelForDefer
         {
             public ChunkDrawCommandOutput                                                                        DrawCommandOutput;
             [ReadOnly] public NativeHashMap<LODCrossfadePtrMap.ChunkIdentifier, LODCrossfadePtrMap.CrossfadePtr> crossfadesPtrMap;
@@ -598,7 +658,7 @@ namespace Latios.Kinemation.Systems
                                     binInstanceOffset + workItemInstanceOffset + headerInstanceOffset,
                                     settings.BatchID.value,
                                     UseCrossfades(settings.Flags),
-                                    settings.FilterIndex < 0);
+                                    settings.FilterIndex >= 0);
 
                         headerInstanceOffset += header->NumInstances;
                         header                = header->Next;
@@ -621,7 +681,7 @@ namespace Latios.Kinemation.Systems
                                                  positionOffset,
                                                  settings.BatchID.value,
                                                  UseCrossfades(settings.Flags),
-                                                 settings.FilterIndex < 0);
+                                                 settings.FilterIndex >= 0);
 
                         headerInstanceOffset += header->NumInstances;
                         header                = header->Next;
@@ -740,7 +800,7 @@ namespace Latios.Kinemation.Systems
                         ulong mask                     = 1ul << bitIndex;
                         qword                         ^= mask;
                         int instanceIndex              = (i << 6) + bitIndex;
-                        var crossfade                  = complementCrossfades ? crossfades[i].ToComplement() : crossfades[i];
+                        var crossfade                  = complementCrossfades ? crossfades[instanceIndex].ToComplement() : crossfades[instanceIndex];
                         int visibilityIndex            = ((startIndex + instanceIndex) & 0x00ffffff) | (crossfade.raw << 24);
                         outputInstances[numInstances]  = visibilityIndex;
                         ++numInstances;
@@ -806,7 +866,7 @@ namespace Latios.Kinemation.Systems
                         int instanceIndex  = (i << 6) + bitIndex;
 
                         int visibilityIndex           = startIndex + instanceIndex;
-                        var crossfade                 = complementCrossfades ? crossfades[i].ToComplement() : crossfades[i];
+                        var crossfade                 = complementCrossfades ? crossfades[instanceIndex].ToComplement() : crossfades[instanceIndex];
                         outputInstances[numInstances] = (visibilityIndex & 0x00ffffff) | (crossfade.raw << 24);
 #if !LATIOS_TRANSFORMS_UNITY
                         outputSortingPosition[numInstances] = transforms[instanceIndex].position;
@@ -883,7 +943,7 @@ namespace Latios.Kinemation.Systems
         }
 
         [BurstCompile]
-        internal unsafe struct GenerateDrawRangesJob : IJob
+        unsafe struct GenerateDrawRangesJob : IJob
         {
             public ChunkDrawCommandOutput DrawCommandOutput;
 
@@ -997,6 +1057,134 @@ namespace Latios.Kinemation.Systems
                     m_InstancesInRange += numInstances;
                 }
             }
+        }
+
+        [BurstCompile]
+        unsafe struct SingleThreadedDisposalJob : IJob
+        {
+            public ChunkDrawCommandOutput chunkDrawCommandOutput;
+
+            public void Execute()
+            {
+                // First schedule a job to release all the thread local arrays, which requires
+                // that the data structures are still in place so we can find them.
+                for (int i = 0; i < ChunkDrawCommandOutput.NumThreads; i++)
+                {
+                    chunkDrawCommandOutput.ThreadLocalDrawCommands[i].Dispose();
+                    chunkDrawCommandOutput.ThreadLocalCollectBuffers[i].Dispose();
+                }
+
+                chunkDrawCommandOutput.ThreadLocalDrawCommands.Dispose();
+                chunkDrawCommandOutput.ThreadLocalCollectBuffers.Dispose();
+                chunkDrawCommandOutput.BinPresentFilter.Dispose();
+                //chunkDrawCommandOutput.BinCollector.Dispose();
+                chunkDrawCommandOutput.SortedBins.Dispose();
+                chunkDrawCommandOutput.BinIndices.Dispose();
+                chunkDrawCommandOutput.WorkItems.Dispose();
+            }
+        }
+
+        [BurstCompile]
+        unsafe struct SingleThreadedJob : IJob
+        {
+            public ChunkDrawCommandOutput                                     chunkDrawCommandOutput;
+            public ProfilerMarker                                             m_profilerCollect;
+            public ProfilerMarker                                             m_profilerWrite;
+            [ReadOnly] public LODCrossfadePtrMap                              lodCrossfadePtrMap;
+            [ReadOnly] public NativeParallelHashMap<int, BatchFilterSettings> brgFilterSettings;
+
+            public void Execute()
+            {
+                var allocateWorkItemsJob = new AllocateWorkItemsJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                };
+
+                var collectWorkItemsJob = new CollectWorkItemsJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                    ProfileCollect    = m_profilerCollect,
+                    ProfileWrite      = m_profilerWrite,
+                };
+
+                var flushWorkItemsJob = new FlushWorkItemsJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                };
+
+                var allocateInstancesJob = new AllocateInstancesJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                };
+
+                var allocateDrawCommandsJob = new AllocateDrawCommandsJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput
+                };
+
+                var expandInstancesJob = new ExpandVisibleInstancesJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                    crossfadesPtrMap  = lodCrossfadePtrMap.chunkIdentifierToPtrMap
+                };
+
+                var generateDrawCommandsJob = new GenerateDrawCommandsJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                };
+
+                var generateDrawRangesJob = new GenerateDrawRangesJob
+                {
+                    DrawCommandOutput = chunkDrawCommandOutput,
+                    FilterSettings    = brgFilterSettings,
+                };
+
+                allocateWorkItemsJob.Execute();
+                collectWorkItemsJob.RunImmediateWithIndirectList(chunkDrawCommandOutput.UnsortedBins);
+
+                flushWorkItemsJob.RunImmediate(ChunkDrawCommandOutput.NumThreads);
+
+                allocateInstancesJob.Execute();
+
+                allocateDrawCommandsJob.Execute();
+
+                expandInstancesJob.RunImmediateWithIndirectList(chunkDrawCommandOutput.WorkItems);
+                generateDrawCommandsJob.RunImmediateWithIndirectList(chunkDrawCommandOutput.SortedBins);
+                generateDrawRangesJob.Execute();
+
+                //chunkDrawCommandOutput.Dispose(expansionDependency);
+
+                // First schedule a job to release all the thread local arrays, which requires
+                // that the data structures are still in place so we can find them.
+                for (int i = 0; i < ChunkDrawCommandOutput.NumThreads; i++)
+                {
+                    chunkDrawCommandOutput.ThreadLocalDrawCommands[i].Dispose();
+                    chunkDrawCommandOutput.ThreadLocalCollectBuffers[i].Dispose();
+                }
+
+                chunkDrawCommandOutput.ThreadLocalDrawCommands.Dispose();
+                chunkDrawCommandOutput.ThreadLocalCollectBuffers.Dispose();
+                chunkDrawCommandOutput.BinPresentFilter.Dispose();
+                //chunkDrawCommandOutput.BinCollector.Dispose();
+                chunkDrawCommandOutput.SortedBins.Dispose();
+                chunkDrawCommandOutput.BinIndices.Dispose();
+                chunkDrawCommandOutput.WorkItems.Dispose();
+            }
+        }
+    }
+
+    internal static class IndirectListScheduleExtensions
+    {
+        public static void RunImmediateWithIndirectList<TJob, TList>(this TJob job, IndirectList<TList> list) where TJob : unmanaged, IJobParallelForDefer where TList : unmanaged
+        {
+            for (int i = 0; i < list.Length; i++)
+                job.Execute(i);
+        }
+
+        public static void RunImmediate<T>(this T job, int count) where T : unmanaged, IJobParallelFor
+        {
+            for (int i = 0; i < count; i++)
+                job.Execute(i);
         }
     }
 }
