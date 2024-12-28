@@ -11,7 +11,7 @@ using UnityEngine;
 
 namespace DreamingImLatios.Holiday2023.Authoring
 {
-    class MeshDeformTestAuthoring : OverrideMeshRendererBase
+    class MeshDeformTestAuthoring : MonoBehaviour, IOverrideMeshRenderer
     {
         public float speed     = 5f;
         public float magnitude = 0.5f;

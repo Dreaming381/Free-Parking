@@ -5,7 +5,7 @@ using Unity.Entities.Exposed;
 using Unity.Jobs;
 using Unity.Mathematics;
 
-namespace Latios.Unika
+namespace Latios.Unika.Authoring.Systems
 {
     [WorldSystemFilter(WorldSystemFilterFlags.BakingSystem)]
     [UpdateInGroup(typeof(PostBakingSystemGroup))]
@@ -22,8 +22,8 @@ namespace Latios.Unika
 
         protected override void OnUpdate()
         {
-            var blobTarget = new NativeReference<UnikaSerializedTypeIds>(Allocator.TempJob);
-            Dependency     = new BuildBlobJob
+            var blobTarget = new NativeReference<UnikaSerializedTypeIds>(WorldUpdateAllocator);
+            var jh         = new BuildBlobJob
             {
                 blobTarget = blobTarget,
                 blobStore  = m_bakingSystemReference.BlobAssetStore,
@@ -32,9 +32,11 @@ namespace Latios.Unika
             Dependency = new AssignBlobJob
             {
                 blobTarget = blobTarget
-            }.ScheduleParallel(Dependency);
-            Dependency = blobTarget.Dispose(Dependency);
+            }.ScheduleParallel(jh);
             Dependency = new SerializeJob().ScheduleParallel(Dependency);
+
+            // Todo: Unity doesn't know to complete this job because BlobAssetStore has zero dependency management. Fix this.
+            jh.Complete();
         }
 
         [BurstCompile]

@@ -8,6 +8,19 @@ using UnityEngine.Rendering;
 namespace Latios.Kinemation
 {
     /// <summary>
+    /// Add to the WorldBlackboardEntity to enable the custom graphics systems which update before all culling.
+    /// This has the negative effect of forcing several jobs to complete prior to engine code updates,
+    /// potentially starving worker threads.
+    /// </summary>
+    public struct EnableCustomGraphicsTag : IComponentData { }
+
+    /// <summary>
+    /// Add to a rendered entity such as a deforming mesh if you only intend to use it for custom graphics rendering.
+    /// For example, you might use this for a custom skinned mesh that is only used to spawn particles in VFX Graph.
+    /// </summary>
+    public struct UsedOnlyForCustomGraphicsTag : IComponentData { }
+
+    /// <summary>
     /// Contains the visibility mask for the current camera culling pass
     /// Usage: Read or Write
     /// This is a chunk component and also a WriteGroup target.
@@ -23,6 +36,13 @@ namespace Latios.Kinemation
         public BitField64 upper;
 
         public ulong GetUlongFromIndex(int index) => index == 0 ? lower.Value : upper.Value;
+        public void ClearBitAtIndex(int index)
+        {
+            if (index < 64)
+                lower.SetBits(index, false);
+            else
+                upper.SetBits(index - 64, false);
+        }
     }
 
     /// <summary>
@@ -38,13 +58,23 @@ namespace Latios.Kinemation
 
     /// <summary>
     /// Contains the bitwise ORed visibility mask for all previous camera culling passes leading up to this dispatch.
-    /// Usage: Read Only (No exceptions!)
+    /// Usage: Write in KinemationCustomGraphicsSetupSuperSystem. Read everywhere else.
+    /// In a system that updates inside KinemationCustomGraphicsSetupSuperSystem, you can set bits to true to enable processing for
+    /// custom effects.
     /// You can read from this to figure out if an entity requires GPU data dispatches.
     /// </summary>
     public struct ChunkPerDispatchCullingMask : IComponentData
     {
         public BitField64 lower;
         public BitField64 upper;
+
+        internal void ClearBitAtIndex(int index)
+        {
+            if (index < 64)
+                lower.SetBits(index, false);
+            else
+                upper.SetBits(index - 64, false);
+        }
     }
 
     /// <summary>

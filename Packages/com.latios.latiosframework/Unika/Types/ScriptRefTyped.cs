@@ -5,26 +5,24 @@ using Unity.Mathematics;
 
 namespace Latios.Unika
 {
-    public unsafe struct ScriptRef<T> : IEquatable<ScriptRef<T> >, IEquatable<ScriptRef>,
+    /// <summary>
+    /// A typed reference to another script, which must be resolved before use.
+    /// </summary>
+    /// <typeparam name="T">The type of script referenced</typeparam>
+    public unsafe struct ScriptRef<T> : IScriptRefTypedExtensionsApi,
+                                        IEquatable<ScriptRef<T> >, IEquatable<ScriptRef>,
                                         IComparable<ScriptRef<T> >, IComparable<ScriptRef>
-        where T : unmanaged, IUnikaScript
+        where T : unmanaged, IUnikaScript, IUnikaScriptGen
     {
         internal Entity m_entity;
         internal int    m_instanceId;
         internal int    m_cachedHeaderIndex;
 
         #region Main API
+        /// <summary>
+        /// The entity the referenced script belongs to
+        /// </summary>
         public Entity entity => m_entity;
-
-        public bool TryResolve(in EntityScriptCollection allScripts, out Script<T> script)
-        {
-            return ScriptCast.TryResolve(ref this, in allScripts, out script);
-        }
-
-        public bool TryResolve<TResolver>(ref TResolver resolver, out Script<T> script) where TResolver : unmanaged, IScriptResolverBase
-        {
-            return ScriptCast.TryResolve(ref this, ref resolver, out script);
-        }
 
         public static implicit operator ScriptRef(ScriptRef<T> script)
         {
@@ -55,8 +53,14 @@ namespace Latios.Unika
 
         public override string ToString() => ((ScriptRef)this).ToString();
 
+        /// <summary>
+        /// Gets a Burst-compatible string representation of the script for debug logging purposes
+        /// </summary>
         public FixedString128Bytes ToFixedString() => ((ScriptRef)this).ToFixedString();
 
+        /// <summary>
+        /// A null ScriptRef to assign or compare to
+        /// </summary>
         public static ScriptRef<T> Null => default;
         #endregion
 
@@ -72,6 +76,8 @@ namespace Latios.Unika
 
         public bool Equals(ScriptRef other) => this == other;
         #endregion
+
+        ScriptRef IScriptRefTypedExtensionsApi.ToScriptRef() => this;
     }
 }
 

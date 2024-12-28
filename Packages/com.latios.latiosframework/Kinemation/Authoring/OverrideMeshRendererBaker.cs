@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Entities.Hybrid.Baking;
@@ -10,9 +11,9 @@ using UnityEngine;
 namespace Latios.Kinemation.Authoring
 {
     /// <summary>
-    /// Inherit this class and attach to a GameObject to disable normal Mesh Renderer or Skinned Mesh Renderer baking
+    /// Implement this interface on a MonoBehaviour and attach to a GameObject to disable normal Mesh Renderer or Skinned Mesh Renderer baking
     /// </summary>
-    public class OverrideMeshRendererBase : MonoBehaviour
+    public interface IOverrideMeshRenderer
     {
     }
 
@@ -280,58 +281,72 @@ namespace Latios.Kinemation.Authoring
             lodSettings = default;
             if (group != null)
             {
-                lodSettings.localHeight = group.size;
-                lodSettings.isSpeedTree = group.fadeMode == LODFadeMode.SpeedTree;
-                var lodGroupLODs        = group.GetLODs();
+                var lodGroupLODs = group.GetLODs();
 
-                float previousMargin     = -1f;
-                float previousTransition = 1f;
-                bool  foundFirst         = false;
-
-                // Find the renderer inside the LODGroup
-                for (int i = 0; i < lodGroupLODs.Length; ++i)
+                int  firstLOD         = -1;
+                int  lastLOD          = -1;
+                bool wasInPreviousLod = false;
+                int  lodIndex         = 0;
+                foreach (var lod in lodGroupLODs)
                 {
-                    float currentMargin = group.fadeMode != LODFadeMode.None ? math.lerp(lodGroupLODs[i].screenRelativeTransitionHeight,
-                                                                                         previousTransition,
-                                                                                         lodGroupLODs[i].fadeTransitionWidth) : -1f;
-                    foreach (var candidate in lodGroupLODs[i].renderers)
+                    if (lod.renderers.Contains(renderer))
                     {
-                        if (renderer == candidate)
+                        if (!wasInPreviousLod && firstLOD >= 0)
                         {
-                            if (!foundFirst)
-                            {
-                                if (previousMargin > 0f)
-                                {
-                                    // For non-animated cross-fade, the fade starts before the transition and ends at the transition.
-                                    lodSettings.maxScreenHeightPercent                = (half)previousMargin;
-                                    lodSettings.maxScreenHeightPercentAtCrossfadeEdge = (half)previousTransition;
-                                }
-                                else
-                                {
-                                    lodSettings.maxScreenHeightPercent                = (half)previousTransition;
-                                    lodSettings.maxScreenHeightPercentAtCrossfadeEdge = new half(-1f);
-                                }
-                                foundFirst = true;
-                            }
-                            if (currentMargin > 0f)
-                            {
-                                lodSettings.minScreenHeightPercentAtCrossfadeEdge = (half)currentMargin;
-                            }
-                            lodSettings.minScreenHeightPercent = (half)lodGroupLODs[i].screenRelativeTransitionHeight;
-                            lodSettings.lowestResLodLevel      = (byte)i;
-                            break;
+                            Debug.LogWarning(
+                                $"Renderer {renderer.gameObject.name} is in two non-adjacent LOD groups. This is not supported in Kinemation. Duplicate the renderer if you intended this.");
                         }
+
+                        if (firstLOD == -1)
+                            firstLOD     = lodIndex;
+                        lastLOD          = math.max(lodIndex, lastLOD);
+                        wasInPreviousLod = true;
                     }
-                    previousMargin     = currentMargin;
-                    previousTransition = lodGroupLODs[i].screenRelativeTransitionHeight;
+                    lodIndex++;
                 }
-                if (lodSettings.maxScreenHeightPercent <= 0f)
-                {
-                    lodSettings = default;
+                if (firstLOD < 0)
                     return;
+
+                lodSettings.isSpeedTree = group.fadeMode == LODFadeMode.SpeedTree;
+                bool hasCrossfades      = group.fadeMode != LODFadeMode.None;
+
+                // Max heights
+                if (firstLOD == 0)
+                {
+                    lodSettings.maxScreenHeightPercent                = half.MaxValueAsHalf;
+                    lodSettings.maxScreenHeightPercentAtCrossfadeEdge = hasCrossfades ? half.MaxValueAsHalf : half.zero;
+                }
+                else
+                {
+                    var lodBefore = lodGroupLODs[firstLOD - 1];
+                    if (hasCrossfades)
+                    {
+                        lodSettings.maxScreenHeightPercentAtCrossfadeEdge = (half)lodBefore.screenRelativeTransitionHeight;
+                        var lodBeforeMaxEdge                              = firstLOD == 1 ? 1f : lodGroupLODs[firstLOD - 2].screenRelativeTransitionHeight;
+                        lodSettings.maxScreenHeightPercent                = (half)math.lerp(lodBefore.screenRelativeTransitionHeight,
+                                                                                            lodBeforeMaxEdge,
+                                                                                            lodBefore.fadeTransitionWidth);
+                    }
+                    else
+                    {
+                        lodSettings.maxScreenHeightPercent                = (half)lodBefore.screenRelativeTransitionHeight;
+                        lodSettings.maxScreenHeightPercentAtCrossfadeEdge = half.zero;
+                    }
                 }
 
-                // We have found valid LODs. But we should validate that the screenHeight is useful or if an offset would be required.
+                // Min heights
+                lodSettings.lowestResLodLevel      = (byte)lastLOD;
+                var minLod                         = lodGroupLODs[lastLOD];
+                lodSettings.minScreenHeightPercent = (half)minLod.screenRelativeTransitionHeight;
+                if (hasCrossfades)
+                {
+                    var maxEdge                                       = lastLOD == 0 ? 1f : lodGroupLODs[lastLOD - 1].screenRelativeTransitionHeight;
+                    lodSettings.minScreenHeightPercentAtCrossfadeEdge = (half)math.lerp(minLod.screenRelativeTransitionHeight, maxEdge, minLod.fadeTransitionWidth);
+                }
+                else
+                    lodSettings.minScreenHeightPercentAtCrossfadeEdge = half.zero;
+
+                // Local height
                 var rendererTransform = baker.GetComponent<Transform>(renderer);
                 var groupTransform    = baker.GetComponent<Transform>(group);
                 var relativeTransform = Transforms.Authoring.Abstract.AbstractBakingUtilities.ExtractTransformRelativeTo(rendererTransform, groupTransform);
@@ -340,7 +355,7 @@ namespace Latios.Kinemation.Authoring
                     Debug.LogWarning(
                         $"LOD renderer {renderer.gameObject.name} has a different world position than the LOD Group {group.gameObject.name} it belongs to. This is currently not supported and artifacts may occur. If you are seeing this message, please report it to the Latios Framework developers so that we can better understand your use case.");
                 }
-                lodSettings.localHeight /= math.cmax(relativeTransform.scale * relativeTransform.stretch);
+                lodSettings.localHeight = group.size / math.cmax(relativeTransform.scale * relativeTransform.stretch);
             }
         }
 
@@ -431,27 +446,48 @@ namespace Latios.Kinemation.Authoring
             RenderingBakingTools.GetLOD(this, authoring, out var lodSettings);
             RenderingBakingTools.BakeLodMaskForEntity(this, entity, lodSettings);
 
-            int totalMms  = m_materialsCache.Count;
-            var lodAppend = GetComponent<LodAppendAuthoring>();
+            int  totalMms        = m_materialsCache.Count;
+            var  lodAppend       = GetComponent<LodAppendAuthoring>();
+            bool lodAppend1Null  = false;
+            bool lodAppend2Null  = false;
+            int  lodAppend1Count = 0;
             if (lodAppend != null)
             {
-                if (lodAppend.useOverrideMaterials && (lodAppend.overrideMaterials == null || lodAppend.overrideMaterials.Count == 0))
-                    lodAppend = null;
-                else if (lodAppend.loResMesh == null)
-                    lodAppend = null;
-                else if (!lodSettings.Equals(default))
-                    lodAppend = null;
+                if (lodAppend.lod1Mesh == null)
+                    lodAppend1Null = true;
+                else if (lodAppend.useOverrideMaterialsForLod1 && (lodAppend.overrideMaterialsForLod1 == null || lodAppend.overrideMaterialsForLod1.Count == 0))
+                    lodAppend1Null = true;
                 else
-                    totalMms += lodAppend.useOverrideMaterials ? lodAppend.overrideMaterials.Count : totalMms;
+                    totalMms    += lodAppend.useOverrideMaterialsForLod1 ? lodAppend.overrideMaterialsForLod1.Count : totalMms;
+                lodAppend1Count  = totalMms - m_materialsCache.Count;
+
+                if (!lodAppend.enableLod2)
+                    lodAppend2Null = true;
+                else if (lodAppend.lod2Mesh == null)
+                    lodAppend2Null = true;
+                else if (lodAppend.useOverrideMaterialsForLod2 && (lodAppend.overrideMaterialsForLod2 == null || lodAppend.overrideMaterialsForLod2.Count == 0))
+                    lodAppend2Null = true;
+                else
+                    totalMms += lodAppend.useOverrideMaterialsForLod2 ? lodAppend.overrideMaterialsForLod2.Count : totalMms;
             }
             Span<MeshMaterialSubmeshSettings> mms = stackalloc MeshMaterialSubmeshSettings[totalMms];
             if (lodAppend != null)
             {
                 var lod0 = mms.Slice(0, m_materialsCache.Count);
-                RenderingBakingTools.ExtractMeshMaterialSubmeshes(lod0, mesh,                m_materialsCache, 0x01);
-                var lod1     = mms.Slice(m_materialsCache.Count);
-                var lod1Mats = lodAppend.useOverrideMaterials ? lodAppend.overrideMaterials : m_materialsCache;
-                RenderingBakingTools.ExtractMeshMaterialSubmeshes(lod1, lodAppend.loResMesh, lod1Mats,         0xfe);
+                RenderingBakingTools.ExtractMeshMaterialSubmeshes(lod0, mesh, m_materialsCache, 0x01);
+                if (!lodAppend1Null)
+                {
+                    var lod1     = mms.Slice(m_materialsCache.Count, lodAppend1Count);
+                    var lod1Mats = lodAppend.useOverrideMaterialsForLod1 ? lodAppend.overrideMaterialsForLod1 : m_materialsCache;
+                    RenderingBakingTools.ExtractMeshMaterialSubmeshes(lod1, lodAppend.lod1Mesh, lod1Mats, (byte)(lodAppend.enableLod2 ? 0x02 : 0xfe));
+                }
+
+                if (!lodAppend2Null)
+                {
+                    var lod2     = mms.Slice(m_materialsCache.Count + lodAppend1Count);
+                    var lod2Mats = lodAppend.useOverrideMaterialsForLod2 ? lodAppend.overrideMaterialsForLod2 : m_materialsCache;
+                    RenderingBakingTools.ExtractMeshMaterialSubmeshes(lod2, lodAppend.lod2Mesh, lod2Mats, 0xfc);
+                }
             }
             else
                 RenderingBakingTools.ExtractMeshMaterialSubmeshes(mms, mesh, m_materialsCache);
@@ -471,16 +507,29 @@ namespace Latios.Kinemation.Authoring
                 localBounds                 = mesh != null ? mesh.bounds : default,
             };
 
-            MmiRange2LodSelect selectLod = default;
+            MmiRange2LodSelect select2Lod = default;
+            MmiRange3LodSelect select3Lod = default;
             if (lodAppend != null)
             {
-                selectLod.height                       = math.cmax(rendererSettings.localBounds.extents) * 2f;
-                selectLod.fullLod0ScreenHeightFraction = (half)(lodAppend.lodTransitionMaxPercentage / 100f);
-                selectLod.fullLod1ScreenHeightFraction = (half)(lodAppend.lodTransitionMinPercentage / 100f);
-                if (lodAppend.lodTransitionMaxPercentage < lodAppend.lodTransitionMinPercentage) // Be nice to the designers
-                    (selectLod.fullLod1ScreenHeightFraction, selectLod.fullLod0ScreenHeightFraction) =
-                        (selectLod.fullLod0ScreenHeightFraction, selectLod.fullLod1ScreenHeightFraction);
-                AddComponent(                   entity, selectLod);
+                if (!lodAppend.enableLod2)
+                {
+                    select2Lod.height                       = math.cmax(rendererSettings.localBounds.extents) * 2f * math.select(1f, -1f, lodAppend.lod1Mesh == null);
+                    select2Lod.fullLod0ScreenHeightFraction = (half)(lodAppend.lod01TransitionMaxPercentage / 100f);
+                    select2Lod.fullLod1ScreenHeightFraction = (half)(lodAppend.lod01TransitionMinPercentage / 100f);
+                    if (lodAppend.lod01TransitionMaxPercentage < lodAppend.lod01TransitionMinPercentage) // Be nice to the designers
+                        (select2Lod.fullLod1ScreenHeightFraction, select2Lod.fullLod0ScreenHeightFraction) =
+                            (select2Lod.fullLod0ScreenHeightFraction, select2Lod.fullLod1ScreenHeightFraction);
+                    AddComponent(entity, select2Lod);
+                }
+                else
+                {
+                    select3Lod.height                          = math.cmax(rendererSettings.localBounds.extents) * 2f * math.select(1f, -1f, lodAppend.lod2Mesh == null);
+                    select3Lod.fullLod0ScreenHeightFraction    = (half)(lodAppend.lod01TransitionMaxPercentage / 100f);
+                    select3Lod.fullLod1ScreenHeightMaxFraction = (half)(lodAppend.lod01TransitionMinPercentage / 100f);
+                    select3Lod.fullLod1ScreenHeightMinFraction = (half)(lodAppend.lod12TransitionMaxPercentage / 100f);
+                    select3Lod.fullLod2ScreenHeightFraction    = (half)(lodAppend.lod12TransitionMinPercentage / 100f);
+                    AddComponent(entity, select3Lod);
+                }
                 AddComponent<UseMmiRangeLodTag>(entity);
                 AddComponent<LodCrossfade>(     entity);
             }
@@ -498,7 +547,10 @@ namespace Latios.Kinemation.Authoring
                 var additionalEntity = CreateAdditionalEntity(TransformUsageFlags.Renderable, false, $"{GetName()}-TransparentRenderEntity");
                 if (lodAppend != null)
                 {
-                    AddComponent(                   additionalEntity, selectLod);
+                    if (!lodAppend.enableLod2)
+                        AddComponent(additionalEntity, select2Lod);
+                    else
+                        AddComponent(additionalEntity, select3Lod);
                     AddComponent<UseMmiRangeLodTag>(additionalEntity);
                     AddComponent<LodCrossfade>(     additionalEntity);
                 }

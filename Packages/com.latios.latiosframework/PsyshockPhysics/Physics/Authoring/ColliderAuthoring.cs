@@ -15,7 +15,7 @@ namespace Latios.Psyshock.Authoring
     }
 
     [DisallowMultipleComponent]
-    [AddComponentMenu("Latios/Physics (Psyshock)/Custom Collider")]
+    [AddComponentMenu("Latios/Psyshock/Custom Collider (Psyshock)")]
     public class ColliderAuthoring : MonoBehaviour
     {
         private void OnEnable()
@@ -38,8 +38,7 @@ namespace Latios.Psyshock.Authoring
 
         public bool Bake(ColliderAuthoring authoring, IBaker baker)
         {
-            if (!authoring.enabled)
-                return false;
+            // Reminder: Unity does not bake disabled components!
             if (authoring.colliderType == AuthoringColliderTypes.None)
                 return false;
 
