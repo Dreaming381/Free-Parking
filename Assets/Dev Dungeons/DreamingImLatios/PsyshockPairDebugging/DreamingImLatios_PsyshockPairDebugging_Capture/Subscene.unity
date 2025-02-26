@@ -13,7 +13,7 @@ OcclusionCullingSettings:
 --- !u!104 &2
 RenderSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 9
+  serializedVersion: 10
   m_Fog: 0
   m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   m_FogMode: 3
@@ -38,13 +38,12 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 12
-  m_GIWorkflowMode: 1
+  serializedVersion: 13
+  m_BakeOnSceneLoad: 0
   m_GISettings:
     serializedVersion: 2
     m_BounceScale: 1
@@ -67,9 +66,6 @@ LightmapSettings:
     m_LightmapParameters: {fileID: 0}
     m_LightmapsBakeMode: 1
     m_TextureCompression: 1
-    m_FinalGather: 0
-    m_FinalGatherFiltering: 1
-    m_FinalGatherRayCount: 256
     m_ReflectionCompression: 2
     m_MixedBakeMode: 2
     m_BakeBackend: 1
@@ -180,6 +176,9 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -285,6 +284,9 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -639,6 +641,9 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -719,95 +724,79 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isLive: 1
   reset: 0
-  hex: 01020000000000000000000000000000000000003f0000003f0000003f00000000000000000000000000000000000000003e647939d68ce83ec95dcb39041264bf2974a7bf5e000040b1c29c41000000000000803f0000803f0000803f0000803f020000000000000000000000000000000000003f0000003f0000003f0000000000000000000000000000000000000000149988bd2b0e883d6b34343fe53934bfcf6a02bfb9f47f3f9ff69841000000000000803f0000803f0000803f0000803f00002041
+  hex: 0101000000000000000000003f000000000000003f000000000000883f00000000000000000000000000000000000000000000000000000000000000000000803fbad41a42db0448bf9824d342000000000000803f0000803f0000803f0000803f01000000000000000000003f000000000000003f000000000000883f00000000000000000000000000000000000000000000000000000000000000000000803fbad41a42db0448bf9824d342000000000000803f0000803f0000803f0000803f00000000
   closestColliderDistance:
     hit: 1
     hitpointA:
-      x: -0.6909322
-      y: 1.4994621
-      z: 19.595005
+      x: NaN
+      y: NaN
+      z: NaN
     hitpointB:
-      x: -0.6909323
-      y: 1.4996091
-      z: 19.595005
+      x: NaN
+      y: NaN
+      z: NaN
     normalA:
-      x: 0.5716147
-      y: -0.70765525
-      z: -0.41530794
+      x: NaN
+      y: NaN
+      z: NaN
     normalB:
-      x: -0.1326484
-      y: 0.70683503
-      z: 0.69482994
-    distance: -0.00014691464
+      x: NaN
+      y: NaN
+      z: NaN
+    distance: -1
     subColliderIndexA: 0
     subColliderIndexB: 0
   closestContacts:
     hit: 1
     contactNormal:
-      x: -0.00040551502
-      y: 0.99999994
-      z: -3.6379788e-11
+      x: NaN
+      y: NaN
+      z: NaN
     contactPointPairs:
     - a:
-        x: -1.0943774
-        y: 1.4995948
-        z: 19.518019
+        x: NaN
+        y: NaN
+        z: NaN
       b:
-        x: -1.0943775
-        y: 1.4998227
-        z: 19.518019
-    - a:
-        x: -0.6909323
-        y: 1.4996091
-        z: 19.595005
-      b:
-        x: -0.6909322
-        y: 1.4994622
-        z: 19.595005
+        x: NaN
+        y: NaN
+        z: NaN
   allColliderDistances:
   - hit: 1
     hitpointA:
-      x: -0.6909322
-      y: 1.4994621
-      z: 19.595005
+      x: NaN
+      y: NaN
+      z: NaN
     hitpointB:
-      x: -0.6909323
-      y: 1.4996091
-      z: 19.595005
+      x: NaN
+      y: NaN
+      z: NaN
     normalA:
-      x: 0.5716147
-      y: -0.70765525
-      z: -0.41530794
+      x: NaN
+      y: NaN
+      z: NaN
     normalB:
-      x: -0.1326484
-      y: 0.70683503
-      z: 0.69482994
-    distance: -0.00014691464
+      x: NaN
+      y: NaN
+      z: NaN
+    distance: -1
     subColliderIndexA: 0
     subColliderIndexB: 0
   allContacts:
   - hit: 1
     contactNormal:
-      x: -0.00040551502
-      y: 0.99999994
-      z: -3.6379788e-11
+      x: NaN
+      y: NaN
+      z: NaN
     contactPointPairs:
     - a:
-        x: -1.0943774
-        y: 1.4995948
-        z: 19.518019
+        x: NaN
+        y: NaN
+        z: NaN
       b:
-        x: -1.0943775
-        y: 1.4998227
-        z: 19.518019
-    - a:
-        x: -0.6909323
-        y: 1.4996091
-        z: 19.595005
-      b:
-        x: -0.6909322
-        y: 1.4994622
-        z: 19.595005
+        x: NaN
+        y: NaN
+        z: NaN
 --- !u!114 &905665546
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -822,10 +811,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   colliderA: {fileID: 234203941}
   colliderB: {fileID: 1918211546}
-  hexString: 01020000000000000000000000000000000000003f0000003f0000003f00000000000000000000000000000000000000003e647939d68ce83ec95dcb39041264bf2974a7bf5e000040b1c29c41000000000000803f0000803f0000803f0000803f020000000000000000000000000000000000003f0000003f0000003f0000000000000000000000000000000000000000149988bd2b0e883d6b34343fe53934bfcf6a02bfb9f47f3f9ff69841000000000000803f0000803f0000803f0000803f0000a040
+  hexString: 0101000000000000000000003f000000000000003f000000000000883f00000000000000000000000000000000000000000000000000000000000000000000803fbad41a42db0448bf9824d342000000000000803f0000803f0000803f0000803f01000000000000000000003f000000000000003f000000000000883f00000000000000000000000000000000000000000000000000000000000000000000803fbad41a42db0448bf9824d342000000000000803f0000803f0000803f0000803f264b493d
   useHexString: 1
-  maxDistance: 10
-  drawOperation: 3
+  maxDistance: 0
+  drawOperation: 1
   rebakeToggle: 0
 --- !u!4 &905665547
 Transform:
@@ -1072,6 +1061,9 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1178,6 +1170,9 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:

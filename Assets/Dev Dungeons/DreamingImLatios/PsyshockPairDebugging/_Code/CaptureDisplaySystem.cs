@@ -46,6 +46,7 @@ namespace DreamingImLatios.PsyshockPairDebugging.Systems
                 var aabbA = Physics.AabbFrom(colliderA, transformA);
                 PhysicsDebug.DrawAabb(aabbA, UnityEngine.Color.red);
                 PhysicsDebug.DrawCollider(colliderA, transformA, UnityEngine.Color.green);
+                PhysicsDebug.DrawCollider(colliderB, transformB, UnityEngine.Color.blue);
                 //if (colliderA.type == ColliderType.Compound)
                 //{
                 //    CompoundCollider compound = colliderA;
