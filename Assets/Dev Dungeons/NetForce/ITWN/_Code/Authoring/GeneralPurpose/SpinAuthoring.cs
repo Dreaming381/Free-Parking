@@ -26,7 +26,7 @@ namespace NetForce.Authoring
             });
 
             if (authoring.applyInWorldSpace)
-                this.AddHiearchyModeFlags(entity, Latios.Transforms.HierarchyUpdateMode.Flags.WorldRotation);
+                this.AddHierarchyModeFlags(entity, Latios.Transforms.HierarchyUpdateMode.Flags.WorldRotation);
         }
     }
 }

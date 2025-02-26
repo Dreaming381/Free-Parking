@@ -172,6 +172,26 @@ namespace Latios.Kinemation.Authoring
     /// </summary>
     public static partial class RenderingBakingTools
     {
+        static Mesh s_uniqueMeshPlaceholder = null;
+
+        /// <summary>
+        /// Gets a Unique Mesh Placeholder
+        /// </summary>
+        public static Mesh uniqueMeshPlaceholder
+        {
+            get
+            {
+                if (s_uniqueMeshPlaceholder == null)
+                {
+#if UNITY_EDITOR
+                    s_uniqueMeshPlaceholder =
+                        UnityEditor.AssetDatabase.LoadAssetAtPath<Mesh>("Packages/com.latios.latiosframework/Kinemation/Authoring/UniqueMeshPlaceholder.asset");
+#endif
+                }
+                return s_uniqueMeshPlaceholder;
+            }
+        }
+
         /// <summary>
         /// Extracts the mesh and materials combination into the destination span of MeshMaterialSubmeshSettings
         /// </summary>
@@ -180,10 +200,13 @@ namespace Latios.Kinemation.Authoring
         /// <param name="sharedMaterials">The list of shared materials, where a MeshMaterialSubmeshSettings will be created for each
         /// material using a submesh of the corresponding index</param>
         /// <param name="lodMask">A LOD mask for up to 8 LODs that all MaterialMeshSubmehsSettings in the span should use</param>
+        /// <param name="clampSubmeshes">If there are more materials than submeshes, this forces all extra materials to use the last submesh,
+        /// matching the behavior of Mesh Renderer</param>
         public static void ExtractMeshMaterialSubmeshes(Span<MeshMaterialSubmeshSettings> dst,
                                                         Mesh mesh,
                                                         List<Material>                    sharedMaterials,
-                                                        byte lodMask = MeshMaterialSubmeshSettings.kDefaultLodMask)
+                                                        byte lodMask        = MeshMaterialSubmeshSettings.kDefaultLodMask,
+                                                        bool clampSubmeshes = true)
         {
             if (sharedMaterials == null)
                 return;
@@ -191,13 +214,14 @@ namespace Latios.Kinemation.Authoring
             if (dst.Length < sharedMaterials.Count)
                 throw new ArgumentException("dst is not large enough to contain sharedMaterials", "dst");
 
+            var lastSubmesh = mesh.subMeshCount - 1;
             for (int i = 0; i < sharedMaterials.Count; i++)
             {
                 dst[i] = new MeshMaterialSubmeshSettings
                 {
                     mesh     = mesh,
                     material = sharedMaterials[i],
-                    submesh  = (ushort)i,
+                    submesh  = (ushort)(clampSubmeshes ? math.min(lastSubmesh, i) : i),
                     lodMask  = lodMask
                 };
             }
@@ -458,7 +482,7 @@ namespace Latios.Kinemation.Authoring
                 else if (lodAppend.useOverrideMaterialsForLod1 && (lodAppend.overrideMaterialsForLod1 == null || lodAppend.overrideMaterialsForLod1.Count == 0))
                     lodAppend1Null = true;
                 else
-                    totalMms    += lodAppend.useOverrideMaterialsForLod1 ? lodAppend.overrideMaterialsForLod1.Count : totalMms;
+                    totalMms    += lodAppend.useOverrideMaterialsForLod1 ? lodAppend.overrideMaterialsForLod1.Count : m_materialsCache.Count;
                 lodAppend1Count  = totalMms - m_materialsCache.Count;
 
                 if (!lodAppend.enableLod2)
@@ -468,7 +492,7 @@ namespace Latios.Kinemation.Authoring
                 else if (lodAppend.useOverrideMaterialsForLod2 && (lodAppend.overrideMaterialsForLod2 == null || lodAppend.overrideMaterialsForLod2.Count == 0))
                     lodAppend2Null = true;
                 else
-                    totalMms += lodAppend.useOverrideMaterialsForLod2 ? lodAppend.overrideMaterialsForLod2.Count : totalMms;
+                    totalMms += lodAppend.useOverrideMaterialsForLod2 ? lodAppend.overrideMaterialsForLod2.Count : m_materialsCache.Count;
             }
             Span<MeshMaterialSubmeshSettings> mms = stackalloc MeshMaterialSubmeshSettings[totalMms];
             if (lodAppend != null)
@@ -477,6 +501,12 @@ namespace Latios.Kinemation.Authoring
                 RenderingBakingTools.ExtractMeshMaterialSubmeshes(lod0, mesh, m_materialsCache, 0x01);
                 if (!lodAppend1Null)
                 {
+                    if (lodAppend.lod1Mesh.subMeshCount != mesh.subMeshCount && !lodAppend.useOverrideMaterialsForLod1)
+                    {
+                        UnityEngine.Debug.LogWarning(
+                            $"In {authoring.gameObject.name}, lod1Mesh {lodAppend.lod1Mesh.name} has a different submesh count {lodAppend.lod1Mesh.subMeshCount} than the main mesh {mesh.name} count {mesh.subMeshCount}, but does not use override materials. This will often lead to incorrect rendering.");
+                    }
+
                     var lod1     = mms.Slice(m_materialsCache.Count, lodAppend1Count);
                     var lod1Mats = lodAppend.useOverrideMaterialsForLod1 ? lodAppend.overrideMaterialsForLod1 : m_materialsCache;
                     RenderingBakingTools.ExtractMeshMaterialSubmeshes(lod1, lodAppend.lod1Mesh, lod1Mats, (byte)(lodAppend.enableLod2 ? 0x02 : 0xfe));
@@ -484,6 +514,12 @@ namespace Latios.Kinemation.Authoring
 
                 if (!lodAppend2Null)
                 {
+                    if (lodAppend.lod2Mesh.subMeshCount != mesh.subMeshCount && !lodAppend.useOverrideMaterialsForLod2)
+                    {
+                        UnityEngine.Debug.LogWarning(
+                            $"In {authoring.gameObject.name}, lod2Mesh {lodAppend.lod2Mesh.name} has a different submesh count {lodAppend.lod2Mesh.subMeshCount} than the main mesh {mesh.name} count {mesh.subMeshCount}, but does not use override materials. This will often lead to incorrect rendering.");
+                    }
+
                     var lod2     = mms.Slice(m_materialsCache.Count + lodAppend1Count);
                     var lod2Mats = lodAppend.useOverrideMaterialsForLod2 ? lodAppend.overrideMaterialsForLod2 : m_materialsCache;
                     RenderingBakingTools.ExtractMeshMaterialSubmeshes(lod2, lodAppend.lod2Mesh, lod2Mats, 0xfc);

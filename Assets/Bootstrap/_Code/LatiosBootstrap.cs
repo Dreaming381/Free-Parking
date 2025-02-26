@@ -15,24 +15,25 @@ namespace FreeParking.Bootstrap
             Latios.Transforms.Authoring.TransformsBakingBootstrap.InstallLatiosTransformsBakers(ref context);
             Latios.Psyshock.Authoring.PsyshockBakingBootstrap.InstallUnityColliderBakers(ref context);
             Latios.Kinemation.Authoring.KinemationBakingBootstrap.InstallKinemation(ref context);
-            Latios.Mimic.Authoring.MimicBakingBootstrap.InstallMecanimAddon(ref context);
         }
     }
 
     [UnityEngine.Scripting.Preserve]
     public class LatiosEditorBootstrap : ICustomEditorBootstrap
     {
-        public World InitializeOrModify(World defaultEditorWorld)
+        public World Initialize(string defaultEditorWorldName)
         {
-            var world                        = new LatiosWorld(defaultEditorWorld.Name, defaultEditorWorld.Flags);
+            var world                        = new LatiosWorld(defaultEditorWorldName, WorldFlags.Editor);
             world.zeroToleranceForExceptions = true;
 
             var systems = DefaultWorldInitialization.GetAllSystemTypeIndices(WorldSystemFilterFlags.Default, true);
-            BootstrapTools.InjectSystems(systems, world, world.simulationSystemGroup);
+            BootstrapTools.InjectUnitySystems(systems, world, world.simulationSystemGroup);
 
             Latios.Transforms.TransformsBootstrap.InstallTransforms(world, world.simulationSystemGroup);
             Latios.Kinemation.KinemationBootstrap.InstallKinemation(world);
             Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphics(world);
+
+            BootstrapTools.InjectRootSuperSystems(systems, world, world.simulationSystemGroup);
 
             return world;
         }
@@ -58,7 +59,6 @@ namespace FreeParking.Bootstrap
             Latios.Transforms.TransformsBootstrap.InstallTransforms(world, world.simulationSystemGroup);
             Latios.Myri.MyriBootstrap.InstallMyri(world);
             Latios.Kinemation.KinemationBootstrap.InstallKinemation(world);
-            Latios.Mimic.MimicBootstrap.InstallMecanimAddon(world);
             Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphics(world);
             Latios.Calligraphics.CalligraphicsBootstrap.InstallCalligraphicsAnimations(world);
 

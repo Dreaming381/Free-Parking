@@ -84,7 +84,6 @@ namespace Latios.Kinemation.Systems
 
             GetOrCreateAndAddUnmanagedSystem<EndPerFrameMeshDeformBuffersUploadSystem>();
             GetOrCreateAndAddUnmanagedSystem<ClearPerFrameCullingMasksSystem>();
-            GetOrCreateAndAddManagedSystem<KinemationCustomGraphicsSetupSuperSystem>();
             GetOrCreateAndAddUnmanagedSystem<InitializeAndClassifyPerFrameDeformMetadataSystem>();
             GetOrCreateAndAddUnmanagedSystem<PrepareLODsSystem>();
             GetOrCreateAndAddUnmanagedSystem<LatiosLightProbeUpdateSystem>();
@@ -228,6 +227,16 @@ namespace Latios.Kinemation.Systems
             GetOrCreateAndAddUnmanagedSystem<CopyDeformCullingSystem>();
             GetOrCreateAndAddUnmanagedSystem<SelectMmiRangeLodsSystem>();
             GetOrCreateAndAddUnmanagedSystem<GenerateBrgDrawCommandsSystem>();
+
+            SetRateManagerCreateAllocator(null);
+        }
+
+        protected override unsafe void OnUpdate()
+        {
+            var old = World.CurrentGroupAllocators;
+            World.SetGroupAllocator(RateGroupAllocators);
+            base.OnUpdate();
+            World.RestoreGroupAllocator(old);
         }
     }
 
@@ -250,6 +259,16 @@ namespace Latios.Kinemation.Systems
 
             GetOrCreateAndAddUnmanagedSystem<ApplyDispatchMasksToFrameMasksSystem>();
             GetOrCreateAndAddUnmanagedSystem<SetRenderVisibilityFeedbackFlagsSystem>();
+
+            SetRateManagerCreateAllocator(null);
+        }
+
+        protected override unsafe void OnUpdate()
+        {
+            var old = World.CurrentGroupAllocators;
+            World.SetGroupAllocator(RateGroupAllocators);
+            base.OnUpdate();
+            World.RestoreGroupAllocator(old);
         }
     }
 

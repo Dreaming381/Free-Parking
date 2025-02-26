@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using AOT;
 using Latios.Kinemation;
 using Latios.Kinemation.Systems;
 using Unity.Burst;
@@ -74,6 +75,7 @@ namespace Latios.LifeFX.Systems
                 latiosWorld.GetCollectionComponent<GraphicsEventPostal>(latiosWorld.worldBlackboardEntity, out var jobsToComplete);
                 jobsToComplete.Complete();
                 m_allocator.Allocator.Rewind();
+                latiosWorld.worldBlackboardEntity.SetCollectionComponentAndDisposeOld(new GraphicsEventPostal(m_allocator.Allocator.Handle));
                 return default;
             }
 
@@ -239,6 +241,7 @@ namespace Latios.LifeFX.Systems
             requestor.Value.PublishInternal(buffer.ToManaged(), start, count);
         }
 
+        [MonoPInvokeCallback(typeof(DispatchDestinationDelegate))]
         static unsafe void DispatchManaged(IntPtr dispatchData)
         {
             ref var data = ref *(DispatchData*)dispatchData;

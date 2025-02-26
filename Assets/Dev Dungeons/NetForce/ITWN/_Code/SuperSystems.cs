@@ -11,7 +11,6 @@ using Unity.Mathematics;
 namespace NetForce.Systems
 {
     [UpdateBefore(typeof(Latios.Transforms.Systems.TransformSuperSystem))]
-    [UpdateBefore(typeof(Latios.Mimic.Addons.Mecanim.Systems.MecanimSuperSystem))]
     public partial class PreTransformsMecanimSuperSystem : BaseInjectSuperSystem
     {
         protected override void CreateSystems()

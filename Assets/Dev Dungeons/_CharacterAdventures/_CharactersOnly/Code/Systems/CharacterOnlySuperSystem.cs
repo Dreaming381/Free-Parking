@@ -11,7 +11,6 @@ using Unity.Mathematics;
 namespace CharacterAdventures.Systems
 {
     [UpdateBefore(typeof(Latios.Transforms.Systems.TransformSuperSystem))]
-    [UpdateBefore(typeof(Latios.Mimic.Addons.Mecanim.Systems.MecanimSuperSystem))]
     public partial class CharacterOnlySuperSystem : RootSuperSystem
     {
         protected override void CreateSystems()
@@ -35,7 +34,7 @@ namespace CharacterAdventures.Systems
     }
 
     [UpdateBefore(typeof(Latios.Transforms.Systems.TransformSuperSystem))]
-    [UpdateAfter(typeof(Latios.Mimic.Addons.Mecanim.Systems.MecanimSuperSystem))]
+    [UpdateAfter(typeof(CharacterOnlySuperSystem))]
     public partial class CharacterOnlyIKSuperSystem : RootSuperSystem
     {
         protected override void CreateSystems()

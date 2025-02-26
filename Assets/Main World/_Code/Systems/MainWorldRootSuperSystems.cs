@@ -9,8 +9,7 @@ using Unity.Mathematics;
 namespace FreeParking.MainWorld.Systems
 {
     [UpdateBefore(typeof(Latios.Transforms.Systems.TransformSuperSystem))]
-    [UpdateBefore(typeof(Latios.Mimic.Addons.Mecanim.Systems.MecanimSuperSystem))]
-    public partial class PreTransformsMecanimSuperSystem : BaseInjectSuperSystem
+    public partial class PreTransformsSuperSystem : BaseInjectSuperSystem
     {
         protected override void CreateSystems()
         {
